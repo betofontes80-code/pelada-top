@@ -1,0 +1,33 @@
+{
+  "id": "./",
+  "name": "Pelada Top - Football Match Manager",
+  "short_name": "Pelada Top",
+  "description": "Sua resenha organizada. Gerenciador completo de partidas com check-in, sorteio inteligente e cronômetro.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f9f9f9",
+  "theme_color": "#dd0000",
+  "categories": ["sports", "utilities"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

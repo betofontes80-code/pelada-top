@@ -1,0 +1,2727 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" name="viewport"/>
+    <title>Pelada Top - Football Match Manager</title>
+
+    <!-- PWA & MOBILE CONFIGURATION (ANDROID, IOS, WINDOWS) -->
+    <link rel="manifest" href="manifest.json"/>
+    <meta name="theme-color" content="#dd0000"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="color-scheme" content="light"/>
+
+    <!-- APPLE / IOS WEBKIT CONFIGURATION -->
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="apple-mobile-web-app-title" content="Pelada Top"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192.png"/>
+    <link rel="apple-touch-icon" href="./logo-transparent.png"/>
+
+    <!-- WINDOWS PWA CONFIGURATION -->
+    <meta name="application-name" content="Pelada Top"/>
+    <meta name="msapplication-TileColor" content="#dd0000"/>
+    <meta name="msapplication-TileImage" content="./icon-192.png"/>
+    <meta name="msapplication-config" content="none"/>
+    <link rel="icon" type="image/png" href="./logo-transparent.png"/>
+
+    <!-- FONTES OFICIAIS DO SEU PROJETO STITCH -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anybody:wght@600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <!-- TAILWIND CSS COM TOKENS EXATOS DO STITCH -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#af0000",
+                        "primary-container": "#dd0000",
+                        "primary-fixed": "#ffdad4",
+                        "on-primary": "#ffffff",
+                        "surface": "#f9f9f9",
+                        "background": "#f9f9f9",
+                        "on-background": "#1a1c1c",
+                        "on-surface": "#1a1c1c",
+                        "on-surface-variant": "#5e3f3a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f3f3f4",
+                        "surface-container": "#eeeeee",
+                        "surface-container-high": "#e8e8e8",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-variant": "#e2e2e2",
+                        "surface-faint": "#f8f8f8",
+                        "surface-tint": "#c00000",
+                        "success-green": "#008542",
+                        "warning-amber": "#ffbf00",
+                        "secondary": "#5f5e5e",
+                        "tertiary": "#555555",
+                        "tertiary-container": "#6d6d6d",
+                        "outline-variant": "#e9bcb5"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Hanken Grotesk", "sans-serif"],
+                        "body-md": ["Hanken Grotesk", "sans-serif"],
+                        "label-md": ["JetBrains Mono", "monospace"],
+                        "headline-lg-mobile": ["Anybody", "sans-serif"],
+                        "display-lg": ["Anybody", "sans-serif"],
+                        "headline-md": ["Anybody", "sans-serif"],
+                        "stat-lg": ["Anybody", "sans-serif"],
+                        "headline-lg": ["Anybody", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            height: -webkit-fill-available;
+            height: 100dvh;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px); }
+        .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 6px); }
+        .pl-safe { padding-left: max(env(safe-area-inset-left, 0px), 0px); }
+        .pr-safe { padding-right: max(env(safe-area-inset-right, 0px), 0px); }
+        
+        /* Barra de rolagem elegante e funcional para Windows, macOS e Linux */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db transparent;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        ::-webkit-scrollbar-track { background: transparent; }
+
+        button, a, input, select {
+            touch-action: manipulation;
+        }
+        .tab-view { display: none; }
+        .tab-view.active { display: flex; }
+        .nav-link.active { color: #af0000; font-weight: bold; }
+        .nav-link.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        @keyframes fade-in-up {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background h-full h-[100dvh] w-full flex flex-col justify-between items-center antialiased select-none overflow-hidden">
+
+    <!-- CABEÇALHO MINIMALISTA: APENAS FOTO DO PERFIL, INFORMAÇÕES E LOGOUT (OCULTO NA TELA DE LOGIN) -->
+    <header id="global-header" class="w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl shrink-0 bg-surface/90 backdrop-blur-xl shadow-[0_1px_4px_rgba(0,0,0,0.03)] pt-safe border-b border-surface-container-highest/60 z-40 hidden transition-all duration-200">
+        <div class="h-12 px-4 flex items-center justify-between py-1.5 w-full">
+            <!-- 1. FOTO DO PERFIL E BADGE DE PAPEL -->
+            <div class="flex items-center gap-2">
+                <div class="cursor-pointer" onclick="trocarAba('perfil')" title="Meu Perfil">
+                    <img id="header-profile-avatar" alt="Foto do Perfil" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/30 shadow-sm hover:ring-primary active:scale-95 transition-all" 
+                         src="https://lh3.googleusercontent.com/aida/AP1WRLtubcc79IzzDnmAA5E-_jLY637WpPxAgZIO1lXh9li3XPAZA1lEP90LkzOtTJwo4VJycWvmudRZaW6tlWEyyyg57omxPqzztGaa_V1dQ_57ttsYnIgGJrfjidmUHEgbROup33OyCvciI8W4AxcU0J_qX0Afj3z4gJ0YnET3eXzfEkiCfHFwxjGeOaVLQM_-PCZo3jYvzxrvItB37sWK69FFR36vmy_s8TT1IaJkLKGE0d30dEQgQlQLNg"/>
+                </div>
+                <div id="header-role-badge" class="select-none pointer-events-none">
+                </div>
+            </div>
+
+            <!-- 2. INFORMAÇÕES E 3. BOTÃO DE LOGOUT -->
+            <div class="flex items-center gap-1.5">
+                <button onclick="abrirModalInfo()" class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container active:scale-95 transition-colors" title="Sobre o App / PIX">
+                    <span class="material-symbols-outlined text-xl">info</span>
+                </button>
+                <button onclick="fazerLogout()" class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container active:scale-95 transition-colors" title="Sair / Logout">
+                    <span class="material-symbols-outlined text-xl">logout</span>
+                </button>
+            </div>
+
+            <!-- Tag de título oculto -->
+            <span id="header-title" class="hidden"></span>
+        </div>
+    </header>
+
+    <!-- ÁREA PRINCIPAL: ALTURA CONTROLADA COM ZERO ROLAGEM EXCESSIVA -->
+    <main class="w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl flex-1 overflow-hidden relative flex flex-col items-center transition-all duration-200">
+
+        <!-- ============================================================== -->
+        <!-- ABA 1: TELA DE LOGIN (FITS 100% SEM NENHUMA ROLAGEM)           -->
+        <!-- ============================================================== -->
+        <section id="view-login" class="tab-view active w-full h-full flex-col justify-center items-center px-4 py-3 relative overflow-y-auto overscroll-contain">
+            <div class="absolute top-[-10%] right-[-10%] w-56 h-56 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- CONTAINER COMPACTO: NÃO ESTICA NEM PROS LADOS NEM PARA CIMA -->
+            <div class="w-full max-w-[340px] md:max-w-[380px] mx-auto my-auto flex flex-col items-center justify-center relative z-10">
+                
+                <!-- Brasão Proporcional e Compacto (Não Esticado) -->
+                <div class="flex flex-col items-center justify-center mb-2 animate-[fade-in-up_0.5s_ease-out]">
+                    <div class="w-[72px] h-[72px] mb-1 flex items-center justify-center shrink-0">
+                        <img alt="Pelada Top Logo" 
+                             width="72" height="72"
+                             class="w-[72px] h-[72px] object-contain aspect-square shrink-0 filter drop-shadow-md transition-transform duration-300 hover:scale-105" 
+                             src="./logo-transparent.png"
+                             onerror="this.src='https://lh3.googleusercontent.com/aida-public/AB6AXuB3ddd2TPwNSS6bnPe2ZBVXC-lxJJc12njkXkwCjL0R75M3PciuHF0eXEjAvmnmCkAUK7RO27xtlK38ZroKBWfJB0R2jSkIdpsF59RHuZ5YS3nUqP_3vS1JowDF44mI6ytnMSTsHOs9p49raNJhlH9GLPwJkvJ5lLf209dR4rRDum2FjEsR4CAex6ComabTbjq0QN1X2Y8rqi1YseLGPQ8KDd2Ean6BmJ27vbcv6noWYaJop4vwpmrWcgB5gy3bzgI7-A'"/>
+                    </div>
+                    <h1 class="font-display-lg text-lg text-on-surface tracking-tight text-center font-bold">Pelada Top</h1>
+                    <p class="font-body-md text-[11px] text-on-surface-variant text-center">Sua resenha organizada.</p>
+                </div>
+
+                <!-- Card de Login Compacto e Proporcional -->
+                <div class="bg-surface-container-lowest rounded-2xl shadow-md p-3.5 flex flex-col gap-2.5 w-full border border-surface-container-highest animate-[fade-in-up_0.6s_ease-out]">
+                    <!-- Alternador de Papel -->
+                    <div class="flex p-0.5 bg-surface-container-low rounded-xl gap-1 relative" id="roleTabs">
+                        <button id="tabRoleJogador" onclick="selecionarRole('jogador')" class="flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold">
+                            Jogador
+                        </button>
+                        <button id="tabRoleAdmin" onclick="selecionarRole('admin')" class="flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface">
+                            Admin
+                        </button>
+                    </div>
+
+                    <!-- Formulário -->
+                    <form class="flex flex-col gap-2" id="loginForm" onsubmit="realizarLogin(event)">
+                        <div class="flex flex-col gap-0.5 relative">
+                            <label class="font-label-md text-[11px] text-on-surface-variant px-1 font-bold" for="login-email">E-mail</label>
+                            <div class="relative flex items-center">
+                                <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-lg">mail</span>
+                                <input class="w-full h-10 pl-9 pr-3 rounded-xl bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary" 
+                                       id="login-email" placeholder="seu@email.com" value="beto@peladatop.com" required="" type="email"/>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-0.5 relative">
+                            <label class="font-label-md text-[11px] text-on-surface-variant px-1 font-bold" for="login-password">Senha</label>
+                            <div class="relative flex items-center">
+                                <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-lg">lock</span>
+                                <input class="w-full h-10 pl-9 pr-10 rounded-xl bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary" 
+                                       id="login-password" placeholder="••••••••" value="123456" required="" type="password"/>
+                                <button class="absolute right-2.5 w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" 
+                                        id="togglePassword" type="button" onclick="alternarVisibilidadeSenha()">
+                                    <span id="icon-senha" class="material-symbols-outlined text-[18px]">visibility_off</span>
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center mt-1 px-0.5">
+                                <button type="button" onclick="abrirModalInfo()" class="font-label-md text-[11px] text-on-surface-variant hover:text-primary flex items-center gap-1 transition-colors group" title="Sobre o Projeto e Chave PIX">
+                                    <span class="material-symbols-outlined text-sm text-primary group-hover:scale-110 transition-transform">info</span>
+                                    <span class="hover:underline font-bold">Sobre o App</span>
+                                </button>
+                                <a class="font-label-md text-[11px] text-primary hover:underline font-bold" href="#" onclick="alert('Dica: use qualquer e-mail e senha para testar!')">Esqueci minha senha</a>
+                            </div>
+                        </div>
+
+                        <button class="w-full mt-1 bg-primary text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md shadow-primary/20 hover:bg-surface-tint active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 py-2.5 font-bold" 
+                                id="loginBtn" type="submit">
+                            <span>Entrar no Jogo</span>
+                            <span class="material-symbols-outlined text-base">arrow_forward</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Rodapé Compacto -->
+                <div class="mt-3 flex flex-col items-center gap-1 text-center w-full">
+                    <p class="font-body-md text-xs text-on-surface-variant">
+                        Ainda não tem conta? 
+                        <button onclick="trocarAba('perfil')" class="text-primary font-bold hover:underline">Cadastre-se</button>
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- ABA 2: JOGADORES (APENAS A LISTA OFICIAL DE PRESENÇA EM TEMPO REAL) -->
+        <!-- ============================================================== -->
+        <section id="view-jogadores" class="tab-view w-full h-full flex-col px-4 py-2.5 gap-2 overflow-hidden">
+            <!-- Header Compacto com Indicador Ao Vivo -->
+            <div class="flex items-center justify-between shrink-0">
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-label-md text-primary tracking-widest uppercase text-[10px] font-bold">Match Day</span>
+                        <span class="text-[9px] bg-primary/10 text-primary px-1.5 py-0.2 rounded font-mono font-bold">Ao Vivo</span>
+                    </div>
+                    <h1 class="font-headline-lg-mobile text-base font-bold text-on-background leading-tight">Ordem de Chegada</h1>
+                </div>
+                <div class="bg-surface-container px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-surface-container-highest shrink-0 shadow-xs">
+                    <span id="badge-tempo-real" class="w-2 h-2 rounded-full bg-success-green animate-pulse" title="Sincronizado em tempo real"></span>
+                    <span id="badge-total-confirmados" class="font-label-md text-[11px] font-bold text-on-surface">12 Confirmados</span>
+                </div>
+            </div>
+
+            <!-- Aviso Rápido de Presença (Para quem ainda não fez Check-in em Config) -->
+            <div id="banner-jogadores-checkin-prompt" class="shrink-0 transition-all">
+                <!-- Preenchido dinamicamente via JS -->
+            </div>
+
+            <!-- Cabeçalho da Lista -->
+            <div class="flex items-center justify-between px-1 shrink-0 pt-0.5">
+                <h3 class="font-label-md text-on-surface-variant uppercase tracking-widest text-[10px] font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs text-primary">format_list_numbered</span>
+                    <span>Lista Oficial de Presença</span>
+                </h3>
+                <span class="font-label-md text-on-surface-variant text-[10px] font-bold">Fitness</span>
+            </div>
+
+            <!-- Lista de Chegada com Container de Rolagem Amplo (Ocupa todo o espaço vertical) -->
+            <div id="lista-jogadores-chegada" class="flex-1 min-h-0 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 content-start overscroll-contain">
+                <!-- Gerado dinamicamente via JS em tempo real -->
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- ABA 3: EQUIPES (SORTEIO COMPACTO COM RESULTADO ROLÁVEL)         -->
+        <!-- ============================================================== -->
+        <section id="view-equipes" class="tab-view w-full h-full flex-col px-4 py-2.5 gap-2 overflow-hidden">
+            <!-- Header Compacto -->
+            <div class="w-full bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between shrink-0 border border-surface-container-highest">
+                <div>
+                    <h1 class="font-headline-lg-mobile text-xs font-bold text-on-surface">Sorteio de Equipes</h1>
+                    <p class="font-body-md text-[10px] text-on-surface-variant">Toque nos botões abaixo (2, 3, 4 ou 5) para sortear automaticamente.</p>
+                </div>
+                <div class="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-lg shrink-0">
+                    <span class="material-symbols-outlined text-xs">auto_awesome</span>
+                    <span class="text-[10px] font-bold">Auto</span>
+                </div>
+            </div>
+
+            <!-- Seletor de Número de Times Compacto -->
+            <div class="grid grid-cols-4 gap-2 shrink-0" id="seletor-qtd-times">
+                <button onclick="escolherQtdTimes(2)" class="time-count-btn py-1.5 rounded-lg bg-surface-container-lowest border border-surface-container-highest shadow-sm flex flex-col items-center justify-center active:scale-95 text-on-surface" data-times="2">
+                    <span class="font-headline-lg-mobile text-base font-bold">2</span>
+                    <span class="font-label-md text-[9px] text-on-surface-variant uppercase font-bold">Times</span>
+                </button>
+                <button onclick="escolherQtdTimes(3)" class="time-count-btn py-1.5 rounded-lg bg-surface-container-lowest border border-surface-container-highest shadow-sm flex flex-col items-center justify-center active:scale-95 text-on-surface" data-times="3">
+                    <span class="font-headline-lg-mobile text-base font-bold">3</span>
+                    <span class="font-label-md text-[9px] text-on-surface-variant uppercase font-bold">Times</span>
+                </button>
+                <button onclick="escolherQtdTimes(4)" class="time-count-btn py-1.5 rounded-lg bg-primary text-on-primary shadow-sm flex flex-col items-center justify-center active:scale-95 relative" data-times="4">
+                    <span class="font-headline-lg-mobile text-base font-bold">4</span>
+                    <span class="font-label-md text-[9px] text-on-primary/90 uppercase font-bold">Times</span>
+                    <div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-on-primary"></div>
+                </button>
+                <button onclick="escolherQtdTimes(5)" class="time-count-btn py-1.5 rounded-lg bg-surface-container-lowest border border-surface-container-highest shadow-sm flex flex-col items-center justify-center active:scale-95 text-on-surface" data-times="5">
+                    <span class="font-headline-lg-mobile text-base font-bold">5</span>
+                    <span class="font-label-md text-[9px] text-on-surface-variant uppercase font-bold">Times</span>
+                </button>
+            </div>
+
+            <!-- Container dos Times Sorteados com Rolagem Suave -->
+            <div id="resultado-times-stitch" class="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+                <div class="flex flex-col gap-1.5 border-b border-surface-container-highest pb-1.5 shrink-0">
+                    <div class="flex items-center justify-between">
+                        <span class="font-label-md text-primary font-bold text-[11px] uppercase tracking-wider flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">sports_soccer</span>
+                            Times Formados
+                        </span>
+                        <button onclick="copiarZapTimes()" class="px-2 py-0.5 rounded-md bg-success-green/15 text-success-green border border-success-green/30 font-mono text-[10px] font-bold flex items-center gap-1 active:scale-95">
+                            <span>📲 Copiar Zap</span>
+                        </button>
+                    </div>
+                    <!-- BOTÃO OFICIAL DE ESCALAR NOS APPS DOS JOGADORES -->
+                    <button onclick="acionarEscalacaoOficial()" id="btn-escalar-oficial" class="w-full py-2 px-3 rounded-xl bg-primary hover:bg-surface-tint text-white font-headline-md text-xs font-black uppercase tracking-wider shadow-md shadow-primary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                        <span class="material-symbols-outlined text-base animate-pulse">campaign</span>
+                        <span>Escalar Times nos Celulares</span>
+                    </button>
+                </div>
+                <div id="cards-times-container" class="flex-1 min-h-0 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 gap-2.5 content-start overscroll-contain">
+                    <!-- Inserido dinamicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- ABA 4: TIMER (100% EM TELA ÚNICA SEM NENHUMA ROLAGEM)           -->
+        <!-- ============================================================== -->
+        <section id="view-timer" class="tab-view w-full h-full flex-col justify-between items-center px-4 py-3 overflow-hidden select-none">
+            <!-- Header do Cronômetro -->
+            <div class="w-full bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between shrink-0 border border-surface-container-highest">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">timer</span>
+                    <div>
+                        <h1 class="font-headline-lg-mobile text-xs font-bold text-on-surface">Cronômetro Oficial</h1>
+                        <p class="font-body-md text-[10px] text-on-surface-variant">Tempo padrão de 10 minutos por partida.</p>
+                    </div>
+                </div>
+                <div id="badge-timer-status" class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-[10px] font-bold border border-surface-container-highest flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                    <span id="badge-timer-txt">Pronto</span>
+                </div>
+            </div>
+
+            <!-- Círculo Radial do Cronômetro em Grande Destaque -->
+            <div class="flex flex-col items-center justify-center my-auto relative">
+                <div class="relative w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center">
+                    <svg class="absolute inset-0 w-full h-full -rotate-90 drop-shadow-sm" viewBox="0 0 100 100">
+                        <circle class="stroke-surface-container-highest" cx="50" cy="50" fill="none" r="44" stroke-width="4"></circle>
+                        <circle id="timer-stroke" class="stroke-primary" cx="50" cy="50" fill="none" r="44" 
+                                stroke-dasharray="276.46" stroke-dashoffset="0" stroke-linecap="round" stroke-width="5" 
+                                style="transition: stroke-dashoffset 1s linear;"></circle>
+                    </svg>
+                    <div class="flex flex-col items-center z-10">
+                        <div id="crono-display-digits" class="font-display-lg text-5xl sm:text-6xl font-black text-on-surface tabular-nums tracking-tighter">10:00</div>
+                        <div class="font-label-md text-[11px] text-primary uppercase tracking-widest font-extrabold mt-1">10 Minutos</div>
+                        <span id="crono-substatus" class="text-[10px] text-on-surface-variant font-medium mt-0.5">Tempo oficial</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles do Cronômetro -->
+            <div class="w-full flex flex-col items-center gap-3 shrink-0 mb-1">
+                <div class="flex justify-center items-center gap-6">
+                    <button onclick="resetarCronometro()" class="w-12 h-12 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant active:scale-95 shadow-sm transition-all" title="Reiniciar 10 minutos">
+                        <span class="material-symbols-outlined text-2xl">restart_alt</span>
+                    </button>
+                    <button onclick="alternarPlayCronometro()" id="btn-crono-play" class="w-18 h-18 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant/40 shadow-sm opacity-60 cursor-not-allowed transition-all border-2 border-dashed border-outline/30" title="Bloqueado: escale os times no sorteio primeiro">
+                        <span id="icon-crono-play" class="material-symbols-outlined text-4xl">lock</span>
+                    </button>
+                    <button onclick="pararCronometro()" class="w-12 h-12 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant active:scale-95 shadow-sm transition-all" title="Parar">
+                        <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">stop</span>
+                    </button>
+                </div>
+
+                <!-- Status de Liberação do Play pela Escalação -->
+                <div id="aviso-play-bloqueado" class="text-[11px] font-bold text-on-surface-variant flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high border border-surface-container-highest transition-all">
+                    <span class="material-symbols-outlined text-sm text-warning-amber">lock</span>
+                    <span id="txt-aviso-play">Escale os times no sorteio para liberar o Play</span>
+                </div>
+
+                <!-- Botão de teste rápido de 10s e apito -->
+                <div class="flex items-center gap-2">
+                    <button onclick="definirTempoTeste(10)" class="px-2.5 py-1 rounded-lg bg-surface-container-low border border-surface-container-highest text-on-surface-variant hover:text-primary text-[10px] font-bold active:scale-95 flex items-center gap-1 shadow-2xs">
+                        <span class="material-symbols-outlined text-xs text-primary">speed</span>
+                        <span>Testar Alarme (10s)</span>
+                    </button>
+                    <button onclick="testarNotificacaoManual()" class="px-2.5 py-1 rounded-lg bg-surface-container-low border border-surface-container-highest text-on-surface-variant hover:text-primary text-[10px] font-bold active:scale-95 flex items-center gap-1 shadow-2xs">
+                        <span class="material-symbols-outlined text-xs text-secondary">sports</span>
+                        <span>Ouvir Apito</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- ABA 5: CONFIGURAÇÕES & GESTÃO DA PELADA                        -->
+        <!-- ============================================================== -->
+        <section id="view-admin" class="tab-view w-full h-full flex-col px-4 py-2.5 gap-2.5 overflow-y-auto overscroll-contain">
+            <!-- Cabeçalho do Painel de Configurações -->
+            <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5 shrink-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-xl">settings</span>
+                    <h2 class="font-headline-md text-sm font-bold text-on-surface">Configurações da Pelada</h2>
+                </div>
+                <span class="font-label-md text-[9px] bg-primary/10 text-primary px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Check-in & Gestão</span>
+            </div>
+
+            <!-- Grade Responsiva: 1 coluna no celular, 2 colunas no tablet/desktop -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 w-full items-start">
+                <!-- Coluna 1 (Celular e Tablet/Desktop) -->
+                <div class="flex flex-col gap-2.5">
+                    <!-- 0. CARD DE AÇÃO: CHECK-IN DO PARTICIPANTE (COM REGRA DOS 500M) -->
+                    <section class="shrink-0 bg-surface-container-lowest shadow-sm rounded-xl p-3 relative overflow-hidden border border-surface-container-highest">
+                        <div id="checkin-status-bar" class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col pl-1">
+                                <div class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm text-primary">how_to_reg</span>
+                                    <h2 id="checkin-status-title" class="font-headline-md text-xs font-bold text-on-surface">Seu Check-in</h2>
+                                </div>
+                                <span id="checkin-local-label" class="text-[10px] font-mono text-gray-500 flex items-center gap-1 mt-0.5">
+                                    <span class="material-symbols-outlined text-xs text-primary">location_on</span>
+                                    <span id="txt-local-pelada" class="truncate max-w-[190px]">R. Abelardo Targino da Fonseca</span>
+                                </span>
+                                <!-- Status de Proximidade (Regra 500m) -->
+                                <div id="checkin-gps-info" class="flex items-center gap-1 mt-1 text-[10px] font-bold text-secondary">
+                                    <span class="material-symbols-outlined text-xs text-warning-amber">radar</span>
+                                    <span id="txt-distancia-campo">Regra: máx. 500m do campo</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1 items-end">
+                                <button onclick="abrirGpsMaps()" class="px-2.5 py-1 bg-surface-container-low rounded-lg text-primary text-[11px] font-bold flex items-center gap-1 shadow-sm active:scale-95" title="Abrir no Google Maps">
+                                    <span class="material-symbols-outlined text-xs">near_me</span>
+                                    <span>GPS</span>
+                                </span>
+                                <button onclick="atualizarLocalizacaoGps(true)" class="px-2 py-0.5 bg-surface-container text-on-surface-variant hover:text-primary rounded text-[9px] font-bold flex items-center gap-0.5 active:scale-95" title="Medir Proximidade">
+                                    <span class="material-symbols-outlined text-[11px]">my_location</span>
+                                    <span>Medir</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button onclick="cliqueBotaoCheckin()" id="btn-checkin-action" 
+                                class="mt-2.5 w-full bg-primary text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider">
+                            <span>Confirmar Presença (Check-in)</span>
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </button>
+                    </section>
+
+                    <!-- 1. LIBERAR / TRAVAR A PELADA (Vestiário & Check-in) -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between">
+                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Status da Pelada:</label>
+                            <span id="admin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-green/10 text-success-green flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span> Vestiário Aberto
+                            </span>
+                        </div>
+                        <button onclick="alternarTravaLista()" id="btn-admin-trava" class="w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-success-green active:scale-[0.98]">
+                            <span id="icone-admin-trava" class="material-symbols-outlined text-base">lock_open</span>
+                            <span id="texto-admin-trava">LISTA ABERTA (CLIQUE P/ TRAVAR)</span>
+                        </button>
+                    </div>
+
+                    <!-- 4. AÇÕES RÁPIDAS DE TESTE -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Ações de Teste:</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="injetarJogadoresSimulados(false)" class="py-2.5 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-surface-container-highest active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-primary text-sm">group_add</span>
+                                <span>Inserir 12 Atletas</span>
+                            </button>
+                            <button onclick="zerarListaConfirmados()" class="py-2.5 bg-red-50 hover:bg-red-100 text-primary rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-red-200 active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                                <span>Limpar Lista</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna 2 (Celular e Tablet/Desktop) -->
+                <div class="flex flex-col gap-2.5">
+                    <!-- 2. CONFIGURAR ENDEREÇO OFICIAL E GPS -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-1.5 shrink-0">
+                        <div class="flex items-center justify-between">
+                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider" for="input-admin-local">Local Oficial da Pelada:</label>
+                            <span class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span class="material-symbols-outlined text-xs">radar</span> Raio: 500m
+                            </span>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <input type="text" id="input-admin-local" value="R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB" 
+                                   class="flex-1 px-3 py-2 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
+                            <button onclick="salvarNovoLocal()" class="px-2.5 py-2 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
+                                Salvar
+                            </button>
+                            <button onclick="abrirGpsMaps()" class="px-2.5 py-2 bg-gray-900 text-white rounded-lg font-label-md text-xs font-bold flex items-center gap-1 active:scale-95 shadow-sm" title="Abrir no Google Maps">
+                                <span class="material-symbols-outlined text-sm">near_me</span>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-7.190405, -34.870103</strong> (Ernesto Geisel, JP). Check-in restrito a 500m.</p>
+                    </div>
+
+                    <!-- 3. GERENCIAR ATLETAS CONFIRMADOS (EDITAR & EXCLUIR JOGADOR) -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-base">manage_accounts</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Gerenciar Jogadores</h3>
+                                <span id="admin-contador-atletas" class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">0 atletas</span>
+                            </div>
+                            <button onclick="abrirModalAdicionarAtleta()" class="px-2.5 py-1 bg-primary text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-sm active:scale-95">
+                                <span class="material-symbols-outlined text-xs">person_add</span>
+                                <span>+ Atleta</span>
+                            </button>
+                        </div>
+
+                        <!-- Lista de Gestão de Atletas (Com botões Editar e Excluir) -->
+                        <div id="admin-lista-atletas-gestao" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1 overscroll-contain">
+                            <!-- Preenchido dinamicamente via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- ABA 6: PERFIL / FICHA DO ATLETA (COMPACTO COM FOTO DA GALERIA) -->
+        <!-- ============================================================== -->
+        <section id="view-perfil" class="tab-view w-full h-full flex-col px-4 py-2 gap-2 overflow-y-auto overscroll-contain">
+            <div class="w-full max-w-md md:max-w-lg mx-auto flex flex-col gap-2">
+                <!-- Foto de Perfil com Botão de + para Abrir a Galeria -->
+                <div class="flex flex-col items-center justify-center shrink-0">
+                    <div class="relative inline-block cursor-pointer group" onclick="document.getElementById('input-foto-galeria').click()">
+                        <img id="perfil-foto-preview" alt="Foto do Jogador" class="w-20 h-20 rounded-full object-cover shadow-md border-2 border-primary/20" 
+                             src="https://lh3.googleusercontent.com/aida/AP1WRLtubcc79IzzDnmAA5E-_jLY637WpPxAgZIO1lXh9li3XPAZA1lEP90LkzOtTJwo4VJycWvmudRZaW6tlWEyyyg57omxPqzztGaa_V1dQ_57ttsYnIgGJrfjidmUHEgbROup33OyCvciI8W4AxcU0J_qX0Afj3z4gJ0YnET3eXzfEkiCfHFwxjGeOaVLQM_-PCZo3jYvzxrvItB37sWK69FFR36vmy_s8TT1IaJkLKGE0d30dEQgQlQLNg">
+                        
+                        <!-- Botão de + exigido para galeria -->
+                        <button aria-label="Adicionar foto da galeria" type="button" 
+                                class="absolute bottom-0 right-0 bg-primary text-on-primary w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 font-bold text-lg leading-none border border-white">
+                            +
+                        </button>
+                    </div>
+                    <input type="file" id="input-foto-galeria" accept="image/*" style="display: none;" onchange="aoCarregarFotoGaleria(event)">
+                    <p class="font-body-md text-[11px] text-secondary mt-0.5">Toque no <strong>+</strong> para foto da galeria</p>
+                </div>
+
+                <!-- Formulário Compacto em Grade -->
+                <form class="flex flex-col gap-2 bg-surface-container-lowest p-3 rounded-xl shadow-sm border border-surface-container-highest shrink-0" id="perfil-form" onsubmit="salvarPerfilAtleta(event)">
+                    <!-- Nome / Apelido -->
+                    <div class="flex flex-col gap-0.5">
+                        <label class="font-label-md text-[10px] font-bold text-secondary" for="atleta-nome">Nome / Apelido</label>
+                        <input class="w-full bg-surface-container-lowest text-on-surface font-body-md px-3 py-1.5 rounded-lg outline-none border border-surface-container-highest focus:border-primary text-xs" 
+                               id="atleta-nome" type="text" value="Beto Artilheiro" required>
+                    </div>
+
+                    <!-- Posição e Condição Física Lado a Lado -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-0.5">
+                            <label class="font-label-md text-[10px] font-bold text-secondary" for="atleta-posicao">Posição</label>
+                            <select class="w-full bg-surface-container-lowest text-on-surface font-body-md px-2 py-1.5 rounded-lg outline-none border border-surface-container-highest focus:border-primary text-xs cursor-pointer" 
+                                    id="atleta-posicao">
+                                <option value="ATA" selected>⚡ Atacante</option>
+                                <option value="MEI">🎯 Meio-Campo</option>
+                                <option value="VOL">🛡️ Volante</option>
+                                <option value="ZAG">🧱 Zagueiro</option>
+                                <option value="LAT">🚀 Lateral</option>
+                                <option value="GOL">🧤 Goleiro</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <label class="font-label-md text-[10px] font-bold text-secondary" for="atleta-condicao">Condição Física</label>
+                            <select class="w-full bg-surface-container-lowest text-on-surface font-body-md px-2 py-1.5 rounded-lg outline-none border border-surface-container-highest focus:border-primary text-xs cursor-pointer" 
+                                    id="atleta-condicao">
+                                <option value="excelente" selected>🏃 100% (Top)</option>
+                                <option value="boa">💪 80% (Boa)</option>
+                                <option value="regular">⚖️ 60% (Ok)</option>
+                                <option value="recuperacao">🩹 Recuperação</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Idade e Peso Lado a Lado -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-0.5">
+                            <label class="font-label-md text-[10px] font-bold text-secondary" for="atleta-idade">Idade</label>
+                            <input class="w-full bg-surface-container-lowest text-on-surface font-body-md px-3 py-1.5 rounded-lg outline-none border border-surface-container-highest focus:border-primary text-xs" 
+                                   id="atleta-idade" max="75" min="14" type="number" value="28" required>
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <label class="font-label-md text-[10px] font-bold text-secondary" for="atleta-peso">Peso (kg)</label>
+                            <input class="w-full bg-surface-container-lowest text-on-surface font-body-md px-3 py-1.5 rounded-lg outline-none border border-surface-container-highest focus:border-primary text-xs" 
+                                   id="atleta-peso" max="150" min="40" step="0.5" type="number" value="75" required>
+                        </div>
+                    </div>
+
+                    <!-- Botão de Salvar -->
+                    <button type="submit" id="btn-salvar-perfil" class="w-full flex items-center justify-center gap-1.5 bg-primary text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm active:scale-[0.98] font-bold text-xs tracking-wider uppercase mt-1">
+                        <span>Salvar Alterações</span>
+                        <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- AVISO EM CASCATA: INSTALADOR DO APP (AO LADO / JUNTO À BARRA DE NAVEGAÇÃO, ATIVADO AO ROLAR) -->
+    <div id="banner-cascata-instalador" 
+         class="fixed bottom-16 right-3 left-3 sm:left-auto sm:right-4 max-w-[340px] z-50 bg-surface-container-lowest/95 backdrop-blur-md rounded-2xl shadow-2xl border border-primary/25 p-2.5 flex items-center justify-between gap-2.5 transition-all duration-500 transform translate-y-32 opacity-0 pointer-events-none">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 shadow-sm">
+                <img src="./logo-transparent.png" alt="Pelada Top" class="w-7 h-7 object-contain" onerror="this.src='./logo.png'">
+            </div>
+            <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-1">
+                    <span class="font-headline-md text-xs font-bold text-on-surface truncate">Instalar Pelada Top</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0"></span>
+                </div>
+                <p class="font-body-md text-[10px] text-on-surface-variant truncate">Toque para baixar no celular</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="instalarAppPwa()" class="px-3 py-1.5 bg-primary hover:bg-surface-tint text-white text-[11px] font-bold rounded-lg shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">install_mobile</span>
+                <span>Instalar</span>
+            </button>
+            <button onclick="fecharBannerCascata()" class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full active:scale-90 transition-colors" title="Dispensar">
+                <span class="material-symbols-outlined text-base">close</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR OFICIAL DO STITCH (DINÂMICA POR PAPEL) -->
+    <nav id="bottom-navbar" class="w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl shrink-0 bg-surface/95 backdrop-blur-xl pb-safe shadow-[0_-1px_6px_rgba(0,0,0,0.04)] border-t border-surface-container-highest z-40 transition-all duration-200">
+        <!-- RENDERIZADO DINAMICAMENTE: JOGADOR (APENAS JOGADORES E PERFIL) OU ADMIN (TODAS AS OPÇÕES) -->
+        <div id="nav-buttons-container" class="flex justify-around items-center h-14 max-w-xl mx-auto">
+        </div>
+    </nav>
+
+    <!-- MODAL INFORMATIVO OFICIAL DO STITCH (APOIE O PROJETO / PIX) -->
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" id="infoModal">
+        <div class="absolute inset-0 bg-on-background/50 backdrop-blur-sm" id="modalBackdrop" onclick="fecharModalInfo()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl shadow-2xl flex flex-col relative z-10 scale-95 transition-transform duration-300 p-4 border border-surface-container-highest">
+            <button class="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-highest transition-colors text-on-surface-variant" onclick="fecharModalInfo()">
+                <span class="material-symbols-outlined text-base">close</span>
+            </button>
+            <div class="flex flex-col items-center text-center mt-1 mb-2">
+                <div class="w-11 h-11 bg-primary/10 rounded-full flex items-center justify-center mb-1.5 text-primary">
+                    <span class="material-symbols-outlined text-2xl">volunteer_activism</span>
+                </div>
+                <h3 class="font-headline-md text-sm font-bold text-on-surface">Apoie o Projeto Pelada Top</h3>
+                <p class="font-body-md text-[11px] text-on-surface-variant mt-0.5 leading-tight">
+                    O Pelada Top é gratuito. Considere pagar um café para o dev!
+                </p>
+            </div>
+            <!-- PIX QR Code Card -->
+            <div class="bg-surface-container rounded-xl p-3 flex flex-col items-center gap-1.5 border-l-4" style="border-left-color: #008542">
+                <img alt="PIX QR Code" class="w-36 h-36 rounded-lg shadow-sm bg-white p-1.5 object-contain" 
+                     src="./pix-qr.png"
+                     onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=043.330.754-40'"/>
+                <div class="w-full flex items-center justify-between bg-surface-container-lowest rounded-lg p-1.5 shadow-sm">
+                    <span class="font-label-md text-[11px] text-on-surface-variant font-mono">043.330.754-40</span>
+                    <button class="w-7 h-7 flex items-center justify-center bg-surface-container text-primary rounded hover:bg-primary hover:text-on-primary transition-colors" 
+                            onclick="copiarChavePix(this)" title="Copiar PIX">
+                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                    </button>
+                </div>
+                <span class="font-label-md text-[9px] text-success-green uppercase tracking-wider font-bold">Chave PIX (CPF)</span>
+            </div>
+            <div class="mt-2.5 text-center border-t border-surface-container pt-2">
+                <p class="font-label-md text-[9px] text-on-surface-variant uppercase tracking-widest font-bold">Versão 2.1.0 • Pelada Top</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR ATLETA (ADMIN/CONFIG) -->
+    <div id="modalEditarAtleta" class="fixed inset-0 z-[110] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="absolute inset-0 bg-on-background/50 backdrop-blur-xs" onclick="fecharModalEditarAtleta()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl shadow-2xl flex flex-col relative z-10 p-4 border border-surface-container-highest">
+            <div class="flex items-center justify-between border-b border-surface-container-highest pb-2 mb-3">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-base">edit</span>
+                    <h3 class="font-headline-md text-sm font-bold text-on-surface">Editar Atleta</h3>
+                </div>
+                <button onclick="fecharModalEditarAtleta()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+            <form id="form-editar-atleta" onsubmit="salvarEdicaoAtleta(event)" class="flex flex-col gap-2.5 text-xs">
+                <input type="hidden" id="edit-atleta-id">
+                <div>
+                    <label class="font-bold text-on-surface-variant text-[10px] uppercase">Nome / Apelido:</label>
+                    <input type="text" id="edit-atleta-nome" required class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase">Posição:</label>
+                        <select id="edit-atleta-posicao" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                            <option value="GOL">Goleiro (GOL)</option>
+                            <option value="ZAG">Zagueiro (ZAG)</option>
+                            <option value="LAT">Lateral (LAT)</option>
+                            <option value="VOL">Volante (VOL)</option>
+                            <option value="MEI">Meio-Campo (MEI)</option>
+                            <option value="ATA">Atacante (ATA)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase">Idade:</label>
+                        <input type="number" id="edit-atleta-idade" min="14" max="75" required class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="font-bold text-on-surface-variant text-[10px] uppercase">Fitness / Físico (%):</label>
+                    <input type="number" id="edit-atleta-fitness" min="50" max="100" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                </div>
+                <div class="flex gap-2 mt-2 pt-2 border-t border-surface-container-highest">
+                    <button type="button" onclick="fecharModalEditarAtleta()" class="flex-1 py-2 rounded-lg bg-surface-container text-on-surface font-bold text-xs active:scale-95">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-2 rounded-lg bg-primary text-white font-bold text-xs shadow-sm active:scale-95">
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADICIONAR ATLETA MANUAL (ADMIN/CONFIG) -->
+    <div id="modalAdicionarAtleta" class="fixed inset-0 z-[110] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="absolute inset-0 bg-on-background/50 backdrop-blur-xs" onclick="fecharModalAdicionarAtleta()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl shadow-2xl flex flex-col relative z-10 p-4 border border-surface-container-highest">
+            <div class="flex items-center justify-between border-b border-surface-container-highest pb-2 mb-3">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-base">person_add</span>
+                    <h3 class="font-headline-md text-sm font-bold text-on-surface">Adicionar Atleta</h3>
+                </div>
+                <button onclick="fecharModalAdicionarAtleta()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+            <form id="form-adicionar-atleta" onsubmit="salvarNovoAtletaManual(event)" class="flex flex-col gap-2.5 text-xs">
+                <div>
+                    <label class="font-bold text-on-surface-variant text-[10px] uppercase">Nome / Apelido:</label>
+                    <input type="text" id="novo-atleta-nome" placeholder="Ex: Rodrigo Cabeça" required class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase">Posição:</label>
+                        <select id="novo-atleta-posicao" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                            <option value="ATA">Atacante (ATA)</option>
+                            <option value="MEI">Meio-Campo (MEI)</option>
+                            <option value="VOL">Volante (VOL)</option>
+                            <option value="ZAG">Zagueiro (ZAG)</option>
+                            <option value="LAT">Lateral (LAT)</option>
+                            <option value="GOL">Goleiro (GOL)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase">Idade:</label>
+                        <input type="number" id="novo-atleta-idade" value="28" min="14" max="75" required class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-2 pt-2 border-t border-surface-container-highest">
+                    <button type="button" onclick="fecharModalAdicionarAtleta()" class="flex-1 py-2 rounded-lg bg-surface-container text-on-surface font-bold text-xs active:scale-95">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-2 rounded-lg bg-primary text-white font-bold text-xs shadow-sm active:scale-95">
+                        Adicionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOTIFICAÇÃO: FIM DE PARTIDA (10 MINUTOS) -->
+    <div id="modalFimDeJogo" class="fixed inset-0 z-[130] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="absolute inset-0 bg-on-background/60 backdrop-blur-sm" onclick="fecharModalFimDeJogo()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm max-h-[90dvh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col items-center text-center relative z-10 p-5 border-2 border-primary/40 animate-[fade-in-up_0.3s_ease-out]">
+            <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2 ring-8 ring-primary/5 animate-bounce">
+                <span class="material-symbols-outlined text-4xl">sports</span>
+            </div>
+            <span class="px-3 py-0.5 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-wider mb-1 shadow-xs">
+                Fim dos 10 Minutos
+            </span>
+            <h3 class="font-display-lg text-lg font-black text-on-surface mt-1">Apito Final! ⏱️⚽</h3>
+            <p class="font-body-md text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+                O tempo de jogo de <strong>10 minutos</strong> chegou ao fim! Próxima equipe preparada para entrar em campo.
+            </p>
+            <div class="w-full flex flex-col gap-2 mt-4 pt-3 border-t border-surface-container-highest">
+                <button onclick="reiniciarPartidaModal()" class="w-full py-2.5 bg-primary text-white rounded-xl font-headline-md text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 active:scale-95 flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">replay</span>
+                    <span>Iniciar Novo Jogo (10m)</span>
+                </button>
+                <button onclick="fecharModalFimDeJogo()" class="w-full py-2 bg-surface-container text-on-surface rounded-xl font-headline-md text-xs font-bold active:scale-95">
+                    Fechar Aviso
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY CENTRAL: NÚMERO GIGANTE DO TIME ESCALADO NO APP DE CADA JOGADOR -->
+    <div id="overlay-time-jogador" class="fixed inset-0 z-[140] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <!-- Fundo escuro com desfoque -->
+        <div class="absolute inset-0 bg-black/85 backdrop-blur-md" onclick="minimizarOverlayTime()"></div>
+
+        <!-- Card Central com Numeral Gigante -->
+        <div class="bg-surface-container-lowest w-full max-w-[340px] md:max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col items-center text-center relative z-10 p-6 border-2 border-primary/50 animate-[fade-in-up_0.3s_ease-out]">
+            
+            <!-- Botão Minimizar / Fechar no topo direito -->
+            <button onclick="minimizarOverlayTime()" class="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 shadow-2xs" title="Minimizar para ver o app">
+                <span class="material-symbols-outlined text-base">close</span>
+            </button>
+
+            <!-- Tag Oficial de Convocação -->
+            <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/25 mb-2">
+                <span class="material-symbols-outlined text-sm animate-bounce">sports_soccer</span>
+                <span class="text-[11px] font-black uppercase tracking-wider">Escalação Oficial</span>
+            </div>
+
+            <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Você foi escalado no:</p>
+
+            <!-- NUMERAL GIGANTE NO CENTRO DA TELA -->
+            <div class="my-3 relative flex items-center justify-center w-36 h-36">
+                <!-- Anel animado -->
+                <div id="overlay-numeral-ring" class="absolute inset-0 rounded-full border-4 border-primary/40 animate-ping opacity-25 pointer-events-none"></div>
+                
+                <div id="overlay-numeral-bg" class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-surface-tint flex items-center justify-center shadow-2xl shadow-primary/40 border-4 border-white/20">
+                    <span id="overlay-numero-time" class="font-display-lg text-7xl sm:text-8xl font-black text-white drop-shadow-md tracking-tighter">1</span>
+                </div>
+            </div>
+
+            <!-- Título do Time -->
+            <h2 id="overlay-nome-time" class="font-display-lg text-2xl font-black text-on-surface tracking-tight">TIME 1</h2>
+            
+            <!-- Status de Aguardo ou Em Jogo -->
+            <div id="overlay-status-partida" class="mt-2 px-3 py-1 rounded-full bg-surface-container text-on-surface text-xs font-bold border border-surface-container-highest flex items-center gap-1.5">
+                <span id="overlay-status-dot" class="w-2 h-2 rounded-full bg-warning-amber animate-pulse"></span>
+                <span id="overlay-txt-status">Aguardando início da partida...</span>
+            </div>
+
+            <!-- Colegas do time -->
+            <div class="w-full mt-3 p-2.5 rounded-xl bg-surface border border-surface-container-highest text-left">
+                <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Seus companheiros de time:</span>
+                <div id="overlay-colegas-time" class="text-xs font-medium text-on-surface line-clamp-3 leading-snug">
+                    Carregando colegas...
+                </div>
+            </div>
+
+            <p class="text-[10px] text-on-surface-variant mt-3">
+                ⏱️ Visível até o início do jogo e sumirá ao fim dos 10 minutos.
+            </p>
+        </div>
+    </div>
+
+    <!-- BANNER FLUTUANTE DE TIME QUANDO MINIMIZADO -->
+    <div id="banner-flutuante-time" onclick="abrirOverlayTime()" class="fixed top-14 left-4 right-4 max-w-md md:max-w-lg mx-auto z-30 bg-primary text-white py-2 px-3.5 rounded-xl shadow-lg border border-white/20 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hidden">
+        <div class="flex items-center gap-2.5">
+            <span id="banner-mini-num" class="w-7 h-7 rounded-full bg-white text-primary font-black text-sm flex items-center justify-center shadow-xs">1</span>
+            <div class="flex flex-col text-left leading-tight">
+                <span class="text-xs font-black" id="banner-mini-titulo">VOCÊ ESTÁ NO TIME 1</span>
+                <span class="text-[10px] opacity-90 font-medium" id="banner-mini-sub">Toque para ver o numeral gigante</span>
+            </div>
+        </div>
+        <span class="material-symbols-outlined text-base">fullscreen</span>
+    </div>
+
+    <!-- JAVASCRIPT OTIMIZADO -->
+    <script>
+        // ==============================================================
+        // DADOS E ESTADO GERAL
+        // ==============================================================
+        let usuarioAtual = JSON.parse(localStorage.getItem('pelada_usuario')) || {
+            nome: 'Beto Artilheiro',
+            posicao: 'ATA',
+            condicao: 'excelente',
+            idade: 28,
+            peso: 75,
+            foto: 'https://lh3.googleusercontent.com/aida/AP1WRLtubcc79IzzDnmAA5E-_jLY637WpPxAgZIO1lXh9li3XPAZA1lEP90LkzOtTJwo4VJycWvmudRZaW6tlWEyyyg57omxPqzztGaa_V1dQ_57ttsYnIgGJrfjidmUHEgbROup33OyCvciI8W4AxcU0J_qX0Afj3z4gJ0YnET3eXzfEkiCfHFwxjGeOaVLQM_-PCZo3jYvzxrvItB37sWK69FFR36vmy_s8TT1IaJkLKGE0d30dEQgQlQLNg',
+            role: 'jogador'
+        };
+
+        let peladaConfig = JSON.parse(localStorage.getItem('pelada_config')) || {};
+        if (!peladaConfig.local || !peladaConfig.local.includes('Abelardo Targino da Fonseca')) {
+            peladaConfig = {
+                listaAberta: true,
+                local: 'R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB',
+                lat: -7.190405,
+                lng: -34.870103,
+                mapsUrl: 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7',
+                raioMaximoMetros: 500,
+                exigirGps: true
+            };
+            localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
+        } else {
+            if (!peladaConfig.lat) peladaConfig.lat = -7.190405;
+            if (!peladaConfig.lng) peladaConfig.lng = -34.870103;
+            if (!peladaConfig.mapsUrl) peladaConfig.mapsUrl = 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7';
+            if (!peladaConfig.raioMaximoMetros) peladaConfig.raioMaximoMetros = 500;
+        }
+
+        let listaConfirmados = JSON.parse(localStorage.getItem('pelada_confirmados')) || [
+            { id: '1', nome: 'Beto Artilheiro', posicao: 'ATA', condicao: 'excelente', idade: 28, hora: '18:40', fitness: 98, foto: usuarioAtual.foto },
+            { id: '2', nome: 'Marcos Silva', posicao: 'GOL', condicao: 'excelente', idade: 31, hora: '18:42', fitness: 95, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_' },
+            { id: '3', nome: 'Diego Costa', posicao: 'MEI', condicao: 'boa', idade: 42, hora: '18:45', fitness: 92, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgUPsqBtwqY-wTXynR-JuTosfEpI-oihJb5PFIeXr75WsV0QP-J_eUqt_gO27HLT0uxXEhL1zVAQOBkIAl6j5a3nQCMFdUx-AgLkxtz_QLXnafJetPeybrjwTin-NQh1D1eIGe1fVQebhJ7B0lFSyv9BRrXxxi50stcf3M9628WLPh2sdLH0F7AUqFOxzunqx3ah3sKBYGcvgE6EkYDOHHhI5wfe72SVasH4oXAJU0z2tK-NXxvI7B' },
+            { id: '4', nome: 'Lucas Moura', posicao: 'ATA', condicao: 'regular', idade: 23, hora: '18:47', fitness: 74, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAyzcRri3mZx0ZcvKW5FXsnPV4ayUzC1W-KdRiKBXl1rUtC4Us7H1an0kcGZSuop3fk7ZrRL73CXPDRawjf8R3xcV9WwkirfUBiNWlvJvwEQt66UDIuWZLO7vcvIEjtSJY9CFqSI0Bay5keXSpoyR5whkC1WpOucC60n3zet1mKr6Xyv5SV3BTXB_YXChTdJA-cpZObxa1a89-ro2zFMDYdRBJN09v2EhRaQ8TlSt1i3PfQSt0P7VPT' },
+            { id: '5', nome: 'Carlos Silva', posicao: 'ATA', condicao: 'excelente', idade: 26, hora: '18:50', fitness: 88, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABblwGh55YW14k26eWxvRk1CHJMBWcbXMVFeRz_m5hEDhbcA0180kKprPICjrmAsYqqSOYExyzmmlKO8Chbu6Iy-K2pM_Ti-Yk3I1dNKd29YauZjFdrPAdF-BDlOn5zVe7Ev6FE9frVzmI7SUK774inGrY3KDrHnjeuzhjIKr1vcm8nZv9J3Jgi_tNjrEKx28qv28kXoQKnWrRrtiTpxKM1MqUX5WLvIzUmezvreDlEYMrhAbYo0Bq' },
+            { id: '6', nome: 'Marcos Paulo', posicao: 'MEI', condicao: 'boa', idade: 39, hora: '18:52', fitness: 85, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy4JkEBsUdGiZBD37jjx8GXKn4bjEGHbZ-vngcS7VFn6gOfRYVhfpzOB-fBgY6QpZec0QoR1819CW_x5zJZdBjnq0I9AXhJm-3iCbGBMvknMpKgeFzQoyyvWljFlv8UkLfM3wkYB-BO-TN9BQExtuW4P0Wug0MUjLGTfTHDDzLDl2gQEPTii8nQn9ZVXbj6w2Zp17puXN8kzWszozwe9rt1gIsGaMxFaExPoB_yHRxNKlH_uTJKs2D' },
+            { id: '7', nome: 'João Pedro', posicao: 'ZAG', condicao: 'boa', idade: 21, hora: '18:55', fitness: 82, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnTjNM5tn1vRLvTcQsJdIXHJPGRgs3Ry9ja5UPJVweNooIqqDwusoMbFIQzmH0pIpayOCzxQojyKe93-vlIC8dvVNPQESlN0Ktg0JIedmU7V8EiopLTP9G2tRabcKyurjobjdQ-njx_Dv--uEjjUYdDd6O0iIX3qYPTqjk5WfMjBEN_5jPeDKKc8NOJlouH-p71Zs9JlGvUxP8ykOV5sedVZQcXk_R_XsgU9Eo6l-7EQ3MPTUkC-Rw' },
+            { id: '8', nome: 'Felipe Costa', posicao: 'ATA', condicao: 'excelente', idade: 29, hora: '18:58', fitness: 87, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcRNqUKxDsswQr0ijLpj7q9IzU__uvIVChxXH2LpWLDqdjAWeaeKtGs0ozhtMOnUWTgZHzC3VdauKmeLavSmAvlpv-QLLooqGG11RGmiXrPHUD6vimG21eiHYUSa3eioUK3XF0YsjhGqGW3lGMgLIu5vqg2jSmLmBTzDmWQP6QmkHmhPdCXZVJolzh_gEyM9aXtMIzgpvK2cz4CJeNIoSSJMoEGXSh2_V4bzNkKC4L6F78HVnhmQuM' },
+            { id: '9', nome: 'Thiago Alves', posicao: 'GOL', condicao: 'boa', idade: 44, hora: '19:00', fitness: 80, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfJPCsl6gZd0_Cj1ihhGyAKW1OPba0Jw-G_lB7C4tGioL7llzyOUXc9E2964dOaxTmfDrAxLWhwMiXCJwbbQ2LTRUL2UNvr3cUUxQ2tEwwQYhJNGr4RwtQl6XU0HWdFOVlIxyN5b8dW4MKvokTloGgquHVPCvZQyYqnwf6k-FwFn0RBoVAu-uMY4r7b3V7kpAuBJLahKFsGjNSG8HdC9v_Hak9UXx5D0BZXr_vNbAMXWqivgzOwkV0' },
+            { id: '10', nome: 'Rodrigo Zagueiro', posicao: 'ZAG', condicao: 'excelente', idade: 40, hora: '19:02', fitness: 84, foto: '' },
+            { id: '11', nome: 'Eduardo Meia', posicao: 'MEI', condicao: 'boa', idade: 33, hora: '19:05', fitness: 86, foto: '' },
+            { id: '12', nome: 'Gabriel Volante', posicao: 'VOL', condicao: 'regular', idade: 22, hora: '19:08', fitness: 76, foto: '' }
+        ];
+
+        let roleSelecionadoLogin = 'jogador';
+        let qtdTimesSorteio = 4;
+        let textoWhatsappGerado = '';
+
+        // Estado da Escalação Oficial e Partida (10 minutos)
+        let escalacaoAtiva = JSON.parse(localStorage.getItem('pelada_escalacao')) || null;
+        let partidaEstado = JSON.parse(localStorage.getItem('pelada_partida_estado')) || { emAndamento: false, finalizada: false, tempoRestante: 600 };
+        let timesGeradosSorteio = [];
+        let overlayTimeMinimizado = false;
+
+        // ==============================================================
+        // SINCRONIZAÇÃO EM TEMPO REAL PARA TODOS OS PARTICIPANTES
+        // (BroadcastChannel + SSE Server-Sent Events + Storage Event)
+        // ==============================================================
+        const realtimeChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('pelada_realtime') : null;
+
+        if (realtimeChannel) {
+            realtimeChannel.onmessage = (event) => {
+                if (event.data && event.data.type === 'SYNC') {
+                    aplicarSincronizacaoRemota(event.data);
+                }
+            };
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'pelada_confirmados' && e.newValue) {
+                try {
+                    listaConfirmados = JSON.parse(e.newValue);
+                    aplicarDadosAtualizados();
+                } catch(err) {}
+            }
+            if (e.key === 'pelada_config' && e.newValue) {
+                try {
+                    peladaConfig = JSON.parse(e.newValue);
+                    aplicarDadosAtualizados();
+                } catch(err) {}
+            }
+            if (e.key === 'pelada_escalacao') {
+                try {
+                    escalacaoAtiva = e.newValue ? JSON.parse(e.newValue) : null;
+                    verificarEExibirNumeralTimeJogador();
+                    atualizarEstadoBotaoPlayTimer();
+                } catch(err) {}
+            }
+            if (e.key === 'pelada_partida_estado') {
+                try {
+                    partidaEstado = e.newValue ? JSON.parse(e.newValue) : { emAndamento: false, finalizada: false, tempoRestante: 600 };
+                    verificarEExibirNumeralTimeJogador();
+                    atualizarEstadoBotaoPlayTimer();
+                } catch(err) {}
+            }
+        });
+
+        function aplicarSincronizacaoRemota(data) {
+            let houveMudanca = false;
+            if (data.listaConfirmados && JSON.stringify(data.listaConfirmados) !== JSON.stringify(listaConfirmados)) {
+                listaConfirmados = data.listaConfirmados;
+                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                houveMudanca = true;
+            }
+            if (data.peladaConfig && JSON.stringify(data.peladaConfig) !== JSON.stringify(peladaConfig)) {
+                peladaConfig = data.peladaConfig;
+                localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
+                houveMudanca = true;
+            }
+            if (data.escalacaoAtiva !== undefined && JSON.stringify(data.escalacaoAtiva) !== JSON.stringify(escalacaoAtiva)) {
+                escalacaoAtiva = data.escalacaoAtiva;
+                localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
+                verificarEExibirNumeralTimeJogador();
+                atualizarEstadoBotaoPlayTimer();
+            }
+            if (data.partidaEstado !== undefined && JSON.stringify(data.partidaEstado) !== JSON.stringify(partidaEstado)) {
+                partidaEstado = data.partidaEstado;
+                localStorage.setItem('pelada_partida_estado', JSON.stringify(partidaEstado));
+                verificarEExibirNumeralTimeJogador();
+                atualizarEstadoBotaoPlayTimer();
+            }
+            if (houveMudanca) {
+                aplicarDadosAtualizados();
+            }
+        }
+
+        function sincronizarServidor() {
+            // 1. Salva localmente
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
+            localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
+            localStorage.setItem('pelada_partida_estado', JSON.stringify(partidaEstado));
+
+            // 2. Sincroniza abas no mesmo dispositivo via BroadcastChannel
+            if (realtimeChannel) {
+                try {
+                    realtimeChannel.postMessage({
+                        type: 'SYNC',
+                        listaConfirmados,
+                        peladaConfig,
+                        escalacaoAtiva,
+                        partidaEstado
+                    });
+                } catch(e) {}
+            }
+
+            // 3. Propaga para todos os outros aparelhos conectados via HTTP POST
+            if (window.location.protocol.startsWith('http')) {
+                fetch('/api/pelada', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ listaConfirmados, peladaConfig, escalacaoAtiva, partidaEstado })
+                }).catch(err => console.warn('[Realtime] Falha no sync servidor:', err.message));
+            }
+        }
+
+        let sseConectado = false;
+        function conectarRealtime() {
+            if (!window.location.protocol.startsWith('http')) {
+                console.log('[Realtime] Rodando via file:///. Sincronização multi-aba via BroadcastChannel ativa.');
+                return;
+            }
+
+            // Busca os dados mais recentes do servidor ao abrir
+            fetch('/api/pelada')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.listaConfirmados || data.peladaConfig) {
+                        aplicarSincronizacaoRemota(data);
+                    }
+                })
+                .catch(() => {});
+
+            // Conecta ao fluxo de eventos em tempo real SSE
+            try {
+                const sse = new EventSource('/api/stream');
+                sse.onopen = () => {
+                    sseConectado = true;
+                    atualizarBadgeConexao(true);
+                };
+                sse.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'SYNC' || msg.type === 'CONNECTED') {
+                            aplicarSincronizacaoRemota(msg);
+                        }
+                    } catch(err) {}
+                };
+                sse.onerror = () => {
+                    sseConectado = false;
+                    atualizarBadgeConexao(false);
+                };
+            } catch(e) {
+                console.warn('[Realtime] Erro SSE:', e);
+            }
+
+            // Polling suave de segurança caso o SSE oscile
+            setInterval(() => {
+                if (!sseConectado && window.location.protocol.startsWith('http')) {
+                    fetch('/api/pelada')
+                        .then(r => r.json())
+                        .then(d => aplicarSincronizacaoRemota(d))
+                        .catch(() => {});
+                }
+            }, 4000);
+        }
+
+        function atualizarBadgeConexao(conectado) {
+            const badge = document.getElementById('badge-tempo-real');
+            if (badge) {
+                if (conectado) {
+                    badge.className = 'w-2 h-2 rounded-full bg-success-green animate-pulse';
+                    badge.title = 'Conectado em tempo real com todos os participantes';
+                } else {
+                    badge.className = 'w-2 h-2 rounded-full bg-warning-amber';
+                    badge.title = 'Modo local';
+                }
+            }
+        }
+
+        function aplicarDadosAtualizados() {
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            renderizarStatusCheckin();
+            realizarSorteioStitch(true);
+            verificarEExibirNumeralTimeJogador();
+            atualizarEstadoBotaoPlayTimer();
+        }
+
+        // ==============================================================
+        // NAVEGAÇÃO DE ABAS (ACESSO LIVRE A TODOS OS PARTICIPANTES)
+        // ==============================================================
+        // NAVEGAÇÃO DE ABAS (JOGADOR = APENAS JOGADORES E PERFIL)
+        // ==============================================================
+        function trocarAba(aba) {
+            // Regra Estrita: Na tela de Jogador é SÓ para liberar Perfil e Jogador! As demais só aparecem no Admin.
+            if (usuarioAtual.role === 'jogador' && ['equipes', 'timer', 'admin'].includes(aba)) {
+                aba = 'jogadores';
+            }
+
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+            const targetView = document.getElementById(`view-${aba}`);
+            const targetLink = document.querySelector(`.nav-link[data-path="${aba}"]`);
+
+            if (targetView) targetView.classList.add('active');
+            if (targetLink) targetLink.classList.add('active');
+
+            const titulos = {
+                login: 'Pelada Top',
+                jogadores: 'Jogadores',
+                equipes: 'Equipes',
+                timer: 'Timer',
+                admin: 'Painel Admin',
+                perfil: 'Perfil'
+            };
+            const headerTitle = document.getElementById('header-title');
+            if (headerTitle) headerTitle.innerText = titulos[aba] || 'Pelada Top';
+
+            const header = document.getElementById('global-header');
+            const navBar = document.getElementById('bottom-navbar');
+            if (aba === 'login') {
+                if (header) header.classList.add('hidden');
+                if (navBar) navBar.style.display = 'none';
+            } else {
+                if (header) header.classList.remove('hidden');
+                if (navBar) navBar.style.display = 'block';
+                if (aba === 'jogadores') {
+                    renderizarListaJogadores();
+                } else if (aba === 'admin') {
+                    renderizarStatusCheckin();
+                    renderizarListaGestaoAdmin();
+                    atualizarLocalizacaoGps(false);
+                } else if (aba === 'equipes') {
+                    realizarSorteioStitch(true);
+                } else if (aba === 'timer') {
+                    atualizarEstadoBotaoPlayTimer();
+                }
+            }
+        }
+
+        function fazerLogout() {
+            trocarAba('login');
+            verificarEExibirNumeralTimeJogador();
+        }
+
+        // ==============================================================
+        // BARRA DE NAVEGAÇÃO POR PAPEL: JOGADOR (2 ABAS) OU ADMIN (TODAS)
+        // ==============================================================
+        function alternarPapelRapido() {
+            // Desativado: o papel é fixo conforme o login e não deve alternar ao tocar no topo.
+            return false;
+        }
+
+        function atualizarNavbarPorRole() {
+            const container = document.getElementById('nav-buttons-container');
+            const badge = document.getElementById('header-role-badge');
+            const nomeExibicao = usuarioAtual.nome || (usuarioAtual.role === 'admin' ? 'Administrador' : 'Jogador');
+            const isAdm = usuarioAtual.role === 'admin';
+
+            if (badge) {
+                badge.innerHTML = `
+                    <div class="flex flex-col text-left leading-tight select-none pointer-events-none">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-on-surface truncate max-w-[120px] sm:max-w-[170px]">${nomeExibicao}</span>
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${isAdm ? 'bg-primary text-white shadow-xs' : 'bg-surface-container text-on-surface-variant border border-surface-container-highest'}">
+                                ${isAdm ? '👑 Admin' : '⚽ Jogador'}
+                            </span>
+                        </div>
+                        <span class="text-[9px] text-on-surface-variant font-medium">Conectado ao app</span>
+                    </div>
+                `;
+            }
+
+            if (usuarioAtual.role === 'jogador') {
+                container.className = "flex justify-around items-center h-14 px-8 w-full";
+                // APENAS OS DOIS BOTÕES LIBERADOS PARA O JOGADOR: JOGADORES E PERFIL!
+                container.innerHTML = `
+                    <button onclick="trocarAba('jogadores')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-28 h-11 transition-colors text-on-surface-variant" data-path="jogadores">
+                        <span class="material-symbols-outlined text-2xl">group</span>
+                        <span class="font-label-md text-[11px] uppercase tracking-wider font-bold">Jogadores</span>
+                    </button>
+                    <button onclick="trocarAba('perfil')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-28 h-11 transition-colors text-on-surface-variant" data-path="perfil">
+                        <span class="material-symbols-outlined text-2xl">person</span>
+                        <span class="font-label-md text-[11px] uppercase tracking-wider font-bold">Perfil</span>
+                    </button>
+                `;
+            } else {
+                container.className = "flex justify-around items-center h-14 px-1 w-full";
+                // AS DEMAIS OPÇÕES SÓ APARECEM NO ADMIN:
+                container.innerHTML = `
+                    <button onclick="trocarAba('jogadores')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-14 h-11 transition-colors text-on-surface-variant" data-path="jogadores">
+                        <span class="material-symbols-outlined text-xl">group</span>
+                        <span class="font-label-md text-[9px] uppercase tracking-wider font-bold">Jogadores</span>
+                    </button>
+                    <button onclick="trocarAba('equipes')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-14 h-11 transition-colors text-on-surface-variant" data-path="equipes">
+                        <span class="material-symbols-outlined text-xl">groups</span>
+                        <span class="font-label-md text-[9px] uppercase tracking-wider font-bold">Equipes</span>
+                    </button>
+                    <button onclick="trocarAba('timer')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-14 h-11 transition-colors text-on-surface-variant" data-path="timer">
+                        <span class="material-symbols-outlined text-xl">timer</span>
+                        <span class="font-label-md text-[9px] uppercase tracking-wider font-bold">Timer</span>
+                    </button>
+                    <button onclick="trocarAba('admin')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-14 h-11 transition-colors text-on-surface-variant" data-path="admin">
+                        <span class="material-symbols-outlined text-xl">admin_panel_settings</span>
+                        <span class="font-label-md text-[9px] uppercase tracking-wider font-bold">Admin</span>
+                    </button>
+                    <button onclick="trocarAba('perfil')" class="nav-link flex flex-col items-center justify-center gap-0.5 w-14 h-11 transition-colors text-on-surface-variant" data-path="perfil">
+                        <span class="material-symbols-outlined text-xl">person</span>
+                        <span class="font-label-md text-[9px] uppercase tracking-wider font-bold">Perfil</span>
+                    </button>
+                `;
+            }
+        }
+
+        // ==============================================================
+        // LOGIN & PAPEL
+        // ==============================================================
+        function selecionarRole(role) {
+            roleSelecionadoLogin = role;
+            const tabJog = document.getElementById('tabRoleJogador');
+            const tabAdm = document.getElementById('tabRoleAdmin');
+
+            if (role === 'jogador') {
+                tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
+                tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+            } else {
+                tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
+                tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+            }
+        }
+
+        function alternarVisibilidadeSenha() {
+            const pwdInput = document.getElementById('login-password');
+            const icon = document.getElementById('icon-senha');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                icon.innerText = 'visibility';
+            } else {
+                pwdInput.type = 'password';
+                icon.innerText = 'visibility_off';
+            }
+        }
+
+        function realizarLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span>';
+
+            setTimeout(() => {
+                btn.innerHTML = orig;
+                usuarioAtual.role = roleSelecionadoLogin;
+                localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                atualizarNavbarPorRole();
+
+                if (usuarioAtual.role === 'admin') {
+                    trocarAba('admin');
+                } else {
+                    trocarAba('jogadores');
+                }
+                verificarEExibirNumeralTimeJogador();
+            }, 400);
+        }
+
+        // ==============================================================
+        // MODAL DO PIX
+        // ==============================================================
+        function abrirModalInfo() {
+            const modal = document.getElementById('infoModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.querySelector('div:last-child').classList.remove('scale-95');
+            modal.querySelector('div:last-child').classList.add('scale-100');
+        }
+
+        function fecharModalInfo() {
+            const modal = document.getElementById('infoModal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.querySelector('div:last-child').classList.remove('scale-100');
+            modal.querySelector('div:last-child').classList.add('scale-95');
+        }
+
+        function copiarChavePix(btn) {
+            navigator.clipboard.writeText('043.330.754-40');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined text-xs text-success-green">check</span>';
+            setTimeout(() => btn.innerHTML = orig, 1500);
+        }
+
+        // ==============================================================
+        // FOTO DO PERFIL COM + DA GALERIA
+        // ==============================================================
+        function aoCarregarFotoGaleria(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const novaFoto = e.target.result;
+                    usuarioAtual.foto = novaFoto;
+                    document.getElementById('perfil-foto-preview').src = novaFoto;
+                    document.getElementById('header-profile-avatar').src = novaFoto;
+                    localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                    renderizarListaJogadores();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function salvarPerfilAtleta(e) {
+            e.preventDefault();
+            const nomeAntigo = usuarioAtual.nome;
+            usuarioAtual.nome = document.getElementById('atleta-nome').value.trim() || 'Atleta';
+            usuarioAtual.posicao = document.getElementById('atleta-posicao').value;
+            usuarioAtual.condicao = document.getElementById('atleta-condicao').value;
+            usuarioAtual.idade = parseInt(document.getElementById('atleta-idade').value) || 28;
+            usuarioAtual.peso = parseFloat(document.getElementById('atleta-peso').value) || 75;
+
+            // Se o atleta já estava na lista de confirmados com o nome anterior, atualiza os dados dele
+            const atletaNaLista = listaConfirmados.find(j => (j.nome || '').trim().toLowerCase() === (nomeAntigo || '').trim().toLowerCase());
+            if (atletaNaLista) {
+                atletaNaLista.nome = usuarioAtual.nome;
+                atletaNaLista.posicao = usuarioAtual.posicao;
+                atletaNaLista.condicao = usuarioAtual.condicao;
+                atletaNaLista.idade = usuarioAtual.idade;
+                if (usuarioAtual.foto) atletaNaLista.foto = usuarioAtual.foto;
+            }
+
+            localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+            sincronizarServidor();
+            atualizarNavbarPorRole();
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+
+            const btn = document.getElementById('btn-salvar-perfil');
+            const orig = btn.innerHTML;
+            btn.className = "w-full flex items-center justify-center gap-1.5 bg-success-green text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm font-bold text-xs tracking-wider uppercase mt-1";
+            btn.innerHTML = '<span>Salvo com Sucesso!</span><span class="material-symbols-outlined text-base">done_all</span>';
+
+            setTimeout(() => {
+                btn.className = "w-full flex items-center justify-center gap-1.5 bg-primary text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm font-bold text-xs tracking-wider uppercase mt-1";
+                btn.innerHTML = orig;
+                trocarAba('jogadores');
+            }, 800);
+        }
+
+        // ==============================================================
+        // CHECK-IN & REGRA DE PROXIMIDADE (ARENA ESQUERDINHA - 500M)
+        // ==============================================================
+        let distanciaAtualMetros = null;
+        let simulandoProximidade = false;
+
+        function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // raio da Terra em metros
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return Math.round(R * c);
+        }
+
+        function atualizarLocalizacaoGps(mostrarAlerta = false) {
+            const txtInfo = document.getElementById('txt-distancia-campo');
+            if (simulandoProximidade) {
+                distanciaAtualMetros = 45;
+                if (txtInfo) txtInfo.innerHTML = '<span class="text-success-green font-bold">📍 A 45m do Campo (Liberado!)</span>';
+                if (mostrarAlerta) alert(`📍 Simulação ativa: Você está a 45m do local oficial (${peladaConfig.local})! Check-in liberado.`);
+                renderizarStatusCheckin();
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                if (txtInfo) txtInfo.innerText = 'GPS não disponível neste navegador';
+                if (mostrarAlerta) alert('Seu navegador não suporta geolocalização.');
+                return;
+            }
+
+            if (txtInfo) txtInfo.innerText = 'Buscando sinal GPS...';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const arenaLat = peladaConfig.lat || -7.190405;
+                    const arenaLng = peladaConfig.lng || -34.870103;
+                    distanciaAtualMetros = calcularDistanciaMetros(lat, lng, arenaLat, arenaLng);
+                    
+                    const raio = peladaConfig.raioMaximoMetros || 500;
+                    if (txtInfo) {
+                        if (distanciaAtualMetros <= raio) {
+                            txtInfo.innerHTML = `<span class="text-success-green font-bold">📍 A ${distanciaAtualMetros}m do Campo (Liberado!)</span>`;
+                        } else {
+                            const km = (distanciaAtualMetros / 1000).toFixed(1);
+                            txtInfo.innerHTML = `<span class="text-primary font-bold">⚠️ A ${km}km do Campo (Máx. 500m)</span>`;
+                        }
+                    }
+
+                    if (mostrarAlerta) {
+                        if (distanciaAtualMetros <= raio) {
+                            alert(`📍 Sinal GPS Confirmado!\nVocê está a ${distanciaAtualMetros}m do local oficial da pelada:\n${peladaConfig.local}\nPode se escalar! 🔥`);
+                        } else {
+                            const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros/1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
+                            const querSimular = confirm(
+                                `📍 Medição GPS Realizada:\n\n` +
+                                `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
+                                `Pela regra da pelada, só pode se escalar quem estiver a menos de 500 metros do campo.\n\n` +
+                                `Deseja simular que você chegou no campo para realizar testes?`
+                            );
+                            if (querSimular) {
+                                simulandoProximidade = true;
+                                distanciaAtualMetros = 45;
+                                atualizarLocalizacaoGps();
+                            }
+                        }
+                    }
+                    renderizarStatusCheckin();
+                },
+                (err) => {
+                    console.warn('Erro GPS:', err.message);
+                    if (txtInfo) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
+                    if (mostrarAlerta) {
+                        const querSimular = confirm(
+                            `Não foi possível obter o sinal GPS exato (${err.message}).\n\n` +
+                            `Local Oficial:\n${peladaConfig.local}\n\n` +
+                            `Deseja simular presença no campo para testar o check-in?`
+                        );
+                        if (querSimular) {
+                            simulandoProximidade = true;
+                            distanciaAtualMetros = 45;
+                            atualizarLocalizacaoGps();
+                        }
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        function renderizarStatusCheckin() {
+            const btn = document.getElementById('btn-checkin-action');
+            const bar = document.getElementById('checkin-status-bar');
+            const title = document.getElementById('checkin-status-title');
+            const txtLocal = document.getElementById('txt-local-pelada');
+            const inputLocal = document.getElementById('input-admin-local');
+
+            if (txtLocal) txtLocal.innerText = peladaConfig.local;
+            if (inputLocal) inputLocal.value = peladaConfig.local;
+
+            const jaConfirmado = listaConfirmados.some(j => j.nome === usuarioAtual.nome);
+
+            if (peladaConfig.listaAberta) {
+                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-success-green';
+                title.innerText = 'Vestiário Aberto!';
+
+                if (jaConfirmado) {
+                    btn.className = "mt-2 w-full bg-success-green text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-default text-xs font-bold";
+                    btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> ESCALADO NA PARTIDA!';
+                    btn.disabled = true;
+                } else {
+                    btn.className = "mt-2 w-full bg-primary text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider";
+                    btn.innerHTML = '<span>Confirmar Presença (Check-in)</span><span class="material-symbols-outlined text-sm">arrow_forward</span>';
+                    btn.disabled = false;
+                }
+            } else {
+                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-warning-amber';
+                title.innerText = 'Lista Bloqueada';
+                btn.className = "mt-2 w-full bg-surface-container-highest text-secondary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed text-xs font-bold";
+                btn.innerHTML = '<span class="material-symbols-outlined text-base">lock</span> CHECK-IN FECHADO';
+                btn.disabled = true;
+            }
+
+            const btnAdmTrava = document.getElementById('btn-admin-trava');
+            const iconeAdmTrava = document.getElementById('icone-admin-trava');
+            const txtAdmTrava = document.getElementById('texto-admin-trava');
+            const adminStatusBadge = document.getElementById('admin-status-badge');
+
+            if (adminStatusBadge) {
+                if (peladaConfig.listaAberta) {
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-green/10 text-success-green flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span> Vestiário Aberto';
+                } else {
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-warning-amber/10 text-warning-amber flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-warning-amber"></span> Vestiário Fechado';
+                }
+            }
+
+            if (btnAdmTrava) {
+                if (peladaConfig.listaAberta) {
+                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-success-green';
+                    if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock_open';
+                    if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA ABERTA (CLIQUE P/ TRAVAR)';
+                } else {
+                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-primary';
+                    if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock';
+                    if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA FECHADA (CLIQUE P/ ABRIR)';
+                }
+            }
+        }
+
+        function cliqueBotaoCheckin() {
+            if (!peladaConfig.listaAberta) return;
+
+            const efetuarEscalacao = () => {
+                const jaConfirmado = listaConfirmados.some(j => (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase());
+                if (!jaConfirmado) {
+                    listaConfirmados.unshift({
+                        id: String(Date.now()),
+                        nome: usuarioAtual.nome,
+                        posicao: usuarioAtual.posicao || 'ATA',
+                        condicao: usuarioAtual.condicao || 'excelente',
+                        idade: usuarioAtual.idade || 28,
+                        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        fitness: 98,
+                        foto: usuarioAtual.foto || ''
+                    });
+                    sincronizarServidor();
+                }
+                renderizarListaJogadores();
+                renderizarListaGestaoAdmin();
+                renderizarStatusCheckin();
+                realizarSorteioStitch(true);
+                alert(`⚽ Presença Confirmada!\nVocê está escalado na partida!\n📍 Local: ${peladaConfig.local}\nBom jogo! 🔥`);
+            };
+
+            const raio = peladaConfig.raioMaximoMetros || 500;
+
+            // Se já tem medição recente:
+            if (distanciaAtualMetros !== null) {
+                if (distanciaAtualMetros <= raio) {
+                    efetuarEscalacao();
+                    return;
+                } else {
+                    const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros / 1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
+                    const querSimular = confirm(
+                        `🚫 CHECK-IN BLOQUEADO POR DISTÂNCIA!\n\n` +
+                        `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
+                        `Regra obrigatória: você só pode se escalar se estiver a menos de 500 metros do campo!\n\n` +
+                        `Está testando o sistema? Clique em "OK" para simular chegada no campo e se escalar.`
+                    );
+                    if (querSimular) {
+                        simulandoProximidade = true;
+                        distanciaAtualMetros = 45;
+                        efetuarEscalacao();
+                    }
+                    return;
+                }
+            }
+
+            // Se ainda não mediu, consulta o GPS agora:
+            if (navigator.geolocation) {
+                const btn = document.getElementById('btn-checkin-action');
+                const origHtml = btn ? btn.innerHTML : '';
+                if (btn) btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span><span>Verificando Localização...</span>';
+
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        if (btn) btn.innerHTML = origHtml;
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        distanciaAtualMetros = calcularDistanciaMetros(lat, lng, peladaConfig.lat || -7.190405, peladaConfig.lng || -34.870103);
+                        atualizarLocalizacaoGps();
+
+                        if (distanciaAtualMetros <= raio) {
+                            efetuarEscalacao();
+                        } else {
+                            const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros / 1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
+                            const querSimular = confirm(
+                                `🚫 CHECK-IN BLOQUEADO POR DISTÂNCIA!\n\n` +
+                                `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
+                                `Regra obrigatória: você só pode se escalar a no máximo 500 metros do campo!\n\n` +
+                                `Deseja simular que você chegou no campo para realizar o teste?`
+                            );
+                            if (querSimular) {
+                                simulandoProximidade = true;
+                                distanciaAtualMetros = 45;
+                                efetuarEscalacao();
+                            }
+                        }
+                    },
+                    (err) => {
+                        if (btn) btn.innerHTML = origHtml;
+                        const querSimular = confirm(
+                            `📍 Não foi possível obter o sinal GPS (${err.message}).\n\n` +
+                            `Pela regra da pelada, é obrigatório estar a menos de 500m do campo:\n${peladaConfig.local}\n\n` +
+                            `Deseja simular presença no campo para testar o check-in?`
+                        );
+                        if (querSimular) {
+                            simulandoProximidade = true;
+                            distanciaAtualMetros = 45;
+                            efetuarEscalacao();
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 6000 }
+                );
+            } else {
+                efetuarEscalacao();
+            }
+        }
+
+        function cancelarPresencaLogado() {
+            if (confirm('Deseja cancelar sua presença na partida?')) {
+                listaConfirmados = listaConfirmados.filter(j => (j.nome || '').trim().toLowerCase() !== (usuarioAtual.nome || '').trim().toLowerCase());
+                sincronizarServidor();
+                renderizarListaJogadores();
+                renderizarListaGestaoAdmin();
+                renderizarStatusCheckin();
+                realizarSorteioStitch(true);
+            }
+        }
+
+        function alternarTravaLista() {
+            peladaConfig.listaAberta = !peladaConfig.listaAberta;
+            sincronizarServidor();
+            renderizarStatusCheckin();
+        }
+
+        function abrirGpsMaps() {
+            if (peladaConfig.mapsUrl) {
+                window.open(peladaConfig.mapsUrl, '_blank');
+            } else {
+                const lat = peladaConfig.lat || -7.190405;
+                const lng = peladaConfig.lng || -34.870103;
+                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+            }
+        }
+
+        function salvarNovoLocal() {
+            const val = document.getElementById('input-admin-local').value.trim();
+            if (val) {
+                peladaConfig.local = val;
+                sincronizarServidor();
+                renderizarStatusCheckin();
+                alert('Local atualizado com sucesso!');
+            }
+        }
+
+        // ==============================================================
+        // RENDERIZAÇÃO DA LISTA DE JOGADORES (COMPACTA E OTIMIZADA)
+        // ==============================================================
+        function renderizarListaJogadores() {
+            const container = document.getElementById('lista-jogadores-chegada');
+            const badge = document.getElementById('badge-total-confirmados');
+            badge.innerText = `${listaConfirmados.length} Confirmados`;
+
+            // Atualiza o aviso de presença no topo da tela de jogadores
+            const bannerPrompt = document.getElementById('banner-jogadores-checkin-prompt');
+            if (bannerPrompt) {
+                const jaConfirmado = listaConfirmados.some(j => (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase());
+                if (jaConfirmado) {
+                    bannerPrompt.className = 'shrink-0 bg-success-green/10 border border-success-green/25 rounded-xl p-2 px-3 flex items-center justify-between shadow-xs';
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center gap-1.5 text-success-green text-xs font-bold">
+                            <span class="material-symbols-outlined text-base">verified</span>
+                            <span>Presença confirmada • Você está escalado!</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] bg-success-green text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 shadow-xs">
+                                <span class="material-symbols-outlined text-xs">check</span> Escalado
+                            </span>
+                            <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença na pelada">
+                                Cancelar
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2 px-3 flex items-center justify-between shadow-xs';
+                    bannerPrompt.onclick = null;
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center gap-1.5 text-on-surface text-xs font-bold">
+                            <span class="material-symbols-outlined text-primary text-base">how_to_reg</span>
+                            <span>Falta confirmar sua presença hoje!</span>
+                        </div>
+                        <button onclick="cliqueBotaoCheckin()" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[10px] font-bold active:scale-95 shadow-xs flex items-center gap-1">
+                            <span>Confirmar Presença</span>
+                            <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                        </button>
+                    `;
+                }
+            }
+
+            if (listaConfirmados.length === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-on-surface-variant py-6">Nenhum jogador confirmou ainda.</p>';
+                return;
+            }
+
+            let html = '';
+            listaConfirmados.forEach((j, idx) => {
+                const corFitness = j.fitness >= 90 ? 'text-success-green' : (j.fitness >= 75 ? 'text-warning-amber' : 'text-primary');
+                const fotoSrc = j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+
+                const ehUsuarioLogado = (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase();
+
+                const cardClasses = ehUsuarioLogado
+                    ? 'bg-success-green/10 border-2 border-success-green/70 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-success-green/20'
+                    : 'bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0';
+
+                const badgeStatus = ehUsuarioLogado
+                    ? `<span class="bg-success-green text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-xs shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>VOCÊ (ESCALADO)</span>`
+                    : `<span class="bg-success-green/15 text-success-green border border-success-green/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[10px]">check</span>ESCALADO</span>`;
+
+                html += `
+                    <article class="${cardClasses}">
+                        <div class="w-5 flex justify-center">
+                            <span class="font-stat-lg ${ehUsuarioLogado ? 'text-success-green font-black text-base' : 'text-secondary text-sm font-bold'}">${idx + 1}</span>
+                        </div>
+                        <img class="w-9 h-9 rounded-full object-cover shadow-sm bg-surface-container ${ehUsuarioLogado ? 'border-2 border-success-green ring-1 ring-success-green/40' : 'border border-primary/15'} shrink-0" 
+                             src="${fotoSrc}" alt="${j.nome}">
+                        <div class="flex flex-col flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <h4 class="font-headline-md text-xs ${ehUsuarioLogado ? 'font-black text-on-surface' : 'font-bold text-on-surface'} truncate">${j.nome}</h4>
+                                ${badgeStatus}
+                            </div>
+                            <span class="font-label-md text-on-surface-variant text-[10px] flex items-center gap-1 mt-0.5">
+                                <span class="font-bold ${ehUsuarioLogado ? 'text-success-green' : 'text-on-surface'}">${j.posicao}</span> • ${j.hora || '19:00'} • ${j.idade}a
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-center relative w-8 h-8 shrink-0">
+                            <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-surface-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+                                <path class="${corFitness}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${j.fitness || 85}, 100" stroke-width="3.5"></path>
+                            </svg>
+                            <span class="absolute font-label-md text-[8px] font-bold text-on-surface">${j.fitness || 85}%</span>
+                        </div>
+                    </article>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // ==============================================================
+        // SORTEIO DE TIMES INTELIGENTE (EQUIPES & ADMIN SINCRONIZADOS)
+        // ==============================================================
+        function escolherQtdTimes(qtd) {
+            qtdTimesSorteio = qtd;
+
+            // 1. Atualizar seletor da Aba Equipes
+            document.querySelectorAll('#seletor-qtd-times .time-count-btn').forEach(btn => {
+                const val = parseInt(btn.dataset.times);
+                if (val === qtd) {
+                    btn.className = "time-count-btn py-1.5 rounded-lg bg-primary text-on-primary shadow-sm flex flex-col items-center justify-center active:scale-95 relative";
+                    btn.innerHTML = `<span class="font-headline-lg-mobile text-base font-bold">${val}</span><span class="font-label-md text-[9px] text-on-primary/90 uppercase font-bold">Times</span><div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-on-primary"></div>`;
+                } else {
+                    btn.className = "time-count-btn py-1.5 rounded-lg bg-surface-container-lowest border border-surface-container-highest shadow-sm flex flex-col items-center justify-center active:scale-95 text-on-surface";
+                    btn.innerHTML = `<span class="font-headline-lg-mobile text-base font-bold">${val}</span><span class="font-label-md text-[9px] text-on-surface-variant uppercase font-bold">Times</span>`;
+                }
+            });
+
+            realizarSorteioStitch(false);
+        }
+
+        function realizarSorteioStitch(silencioso = false) {
+            const containerEquipes = document.getElementById('cards-times-container');
+
+            if (!listaConfirmados || listaConfirmados.length < 4) {
+                const vazioHtml = `
+                    <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-secondary text-3xl">groups</span>
+                        <div>
+                            <h4 class="font-bold text-on-surface text-sm">Equipes Indisponíveis (${listaConfirmados ? listaConfirmados.length : 0}/4 atletas)</h4>
+                            <p class="text-[11px] text-on-surface-variant mt-0.5">São necessários ao menos 4 atletas confirmados para realizar o sorteio.</p>
+                        </div>
+                        <button onclick="injetarJogadoresSimulados(false)" class="mt-1 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg active:scale-95 shadow-sm inline-flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">group_add</span>
+                            <span>Inserir 12 Atletas e Sortear</span>
+                        </button>
+                    </div>
+                `;
+                if (containerEquipes) containerEquipes.innerHTML = vazioHtml;
+                timesGeradosSorteio = [];
+
+                if (!silencioso) {
+                    const querInserir = confirm('É necessário ter ao menos 4 atletas confirmados para sortear!\n\nDeseja inserir 12 atletas de teste agora para gerar as equipes automaticamente?');
+                    if (querInserir) {
+                        injetarJogadoresSimulados(false);
+                    }
+                }
+                return;
+            }
+
+            const k = qtdTimesSorteio;
+            const times = Array.from({ length: k }, () => []);
+
+            const goleiros = listaConfirmados.filter(j => j.posicao === 'GOL');
+            const linha = listaConfirmados.filter(j => j.posicao !== 'GOL');
+
+            goleiros.forEach((g, i) => times[i % k].push(g));
+            linha.sort((a, b) => (b.idade || 25) - (a.idade || 25));
+
+            let idx = 0;
+            let dir = 1;
+            linha.forEach(j => {
+                times[idx].push(j);
+                idx += dir;
+                if (idx >= k) { idx = k - 1; dir = -1; }
+                else if (idx < 0) { idx = 0; dir = 1; }
+            });
+
+            const letras = ['A', 'B', 'C', 'D', 'E'];
+            timesGeradosSorteio = times.map((t, index) => ({
+                numero: index + 1,
+                letra: letras[index] || `${index + 1}`,
+                nome: `Time ${index + 1}`,
+                jogadores: t
+            }));
+
+            let html = '';
+            textoWhatsappGerado = `⚽ *PELADA TOP - ESCALAÇÃO OFICIAL* ⚽\n📍 Local: ${peladaConfig.local}\n\n`;
+
+            times.forEach((time, i) => {
+                const letra = letras[i] || (i + 1);
+                const mediaIdade = Math.round(time.reduce((acc, j) => acc + (j.idade || 25), 0) / (time.length || 1));
+                const corBarra = i % 2 === 0 ? 'bg-primary' : 'bg-secondary';
+
+                html += `
+                    <div class="bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-surface-container-highest flex flex-col gap-1.5 shrink-0">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-1.5 h-4 ${corBarra} rounded-full"></div>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Time ${letra} (${time.length} atletas)</h3>
+                            </div>
+                            <span class="font-label-md text-[10px] text-secondary font-bold">Média: ${mediaIdade}a</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 mt-0.5">
+                            ${time.map(j => `
+                                <div class="flex items-center justify-between p-1 px-1.5 rounded-lg bg-surface border border-surface-container-highest text-[10px]">
+                                    <span class="font-bold text-on-surface truncate mr-1">${j.nome.split(' ')[0]}</span>
+                                    <span class="font-mono text-secondary font-bold shrink-0">${j.posicao}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                textoWhatsappGerado += `*TIME ${letra}* (Média: ${mediaIdade} anos):\n`;
+                time.forEach(j => { textoWhatsappGerado += `• ${j.nome} (${j.posicao} - ${j.idade}a)\n`; });
+                textoWhatsappGerado += '\n';
+            });
+
+            if (containerEquipes) containerEquipes.innerHTML = html;
+        }
+
+        function copiarZapTimes() {
+            if (!textoWhatsappGerado) {
+                alert('Nenhuma escalação gerada ainda!');
+                return;
+            }
+            navigator.clipboard.writeText(textoWhatsappGerado).then(() => {
+                alert('Escalação copiada com sucesso! Só colar no grupo do WhatsApp! 📲⚽');
+            });
+        }
+
+        // ==============================================================
+        // ESCALAÇÃO OFICIAL & NUMERAL GIGANTE NO APP DE CADA JOGADOR
+        // ==============================================================
+        function acionarEscalacaoOficial() {
+            if (!timesGeradosSorteio || timesGeradosSorteio.length === 0) {
+                realizarSorteioStitch(true);
+            }
+
+            if (!timesGeradosSorteio || timesGeradosSorteio.length === 0 || !timesGeradosSorteio.some(t => t.jogadores && t.jogadores.length > 0)) {
+                alert('⚠️ Forme as equipes primeiro antes de escalar os atletas!');
+                return;
+            }
+
+            // Ativa a escalação e redefine o estado da partida para aguardando
+            escalacaoAtiva = {
+                ativo: true,
+                timestamp: Date.now(),
+                times: timesGeradosSorteio
+            };
+
+            partidaEstado = {
+                emAndamento: false,
+                finalizada: false,
+                tempoRestante: 600
+            };
+
+            overlayTimeMinimizado = false;
+
+            sincronizarServidor();
+            verificarEExibirNumeralTimeJogador();
+            atualizarEstadoBotaoPlayTimer();
+
+            // Feedback visual no botão
+            const btn = document.getElementById('btn-escalar-oficial');
+            if (btn) {
+                const htmlOrig = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined text-base text-success-green">check_circle</span><span>ESCALAÇÃO ENVIADA COM SUCESSO!</span>';
+                btn.classList.add('bg-success-green');
+                btn.classList.remove('bg-primary');
+                setTimeout(() => {
+                    btn.innerHTML = htmlOrig;
+                    btn.classList.remove('bg-success-green');
+                    btn.classList.add('bg-primary');
+                }, 3000);
+            }
+
+            alert('📢 Escalação Oficial enviada para o celular de todos os participantes!\n\nCada atleta verá o numeral gigante de seu time no centro da tela até o fim dos 10 minutos.');
+        }
+
+        function verificarEExibirNumeralTimeJogador() {
+            const overlay = document.getElementById('overlay-time-jogador');
+            const banner = document.getElementById('banner-flutuante-time');
+            if (!overlay) return;
+
+            // Se o usuário estiver na tela de login, não exibe
+            const viewLogin = document.getElementById('view-login');
+            if (viewLogin && viewLogin.classList.contains('active')) {
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                if (banner) banner.classList.add('hidden');
+                return;
+            }
+
+            // Se não houver escalação ativa ou se a partida já tiver sido finalizada (10 min esgotados)
+            if (!escalacaoAtiva || !escalacaoAtiva.ativo || partidaEstado.finalizada) {
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                if (banner) banner.classList.add('hidden');
+                return;
+            }
+
+            // Identifica qual é o time do usuário logado
+            const meuNome = (usuarioAtual.nome || '').trim().toLowerCase();
+            let timeDoUsuario = null;
+
+            if (escalacaoAtiva.times && Array.isArray(escalacaoAtiva.times)) {
+                timeDoUsuario = escalacaoAtiva.times.find(t => {
+                    return t.jogadores && t.jogadores.some(j => {
+                        const jNome = (j.nome || '').trim().toLowerCase();
+                        return (j.id && usuarioAtual.id && j.id === usuarioAtual.id) ||
+                               (jNome && meuNome && (jNome === meuNome || jNome.includes(meuNome) || meuNome.includes(jNome)));
+                    });
+                });
+            }
+
+            // Se o usuário não foi escalado em nenhum time
+            if (!timeDoUsuario) {
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                if (banner) banner.classList.add('hidden');
+                return;
+            }
+
+            // Atualiza os dados visuais do numeral e do time
+            const elNum = document.getElementById('overlay-numero-time');
+            const elNomeTime = document.getElementById('overlay-nome-time');
+            const elStatusPartida = document.getElementById('overlay-status-partida');
+            const elStatusDot = document.getElementById('overlay-status-dot');
+            const elTxtStatus = document.getElementById('overlay-txt-status');
+            const elColegas = document.getElementById('overlay-colegas-time');
+
+            const numeroTime = timeDoUsuario.numero || 1;
+            if (elNum) elNum.innerText = numeroTime;
+            if (elNomeTime) elNomeTime.innerText = `TIME ${numeroTime}`;
+
+            // Cores estilizadas por time
+            const coresTimes = [
+                { from: 'from-emerald-600', to: 'to-teal-700', shadow: 'shadow-emerald-500/30' },
+                { from: 'from-blue-600', to: 'to-indigo-700', shadow: 'shadow-blue-500/30' },
+                { from: 'from-amber-500', to: 'to-orange-600', shadow: 'shadow-amber-500/30' },
+                { from: 'from-purple-600', to: 'to-pink-700', shadow: 'shadow-purple-500/30' }
+            ];
+            const estiloCor = coresTimes[(numeroTime - 1) % coresTimes.length] || coresTimes[0];
+            const bgNumeral = document.getElementById('overlay-numeral-bg');
+            if (bgNumeral) {
+                bgNumeral.className = `w-32 h-32 rounded-full bg-gradient-to-br ${estiloCor.from} ${estiloCor.to} flex items-center justify-center shadow-2xl ${estiloCor.shadow} border-4 border-white/20`;
+            }
+
+            // Status da partida: Aguardando vs Em Andamento (10 min)
+            if (partidaEstado.emAndamento) {
+                if (elStatusPartida) {
+                    elStatusPartida.className = "mt-2 px-3 py-1 rounded-full bg-success-green/15 text-success-green text-xs font-bold border border-success-green/30 flex items-center gap-1.5";
+                }
+                if (elStatusDot) {
+                    elStatusDot.className = "w-2 h-2 rounded-full bg-success-green animate-pulse";
+                }
+                if (elTxtStatus) {
+                    elTxtStatus.innerText = "🏃 Partida em Andamento! (10 Minutos)";
+                }
+            } else {
+                if (elStatusPartida) {
+                    elStatusPartida.className = "mt-2 px-3 py-1 rounded-full bg-warning-amber/15 text-warning-amber text-xs font-bold border border-warning-amber/30 flex items-center gap-1.5";
+                }
+                if (elStatusDot) {
+                    elStatusDot.className = "w-2 h-2 rounded-full bg-warning-amber animate-pulse";
+                }
+                if (elTxtStatus) {
+                    elTxtStatus.innerText = "⏳ Aguardando início da partida...";
+                }
+            }
+
+            // Lista de companheiros de equipe
+            if (elColegas && timeDoUsuario.jogadores) {
+                const nomesColegas = timeDoUsuario.jogadores
+                    .filter(j => {
+                        const jNome = (j.nome || '').trim().toLowerCase();
+                        return !(jNome && meuNome && (jNome === meuNome || jNome.includes(meuNome) || meuNome.includes(jNome)));
+                    })
+                    .map(j => `${j.nome.split(' ')[0]} (${j.posicao})`);
+
+                if (nomesColegas.length > 0) {
+                    elColegas.innerHTML = nomesColegas.join(' • ');
+                } else {
+                    elColegas.innerHTML = 'Você é o destaque do seu time!';
+                }
+            }
+
+            // Mini banner flutuante
+            const bannerNum = document.getElementById('banner-mini-num');
+            const bannerTit = document.getElementById('banner-mini-titulo');
+            const bannerSub = document.getElementById('banner-mini-sub');
+            if (bannerNum) bannerNum.innerText = numeroTime;
+            if (bannerTit) bannerTit.innerText = `VOCÊ ESTÁ NO TIME ${numeroTime}`;
+            if (bannerSub) {
+                bannerSub.innerText = partidaEstado.emAndamento ? 'Partida em andamento (10 min)' : 'Toque para ver o numeral gigante';
+            }
+
+            // Alternância entre Modal Central e Mini Banner
+            if (overlayTimeMinimizado) {
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                if (banner) banner.classList.remove('hidden');
+            } else {
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                if (banner) banner.classList.add('hidden');
+            }
+        }
+
+        function minimizarOverlayTime() {
+            overlayTimeMinimizado = true;
+            verificarEExibirNumeralTimeJogador();
+        }
+
+        function abrirOverlayTime() {
+            overlayTimeMinimizado = false;
+            verificarEExibirNumeralTimeJogador();
+        }
+
+        // ==============================================================
+        // CRONÔMETRO OFICIAL DE 10 MINUTOS & NOTIFICAÇÃO DE FIM DE JOGO
+        // ==============================================================
+        let segundosTimer = 600;
+        let tempoTotalCronometro = 600;
+        let timerAtivo = false;
+        let timerInterval = null;
+        const perimetroTotalSvg = 276.46; // 2 * PI * 44
+
+        function formatarTempo(s) {
+            const m = Math.floor(s / 60).toString().padStart(2, '0');
+            const seg = (s % 60).toString().padStart(2, '0');
+            return `${m}:${seg}`;
+        }
+
+        function atualizarStatusVisualTimer(status) {
+            const badge = document.getElementById('badge-timer-status');
+            const badgeTxt = document.getElementById('badge-timer-txt');
+            const sub = document.getElementById('crono-substatus');
+
+            if (!badge) return;
+
+            if (status === 'rodando') {
+                badge.className = 'px-2 py-0.5 rounded-full bg-success-green/10 text-success-green text-[10px] font-bold border border-success-green/20 flex items-center gap-1';
+                badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span><span>Em Jogo</span>';
+                if (sub) sub.innerText = 'Partida em andamento...';
+            } else if (status === 'pausado') {
+                badge.className = 'px-2 py-0.5 rounded-full bg-warning-amber/10 text-warning-amber text-[10px] font-bold border border-warning-amber/20 flex items-center gap-1';
+                badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-warning-amber"></span><span>Pausado</span>';
+                if (sub) sub.innerText = 'Jogo pausado';
+            } else if (status === 'finalizado') {
+                badge.className = 'px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-bold border border-red-500/20 flex items-center gap-1';
+                badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span><span>Fim de Jogo</span>';
+                if (sub) sub.innerText = '🔔 10 Minutos Encerrados!';
+            } else {
+                badge.className = 'px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-[10px] font-bold border border-surface-container-highest flex items-center gap-1';
+                badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span><span>Pronto</span>';
+                if (sub) sub.innerText = 'Tempo padrão: 10 min';
+            }
+        }
+
+        function alternarPlayCronometro() {
+            const btn = document.getElementById('btn-crono-play');
+            const icon = document.getElementById('icon-crono-play');
+
+            // Solicita permissão de notificação nativa com o primeiro clique
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {});
+            }
+
+            if (timerAtivo) {
+                // Pausar
+                clearInterval(timerInterval);
+                timerAtivo = false;
+                atualizarStatusVisualTimer('pausado');
+
+                partidaEstado.emAndamento = false;
+                sincronizarServidor();
+                verificarEExibirNumeralTimeJogador();
+                atualizarEstadoBotaoPlayTimer();
+            } else {
+                // REGRA OBRIGATÓRIA: O botão PLAY do timer só libera quando os times forem escalados no sorteio!
+                const timesEscalados = escalacaoAtiva && escalacaoAtiva.ativo && Array.isArray(escalacaoAtiva.times) && escalacaoAtiva.times.length > 0;
+                if (!timesEscalados) {
+                    alert('🔒 CRONÔMETRO BLOQUEADO!\n\nO botão Play só é liberado após os times serem escalados no sorteio!\n\nVá até a aba "Equipes" e clique em "Escalar Times nos Celulares".');
+                    trocarAba('equipes');
+                    return;
+                }
+
+                // Se já chegou no fim, reinicia antes de tocar
+                if (segundosTimer <= 0) {
+                    segundosTimer = tempoTotalCronometro;
+                }
+
+                timerAtivo = true;
+                atualizarStatusVisualTimer('rodando');
+                atualizarEstadoBotaoPlayTimer();
+
+                // Notifica início da partida e atualiza numeral nos celulares
+                partidaEstado.emAndamento = true;
+                partidaEstado.finalizada = false;
+                sincronizarServidor();
+                verificarEExibirNumeralTimeJogador();
+
+                timerInterval = setInterval(() => {
+                    if (segundosTimer > 0) {
+                        segundosTimer--;
+                        const display = document.getElementById('crono-display-digits');
+                        if (display) display.innerText = formatarTempo(segundosTimer);
+
+                        const offset = perimetroTotalSvg - (segundosTimer / tempoTotalCronometro) * perimetroTotalSvg;
+                        const stroke = document.getElementById('timer-stroke');
+                        if (stroke) stroke.style.strokeDashoffset = -offset;
+                    } else {
+                        // TERMINOU OS 10 MINUTOS!
+                        clearInterval(timerInterval);
+                        timerAtivo = false;
+                        
+                        atualizarStatusVisualTimer('finalizado');
+
+                        // Finaliza a partida e remove o numeral da tela dos celulares
+                        partidaEstado.emAndamento = false;
+                        partidaEstado.finalizada = true;
+                        if (escalacaoAtiva) {
+                            escalacaoAtiva.ativo = false;
+                            localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
+                        }
+                        sincronizarServidor();
+                        verificarEExibirNumeralTimeJogador();
+                        atualizarEstadoBotaoPlayTimer();
+
+                        dispararNotificacaoFimDeJogo();
+                    }
+                }, 1000);
+            }
+        }
+
+        function pararCronometro() {
+            clearInterval(timerInterval);
+            timerAtivo = false;
+            atualizarStatusVisualTimer('parado');
+
+            // Encerra o numeral de escala nos celulares de todos os jogadores e reinicia o processo
+            if (escalacaoAtiva) {
+                escalacaoAtiva.ativo = false;
+                localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
+            }
+            partidaEstado.emAndamento = false;
+            partidaEstado.finalizada = false;
+            overlayTimeMinimizado = false;
+
+            // Restaura o botão de escalar nos celulares
+            const btnEscalar = document.getElementById('btn-escalar-oficial');
+            if (btnEscalar) {
+                btnEscalar.className = "w-full py-2 px-3 rounded-xl bg-primary hover:bg-surface-tint text-white font-headline-md text-xs font-black uppercase tracking-wider shadow-md shadow-primary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all";
+                btnEscalar.innerHTML = '<span class="material-symbols-outlined text-base animate-pulse">campaign</span><span>Escalar Times nos Celulares</span>';
+            }
+
+            sincronizarServidor();
+            verificarEExibirNumeralTimeJogador();
+            atualizarEstadoBotaoPlayTimer();
+        }
+
+        function resetarCronometro() {
+            clearInterval(timerInterval);
+            timerAtivo = false;
+
+            tempoTotalCronometro = 600;
+            segundosTimer = 600;
+            const display = document.getElementById('crono-display-digits');
+            if (display) display.innerText = '10:00';
+            const stroke = document.getElementById('timer-stroke');
+            if (stroke) stroke.style.strokeDashoffset = '0';
+            atualizarStatusVisualTimer('pronto');
+
+            // Encerra o numeral de escala nos celulares de todos os jogadores e reinicia todo o processo
+            if (escalacaoAtiva) {
+                escalacaoAtiva.ativo = false;
+                localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
+            }
+            partidaEstado.emAndamento = false;
+            partidaEstado.finalizada = false;
+            overlayTimeMinimizado = false;
+
+            // Restaura o botão de escalar nos celulares
+            const btnEscalar = document.getElementById('btn-escalar-oficial');
+            if (btnEscalar) {
+                btnEscalar.className = "w-full py-2 px-3 rounded-xl bg-primary hover:bg-surface-tint text-white font-headline-md text-xs font-black uppercase tracking-wider shadow-md shadow-primary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all";
+                btnEscalar.innerHTML = '<span class="material-symbols-outlined text-base animate-pulse">campaign</span><span>Escalar Times nos Celulares</span>';
+            }
+
+            sincronizarServidor();
+            verificarEExibirNumeralTimeJogador();
+            atualizarEstadoBotaoPlayTimer();
+        }
+
+        function atualizarEstadoBotaoPlayTimer() {
+            const btn = document.getElementById('btn-crono-play');
+            const icon = document.getElementById('icon-crono-play');
+            const aviso = document.getElementById('aviso-play-bloqueado');
+            if (!btn) return;
+
+            const timesEscalados = escalacaoAtiva && escalacaoAtiva.ativo && Array.isArray(escalacaoAtiva.times) && escalacaoAtiva.times.length > 0;
+
+            if (timerAtivo) {
+                btn.className = "w-18 h-18 rounded-full bg-warning-amber flex items-center justify-center text-on-primary shadow-xl shadow-warning-amber/30 active:scale-95 transition-all cursor-pointer";
+                if (icon) icon.innerText = 'pause';
+                btn.title = "Pausar partida";
+                if (aviso) {
+                    aviso.className = "text-[11px] font-bold text-success-green flex items-center gap-1.5 px-3 py-1 rounded-full bg-success-green/10 border border-success-green/20";
+                    aviso.innerHTML = '<span class="material-symbols-outlined text-sm animate-pulse">sports_soccer</span><span>Partida em andamento (10 min)</span>';
+                }
+            } else if (timesEscalados) {
+                btn.className = "w-18 h-18 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-xl shadow-primary/30 active:scale-95 hover:bg-surface-tint transition-all cursor-pointer ring-4 ring-primary/20 animate-pulse";
+                if (icon) icon.innerText = 'play_arrow';
+                btn.title = "Iniciar partida de 10 minutos";
+                if (aviso) {
+                    aviso.className = "text-[11px] font-bold text-primary flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/25";
+                    aviso.innerHTML = '<span class="material-symbols-outlined text-sm text-primary">campaign</span><span>Times escalados! Toque no Play para iniciar</span>';
+                }
+            } else {
+                btn.className = "w-18 h-18 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant/40 shadow-sm opacity-60 cursor-not-allowed transition-all border-2 border-dashed border-outline/30";
+                if (icon) icon.innerText = 'lock';
+                btn.title = "Bloqueado: escale os times no sorteio primeiro";
+                if (aviso) {
+                    aviso.className = "text-[11px] font-bold text-on-surface-variant flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high border border-surface-container-highest";
+                    aviso.innerHTML = '<span class="material-symbols-outlined text-sm text-warning-amber">lock</span><span>Escale os times no sorteio para liberar o Play</span>';
+                }
+            }
+        }
+
+        // ==============================================================
+        // NOTIFICAÇÃO E SOM DE APITO FINAL (10 MINUTOS ESGOTADOS)
+        // ==============================================================
+        function tocarApitoJuiz() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+
+                const apitar = (inicio, duracao, freq) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const mod = ctx.createOscillator();
+                    const modGain = ctx.createGain();
+
+                    // Tremolo clássico de apito com bolinha
+                    mod.frequency.value = 28;
+                    modGain.gain.value = 160;
+                    mod.connect(osc.frequency);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + inicio);
+
+                    gain.gain.setValueAtTime(0, ctx.currentTime + inicio);
+                    gain.gain.linearRampToValueAtTime(0.7, ctx.currentTime + inicio + 0.02);
+                    gain.gain.setValueAtTime(0.7, ctx.currentTime + inicio + duracao - 0.04);
+                    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + inicio + duracao);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    mod.start(ctx.currentTime + inicio);
+                    osc.start(ctx.currentTime + inicio);
+                    mod.stop(ctx.currentTime + inicio + duracao);
+                    osc.stop(ctx.currentTime + inicio + duracao);
+                };
+
+                // Três apitos clássicos de juiz de futebol: Pi! Pi! Piiiiiiip!
+                apitar(0.0, 0.22, 2400);
+                apitar(0.32, 0.22, 2400);
+                apitar(0.65, 0.90, 2600);
+            } catch(e) {
+                console.warn('Erro áudio apito:', e);
+            }
+        }
+
+        function dispararNotificacaoFimDeJogo() {
+            // 1. Som oficial do apito triplo de encerramento da partida
+            tocarApitoJuiz();
+
+            // 2. Vibração tátil no aparelho celular
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate([400, 200, 400, 200, 800]); } catch(e) {}
+            }
+
+            // 3. Notificação do Sistema Operacional / Navegador / PWA
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    try {
+                        new Notification('⏱️ FIM DE PARTIDA! - Pelada Top', {
+                            body: 'Os 10 minutos acabaram! Apito final do jogo!',
+                            icon: './logo-transparent.png',
+                            badge: './logo-transparent.png',
+                            vibrate: [400, 200, 400, 200, 800]
+                        });
+                    } catch(e) {}
+                }
+            }
+
+            // 4. Exibe modal visual animado na tela
+            const modal = document.getElementById('modalFimDeJogo');
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function fecharModalFimDeJogo() {
+            const modal = document.getElementById('modalFimDeJogo');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function reiniciarPartidaModal() {
+            fecharModalFimDeJogo();
+            resetarCronometro();
+            alternarPlayCronometro();
+        }
+
+        function testarNotificacaoManual() {
+            dispararNotificacaoFimDeJogo();
+        }
+
+        function definirTempoTeste(segundos) {
+            pararCronometro();
+            tempoTotalCronometro = segundos;
+            segundosTimer = segundos;
+            const display = document.getElementById('crono-display-digits');
+            if (display) display.innerText = formatarTempo(segundosTimer);
+            const stroke = document.getElementById('timer-stroke');
+            if (stroke) stroke.style.strokeDashoffset = '0';
+            const sub = document.getElementById('crono-substatus');
+            if (sub) sub.innerText = `Modo Teste (${segundos}s)`;
+            alternarPlayCronometro();
+        }
+
+        // ==============================================================
+        // GESTÃO DE ATLETAS NO PAINEL DE CONFIG (EDITAR E EXCLUIR)
+        // ==============================================================
+        function renderizarListaGestaoAdmin() {
+            const container = document.getElementById('admin-lista-atletas-gestao');
+            const badgeCount = document.getElementById('admin-contador-atletas');
+            if (badgeCount) badgeCount.innerText = `${listaConfirmados.length} atleta${listaConfirmados.length !== 1 ? 's' : ''}`;
+            if (!container) return;
+
+            if (listaConfirmados.length === 0) {
+                container.innerHTML = `
+                    <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-secondary text-2xl">person_off</span>
+                        <p class="font-bold text-on-surface">Nenhum jogador confirmado</p>
+                        <p class="text-[10px]">Toque em "+ Atleta" para cadastrar ou em "Inserir 12 Atletas".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            listaConfirmados.forEach((j, idx) => {
+                const fotoSrc = j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+                html += `
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-surface border border-surface-container-highest gap-2">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            <span class="w-5 text-center font-bold text-secondary text-xs shrink-0">${idx + 1}</span>
+                            <img src="${fotoSrc}" class="w-8 h-8 rounded-full object-cover border border-primary/20 shrink-0" alt="${j.nome}">
+                            <div class="flex flex-col min-w-0 flex-1">
+                                <span class="font-bold text-xs text-on-surface truncate">${j.nome}</span>
+                                <span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+                                    <strong class="text-primary">${j.posicao}</strong> • ${j.idade || 25}a • ${j.fitness || 85}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="abrirModalEditarAtleta('${j.id}')" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Editar Atleta">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button onclick="excluirJogadorAdmin('${j.id}')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Excluir Jogador">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function abrirModalEditarAtleta(id) {
+            const j = listaConfirmados.find(x => String(x.id) === String(id));
+            if (!j) return;
+            document.getElementById('edit-atleta-id').value = j.id;
+            document.getElementById('edit-atleta-nome').value = j.nome;
+            document.getElementById('edit-atleta-posicao').value = j.posicao || 'ATA';
+            document.getElementById('edit-atleta-idade').value = j.idade || 25;
+            document.getElementById('edit-atleta-fitness').value = j.fitness || 85;
+            
+            const modal = document.getElementById('modalEditarAtleta');
+            if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalEditarAtleta() {
+            const modal = document.getElementById('modalEditarAtleta');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function salvarEdicaoAtleta(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-atleta-id').value;
+            const j = listaConfirmados.find(x => String(x.id) === String(id));
+            if (!j) return;
+
+            j.nome = document.getElementById('edit-atleta-nome').value.trim();
+            j.posicao = document.getElementById('edit-atleta-posicao').value;
+            j.idade = parseInt(document.getElementById('edit-atleta-idade').value) || 25;
+            j.fitness = parseInt(document.getElementById('edit-atleta-fitness').value) || 85;
+
+            sincronizarServidor();
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            realizarSorteioStitch(true);
+            fecharModalEditarAtleta();
+            alert(`Dados do atleta "${j.nome}" atualizados com sucesso!`);
+        }
+
+        function excluirJogadorAdmin(id) {
+            const j = listaConfirmados.find(x => String(x.id) === String(id));
+            if (!j) return;
+
+            if (confirm(`Deseja realmente excluir o atleta "${j.nome}" da pelada?`)) {
+                listaConfirmados = listaConfirmados.filter(x => String(x.id) !== String(id));
+                sincronizarServidor();
+                renderizarListaJogadores();
+                renderizarListaGestaoAdmin();
+                renderizarStatusCheckin();
+                realizarSorteioStitch(true);
+                alert(`Atleta "${j.nome}" removido da pelada.`);
+            }
+        }
+
+        function abrirModalAdicionarAtleta() {
+            document.getElementById('novo-atleta-nome').value = '';
+            document.getElementById('novo-atleta-posicao').value = 'ATA';
+            document.getElementById('novo-atleta-idade').value = '28';
+            const modal = document.getElementById('modalAdicionarAtleta');
+            if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalAdicionarAtleta() {
+            const modal = document.getElementById('modalAdicionarAtleta');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function salvarNovoAtletaManual(e) {
+            e.preventDefault();
+            const nome = document.getElementById('novo-atleta-nome').value.trim();
+            if (!nome) return;
+
+            const novo = {
+                id: String(Date.now()),
+                nome: nome,
+                posicao: document.getElementById('novo-atleta-posicao').value,
+                idade: parseInt(document.getElementById('novo-atleta-idade').value) || 28,
+                condicao: 'excelente',
+                hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                fitness: 90,
+                foto: ''
+            };
+
+            listaConfirmados.push(novo);
+            sincronizarServidor();
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            renderizarStatusCheckin();
+            realizarSorteioStitch(true);
+            fecharModalAdicionarAtleta();
+            alert(`Atleta "${nome}" adicionado com sucesso!`);
+        }
+
+        // ==============================================================
+        // MÉTODOS DO ORGANIZADOR / ADMIN
+        // ==============================================================
+        function injetarJogadoresSimulados(mudarAba = false) {
+            listaConfirmados = [
+                { id: '1', nome: 'Beto Artilheiro', posicao: 'ATA', condicao: 'excelente', idade: 28, hora: '18:40', fitness: 98, foto: usuarioAtual.foto },
+                { id: '2', nome: 'Marcos Silva', posicao: 'GOL', condicao: 'excelente', idade: 31, hora: '18:42', fitness: 95, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_' },
+                { id: '3', nome: 'Diego Costa', posicao: 'MEI', condicao: 'boa', idade: 42, hora: '18:45', fitness: 92, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgUPsqBtwqY-wTXynR-JuTosfEpI-oihJb5PFIeXr75WsV0QP-J_eUqt_gO27HLT0uxXEhL1zVAQOBkIAl6j5a3nQCMFdUx-AgLkxtz_QLXnafJetPeybrjwTin-NQh1D1eIGe1fVQebhJ7B0lFSyv9BRrXxxi50stcf3M9628WLPh2sdLH0F7AUqFOxzunqx3ah3sKBYGcvgE6EkYDOHHhI5wfe72SVasH4oXAJU0z2tK-NXxvI7B' },
+                { id: '4', nome: 'Lucas Moura', posicao: 'ATA', condicao: 'regular', idade: 23, hora: '18:47', fitness: 74, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAyzcRri3mZx0ZcvKW5FXsnPV4ayUzC1W-KdRiKBXl1rUtC4Us7H1an0kcGZSuop3fk7ZrRL73CXPDRawjf8R3xcV9WwkirfUBiNWlvJvwEQt66UDIuWZLO7vcvIEjtSJY9CFqSI0Bay5keXSpoyR5whkC1WpOucC60n3zet1mKr6Xyv5SV3BTXB_YXChTdJA-cpZObxa1a89-ro2zFMDYdRBJN09v2EhRaQ8TlSt1i3PfQSt0P7VPT' },
+                { id: '5', nome: 'Carlos Silva', posicao: 'ATA', condicao: 'excelente', idade: 26, hora: '18:50', fitness: 88, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABblwGh55YW14k26eWxvRk1CHJMBWcbXMVFeRz_m5hEDhbcA0180kKprPICjrmAsYqqSOYExyzmmlKO8Chbu6Iy-K2pM_Ti-Yk3I1dNKd29YauZjFdrPAdF-BDlOn5zVe7Ev6FE9frVzmI7SUK774inGrY3KDrHnjeuzhjIKr1vcm8nZv9J3Jgi_tNjrEKx28qv28kXoQKnWrRrtiTpxKM1MqUX5WLvIzUmezvreDlEYMrhAbYo0Bq' },
+                { id: '6', nome: 'Marcos Paulo', posicao: 'MEI', condicao: 'boa', idade: 39, hora: '18:52', fitness: 85, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy4JkEBsUdGiZBD37jjx8GXKn4bjEGHbZ-vngcS7VFn6gOfRYVhfpzOB-fBgY6QpZec0QoR1819CW_x5zJZdBjnq0I9AXhJm-3iCbGBMvknMpKgeFzQoyyvWljFlv8UkLfM3wkYB-BO-TN9BQExtuW4P0Wug0MUjLGTfTHDDzLDl2gQEPTii8nQn9ZVXbj6w2Zp17puXN8kzWszozwe9rt1gIsGaMxFaExPoB_yHRxNKlH_uTJKs2D' },
+                { id: '7', nome: 'João Pedro', posicao: 'ZAG', condicao: 'boa', idade: 21, hora: '18:55', fitness: 82, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnTjNM5tn1vRLvTcQsJdIXHJPGRgs3Ry9ja5UPJVweNooIqqDwusoMbFIQzmH0pIpayOCzxQojyKe93-vlIC8dvVNPQESlN0Ktg0JIedmU7V8EiopLTP9G2tRabcKyurjobjdQ-njx_Dv--uEjjUYdDd6O0iIX3qYPTqjk5WfMjBEN_5jPeDKKc8NOJlouH-p71Zs9JlGvUxP8ykOV5sedVZQcXk_R_XsgU9Eo6l-7EQ3MPTUkC-Rw' },
+                { id: '8', nome: 'Felipe Costa', posicao: 'ATA', condicao: 'excelente', idade: 29, hora: '18:58', fitness: 87, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcRNqUKxDsswQr0ijLpj7q9IzU__uvIVChxXH2LpWLDqdjAWeaeKtGs0ozhtMOnUWTgZHzC3VdauKmeLavSmAvlpv-QLLooqGG11RGmiXrPHUD6vimG21eiHYUSa3eioUK3XF0YsjhGqGW3lGMgLIu5vqg2jSmLmBTzDmWQP6QmkHmhPdCXZVJolzh_gEyM9aXtMIzgpvK2cz4CJeNIoSSJMoEGXSh2_V4bzNkKC4L6F78HVnhmQuM' },
+                { id: '9', nome: 'Thiago Alves', posicao: 'GOL', condicao: 'boa', idade: 44, hora: '19:00', fitness: 80, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfJPCsl6gZd0_Cj1ihhGyAKW1OPba0Jw-G_lB7C4tGioL7llzyOUXc9E2964dOaxTmfDrAxLWhwMiXCJwbbQ2LTRUL2UNvr3cUUxQ2tEwwQYhJNGr4RwtQl6XU0HWdFOVlIxyN5b8dW4MKvokTloGgquHVPCvZQyYqnwf6k-FwFn0RBoVAu-uMY4r7b3V7kpAuBJLahKFsGjNSG8HdC9v_Hak9UXx5D0BZXr_vNbAMXWqivgzOwkV0' },
+                { id: '10', nome: 'Rodrigo Zagueiro', posicao: 'ZAG', condicao: 'excelente', idade: 40, hora: '19:02', fitness: 84, foto: '' },
+                { id: '11', nome: 'Eduardo Meia', posicao: 'MEI', condicao: 'boa', idade: 33, hora: '19:05', fitness: 86, foto: '' },
+                { id: '12', nome: 'Gabriel Volante', posicao: 'VOL', condicao: 'regular', idade: 22, hora: '19:08', fitness: 76, foto: '' }
+            ];
+            sincronizarServidor();
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            realizarSorteioStitch(true);
+            alert('12 Atletas inseridos e equipes sorteadas com sucesso!');
+            if (mudarAba) trocarAba('jogadores');
+        }
+
+        function zerarListaConfirmados() {
+            listaConfirmados = [];
+            sincronizarServidor();
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            renderizarStatusCheckin();
+            realizarSorteioStitch(true);
+            alert('Lista de confirmação zerada com sucesso!');
+        }
+
+        // ==============================================================
+        // INICIALIZAÇÃO
+        // ==============================================================
+        conectarRealtime();
+        renderizarListaJogadores();
+        renderizarListaGestaoAdmin();
+        renderizarStatusCheckin();
+        realizarSorteioStitch(true);
+
+        document.getElementById('atleta-nome').value = usuarioAtual.nome;
+        document.getElementById('atleta-posicao').value = usuarioAtual.posicao;
+        document.getElementById('atleta-condicao').value = usuarioAtual.condicao;
+        document.getElementById('atleta-idade').value = usuarioAtual.idade;
+        document.getElementById('atleta-peso').value = usuarioAtual.peso;
+        if (usuarioAtual.foto) {
+            document.getElementById('perfil-foto-preview').src = usuarioAtual.foto;
+            document.getElementById('header-profile-avatar').src = usuarioAtual.foto;
+        }
+
+        // ==============================================================
+        // BANNER EM CASCATA & INSTALADOR DO APP (PWA)
+        // ==============================================================
+        let deferredPrompt = null;
+        let jaAtivouPorScroll = false;
+
+        function verificarSeAppInstalado() {
+            // 1. PWA executando em modo standalone (Android/Windows/Mac)
+            if (window.matchMedia('(display-mode: standalone)').matches) return true;
+            // 2. iOS Safari standalone
+            if (window.navigator.standalone === true) return true;
+            // 3. Android WebAPK / TWA
+            if (document.referrer && document.referrer.startsWith('android-app://')) return true;
+            // 4. Marcação de instalado salva no localStorage
+            if (localStorage.getItem('pelada_app_instalado') === 'true') return true;
+            return false;
+        }
+
+        function mostrarBannerCascata() {
+            // Se já está instalado ou foi dispensado na sessão, NÃO exibe
+            if (verificarSeAppInstalado()) return;
+            if (sessionStorage.getItem('pelada_banner_dispensado') === 'true') return;
+
+            const banner = document.getElementById('banner-cascata-instalador');
+            if (banner) {
+                banner.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+                banner.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+            }
+        }
+
+        function fecharBannerCascata(definitivo = false) {
+            if (definitivo) {
+                localStorage.setItem('pelada_app_instalado', 'true');
+            } else {
+                sessionStorage.setItem('pelada_banner_dispensado', 'true');
+            }
+            const banner = document.getElementById('banner-cascata-instalador');
+            if (banner) {
+                banner.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                banner.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+            }
+        }
+
+        // DISPARO AO ROLAR A PÁGINA (SCROLL / TOUCH / RODA DO MOUSE / GESTO)
+        function aoRolarPagina() {
+            if (jaAtivouPorScroll) return;
+            if (verificarSeAppInstalado()) return;
+
+            jaAtivouPorScroll = true;
+            mostrarBannerCascata();
+        }
+
+        window.addEventListener('scroll', aoRolarPagina, { passive: true });
+        document.addEventListener('scroll', aoRolarPagina, { passive: true, capture: true });
+        window.addEventListener('touchmove', aoRolarPagina, { passive: true });
+        window.addEventListener('wheel', aoRolarPagina, { passive: true });
+
+        // Se a tela for compacta e não precisar de rolagem, exibe com segurança após 2.5s
+        setTimeout(() => {
+            if (!jaAtivouPorScroll) {
+                aoRolarPagina();
+            }
+        }, 2500);
+
+        // Evento de PWA instalável
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            mostrarBannerCascata();
+        });
+
+        // Evento quando o app for efetivamente instalado
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem('pelada_app_instalado', 'true');
+            fecharBannerCascata(true);
+            console.log('Pelada Top: App instalado com sucesso!');
+        });
+
+        function instalarAppPwa() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choice) => {
+                    if (choice.outcome === 'accepted') {
+                        localStorage.setItem('pelada_app_instalado', 'true');
+                        fecharBannerCascata(true);
+                        alert('🎉 Pelada Top instalado com sucesso na sua tela inicial! 📲⚽');
+                    }
+                    deferredPrompt = null;
+                });
+                return;
+            }
+
+            // MODO INDEPENDENTE (WINDOWS / DESKTOP / MOBILE)
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (!isMobile) {
+                localStorage.setItem('pelada_app_instalado', 'true');
+                fecharBannerCascata(true);
+
+                // Opcional: gera o arquivo executável de inicialização rápida
+                try {
+                    const batContent = `@echo off\r\ntitle Pelada Top\r\nstart "" "chrome.exe" --app="file:///e:/PeladaTop/index.html"\r\nexit\r\n`;
+                    const blob = new Blob([batContent], { type: 'application/bat' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'Pelada Top.bat';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } catch(e) {}
+
+                alert(
+                    '🎉 PELADA TOP INSTALADO COM SUCESSO!\n\n' +
+                    '✅ O atalho oficial com o escudo do time já foi colocado na sua Área de Trabalho (Desktop)!\n\n' +
+                    '👉 Agora basta dar 2 cliques no ícone "Pelada Top" na sua Área de Trabalho para abrir o app independente em janela exclusiva (sem barra de navegador)!\n\n' +
+                    'O aviso foi desativado e não aparecerá mais.'
+                );
+            } else {
+                alert(
+                    '📲 COMO ADICIONAR O PELADA TOP NO SEU CELULAR:\n\n' +
+                    '📱 ANDROID (Chrome):\n' +
+                    'Toque nos 3 pontinhos no topo direito do navegador e escolha "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n' +
+                    '🍎 IPHONE (Safari):\n' +
+                    'Toque no botão de Compartilhar (quadrado com seta para cima) e escolha "Adicionar à Tela de Início".'
+                );
+            }
+        }
+
+        // Se já estiver instalado no momento do carregamento, remove o banner
+        if (verificarSeAppInstalado()) {
+            const banner = document.getElementById('banner-cascata-instalador');
+            if (banner) banner.remove();
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA ServiceWorker ativo com sucesso! Escopo:', reg.scope))
+                    .catch(err => console.log('Falha ao registrar ServiceWorker:', err));
+            });
+        }
+
+        atualizarNavbarPorRole();
+        trocarAba('login');
+        conectarRealtime();
+        verificarEExibirNumeralTimeJogador();
+        atualizarEstadoBotaoPlayTimer();
+    </script>
+</body>
+</html>
