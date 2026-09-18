@@ -1,5 +1,19 @@
+# Logs e arquivos temporários de execução
+*.log
 server.log
 server-err.log
-screen_capture.png
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependências (se forem usadas no futuro)
+node_modules/
+
+# Arquivos do Sistema Operacional
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Arquivos de teste e capturas de tela locais
+screen_capture.png
+*.tmp
