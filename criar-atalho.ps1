@@ -8,3 +8,4 @@ $Shortcut.IconLocation = "E:\PeladaTop\app-icon.ico"
 $Shortcut.Description = "Inicia o Servidor Local da Pelada Top em Rede Wi-Fi"
 $Shortcut.Save()
 Write-Output "Atalho criado com sucesso na Area de Trabalho: $ShortcutPath"
+
