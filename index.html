@@ -155,9 +155,9 @@
     <main class="w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl flex-1 overflow-hidden relative flex flex-col items-center transition-all duration-200">
 
         <!-- ============================================================== -->
-        <!-- ABA 0: TELA PERSONALIZADA DE INSTALAÇÃO (LINK / QR CODE)       -->
+        <!-- ABA 0: TELA PERSONALIZADA DE INSTALAÇÃO (EXCLUSIVA P/ NÃO INSTALADO) -->
         <!-- ============================================================== -->
-        <section id="view-instalacao" class="tab-view active w-full h-full flex-col justify-center items-center px-4 py-3 relative overflow-y-auto overscroll-contain">
+        <section id="view-instalacao" class="tab-view w-full h-full flex-col justify-center items-center px-4 py-3 relative overflow-y-auto overscroll-contain">
             <div class="absolute top-[-10%] right-[-10%] w-60 h-60 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
             <div class="absolute bottom-[-10%] left-[-10%] w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -273,7 +273,7 @@
         <!-- ============================================================== -->
         <!-- ABA 1: TELA DE LOGIN (FITS 100% SEM NENHUMA ROLAGEM)           -->
         <!-- ============================================================== -->
-        <section id="view-login" class="tab-view w-full h-full flex-col justify-center items-center px-4 py-3 relative overflow-y-auto overscroll-contain">
+        <section id="view-login" class="tab-view active w-full h-full flex-col justify-center items-center px-4 py-3 relative overflow-y-auto overscroll-contain">
             <div class="absolute top-[-10%] right-[-10%] w-56 h-56 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
 
             <!-- CONTAINER COMPACTO: NÃO ESTICA NEM PROS LADOS NEM PARA CIMA -->
@@ -2638,23 +2638,26 @@
         let jaAtivouPorScroll = false;
 
         function verificarSeAppInstalado() {
-            // 1. Abertura através do atalho PWA instalado na tela inicial (start_url com source=pwa)
-            if (window.location.search && (window.location.search.includes('source=pwa') || window.location.search.includes('mode=app'))) {
-                return true;
-            }
-            // 2. Modo standalone nativo do sistema (Android Chrome, Windows, Mac, Edge)
+            // 1. PWA executando em modo standalone do sistema (Android Chrome, Windows, Mac, Edge)
             if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
                 return true;
             }
-            // 3. Modo tela cheia standalone no iPhone/iPad (iOS Safari - Adicionado à Tela de Início)
+            // 2. Modo tela cheia standalone no iPhone/iPad (iOS Safari - Adicionado à Tela de Início)
             if (window.navigator && window.navigator.standalone === true) {
                 return true;
             }
-            // 4. Android WebAPK / TWA
+            // 3. Android WebAPK / TWA
             if (document.referrer && document.referrer.startsWith('android-app://')) {
                 return true;
             }
-            // NOTA: Nunca usar localStorage aqui para que o link no navegador sempre abra a tela de instalação!
+            // 4. Abertura através do atalho instalado na tela inicial (start_url com source=pwa ou mode=app)
+            if (window.location.search && (window.location.search.includes('source=pwa') || window.location.search.includes('mode=app'))) {
+                return true;
+            }
+            // 5. Marcação persistente no celular de que o app já foi instalado
+            if (localStorage.getItem('pelada_app_instalado') === 'true') {
+                return true;
+            }
             return false;
         }
 
@@ -2787,13 +2790,27 @@
         atualizarNavbarPorRole();
         configurarTelaInstalacao();
 
-        // FLUXO DE ENTRADA EXATO:
-        // 1. Se o app estiver aberto pelo ícone instalado na tela inicial (Standalone PWA) -> abre o LOGIN direto!
-        // 2. Se abriu pelo link ou escaneou o QR Code no navegador -> abre a TELA DE INSTALAÇÃO!
+        // VERIFICAÇÃO INTELIGENTE:
+        // A tela de instalação é EXCLUSIVA para quando o app NÃO estiver instalado no celular do jogador.
+        // Se a verificação detectar que já foi instalado -> abre a tela de LOGIN como estava!
+        // Se por ventura o app NÃO foi instalado no celular do jogador -> abre a tela de INSTALAÇÃO!
         if (verificarSeAppInstalado()) {
             trocarAba('login');
         } else {
             trocarAba('instalacao');
+        }
+
+        // Verificação assíncrona adicional nativa (Chrome Android / Desktop)
+        if ('getInstalledRelatedApps' in navigator) {
+            navigator.getInstalledRelatedApps().then(apps => {
+                if (apps && apps.length > 0) {
+                    localStorage.setItem('pelada_app_instalado', 'true');
+                    const viewInst = document.getElementById('view-instalacao');
+                    if (viewInst && viewInst.classList.contains('active')) {
+                        trocarAba('login');
+                    }
+                }
+            }).catch(() => {});
         }
 
         conectarRealtime();
