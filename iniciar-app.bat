@@ -6,6 +6,7 @@ echo      PELADA TOP - SERVIDOR LOCAL PWA ATIVO
 echo ====================================================
 echo.
 echo Abrindo http://localhost:8080 no seu navegador...
+echo Mantenha esta janela aberta enquanto estiver usando o app.
 echo.
 echo ====================================================
 echo Acesso no Celular/Tablet (mesmo Wi-Fi):
