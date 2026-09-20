@@ -288,25 +288,43 @@
                             <span id="texto-btn-instalar">INSTALAR AGORA</span>
                         </button>
 
-                        <!-- BLOCO: APLICATIVO PRONTO (QUANDO CONCLUÍDO) -->
+                        <!-- BLOCO: APLICATIVO PRONTO E LIBERADO APÓS VERIFICAÇÃO -->
                         <div id="bloco-concluido-abrir-app" class="hidden flex-col gap-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 animate-[fade-in-up_0.4s_ease-out] text-center">
                             <div class="flex items-center justify-center gap-2 text-emerald-600 font-black text-sm">
                                 <span class="material-symbols-outlined text-2xl">verified</span>
-                                <span>App Instalado no seu Celular!</span>
+                                <span>App Instalado no Celular!</span>
                             </div>
                             <p class="text-[11px] text-on-surface-variant leading-relaxed">
-                                ⚽ O aplicativo oficial <strong>Pelada Top</strong> foi instalado com sucesso.<br>
-                                Toque no botão verde abaixo para abrir a <strong>Tela de Login</strong> do app:
+                                ⚽ O aplicativo oficial <strong>Pelada Top</strong> foi verificado no seu aparelho.<br>
+                                Toque abaixo para abrir o app no celular e fechar o navegador:
                             </p>
-                            <a href="./index.html?source=pwa" 
-                               class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 active:scale-[0.98] transition-all ring-4 ring-emerald-500/20 animate-pulse">
-                                <span class="material-symbols-outlined text-xl">sports_soccer</span>
-                                <span>ABRIR APLICATIVO (LOGIN)</span>
-                            </a>
+                            <button type="button" id="btn-abrir-app-oficial" onclick="acionarAberturaAppEFecharNavegador()" 
+                                    class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 active:scale-[0.98] transition-all ring-4 ring-emerald-500/20 animate-pulse">
+                                <span class="material-symbols-outlined text-2xl">open_in_new</span>
+                                <span>ABRIR APLICATIVO</span>
+                            </button>
                             <button type="button" onclick="reiniciarTelaInstalacao()" 
                                     class="w-full py-2 px-3 rounded-xl text-on-surface-variant hover:text-primary font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors">
                                 <span class="material-symbols-outlined text-sm">refresh</span>
                                 <span>Reinstalar / Exibir Botão de Instalação</span>
+                            </button>
+                        </div>
+
+                        <!-- TELA DE TRANSIÇÃO: FECHANDO NAVEGADOR E ABRINDO O APP -->
+                        <div id="tela-fechando-navegador" class="hidden flex-col items-center justify-center p-5 rounded-2xl bg-surface-container-low border border-primary/25 text-center gap-3 animate-[fade-in-up_0.3s_ease-out]">
+                            <div class="w-14 h-14 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 animate-pulse">
+                                <span class="material-symbols-outlined text-3xl">sports_soccer</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <h3 class="font-black text-sm text-on-surface">Abrindo no Aplicativo Oficial...</h3>
+                                <p class="text-[11px] text-on-surface-variant mt-1 leading-relaxed">
+                                    O <strong>Pelada Top</strong> foi acionado no seu celular.<br>
+                                    Você já pode fechar esta aba do navegador.
+                                </p>
+                            </div>
+                            <button type="button" onclick="tentarFecharNavegador()" class="mt-1 py-2.5 px-4 rounded-xl bg-surface-container-highest hover:bg-surface-container-high text-on-surface font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-base">close</span>
+                                <span>FECHAR ESTA ABA</span>
                             </button>
                         </div>
 
@@ -1287,12 +1305,7 @@
         }
 
         function verificarSeAppOficial() {
-            // 1. Parâmetro oficial do PWA / WebAPK / Standalone na URL
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('source') === 'pwa' || urlParams.get('source') === 'standalone' || urlParams.get('source') === 'app') {
-                return true;
-            }
-            // 2. Display mode standalone, fullscreen ou minimal-ui
+            // Retorna true ESTRITAMENTE quando o app está sendo executado como aplicativo instalado standalone
             if (window.matchMedia && (
                 window.matchMedia('(display-mode: standalone)').matches ||
                 window.matchMedia('(display-mode: fullscreen)').matches ||
@@ -1300,11 +1313,11 @@
             )) {
                 return true;
             }
-            // 3. iOS standalone
+            // iOS WebClip standalone
             if (window.navigator && window.navigator.standalone === true) {
                 return true;
             }
-            // 4. Android WebAPK / App links referrer
+            // Android WebAPK
             if (document.referrer && (
                 document.referrer.startsWith('android-app://') ||
                 document.referrer.includes('org.chromium.webapk')
@@ -1396,40 +1409,234 @@
             }
         }
 
-        function configurarTelaInstalacao() {
-            const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            const isAndroid = /Android/i.test(navigator.userAgent);
-            const isInsideInApp = /FBAN|FBAV|Instagram|WhatsApp/i.test(navigator.userAgent);
-            const guiaIos = document.getElementById('guia-instalacao-ios');
-            const guiaAndroid = document.getElementById('guia-instalacao-android-manual');
-            const textoBtn = document.getElementById('texto-btn-instalar');
-            const avisoInApp = document.getElementById('aviso-navegador-interno');
+        let appWebapkPackageId = null;
+        let appEstaInstaladoConfirmado = false;
 
-            // Configuração inicial da barra de progresso (25% - Aguardando clique do usuário)
+        async function verificarSeAppEstaInstaladoNoCelular() {
             const barra = document.getElementById('barra-progresso-fill');
             const txtPorcento = document.getElementById('porcentagem-progresso');
             const txtTitulo = document.getElementById('titulo-progresso');
             const txtSub = document.getElementById('subtitulo-progresso');
             const icone = document.getElementById('icone-progresso');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
 
             const e1 = document.getElementById('etapa-1');
             const e2 = document.getElementById('etapa-2');
             const e3 = document.getElementById('etapa-3');
             const e4 = document.getElementById('etapa-4');
 
+            // 1. Se estiver executando dentro do App Oficial (Standalone), abre o Login imediatamente
+            if (verificarSeAppOficial()) {
+                trocarAba('login');
+                return true;
+            }
+
+            // 2. No navegador: Inicia rotina de verificação no aparelho
+            if (txtTitulo) txtTitulo.innerText = 'Verificando Aplicativo...';
+            if (txtSub) txtSub.innerText = 'Verificando se o app Pelada Top já está instalado no celular...';
+            if (barra) barra.style.width = '35%';
+            if (txtPorcento) txtPorcento.innerText = '35%';
+            if (icone) {
+                icone.className = "material-symbols-outlined text-primary text-lg animate-spin";
+                icone.innerText = "sync";
+            }
+
+            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
+            atualizarEtapaInstalacao(e2, '2. Verificando...', 'ativa');
+            atualizarEtapaInstalacao(e3, '3. Status do App', 'pendente');
+            atualizarEtapaInstalacao(e4, '4. Liberar Botão', 'pendente');
+
+            // Trava o botão abrir aplicativo durante a checagem
+            if (blocoConcluido) blocoConcluido.classList.add('hidden');
+
+            let instaladoDetectado = false;
+
+            // Verificação A: API Nativa getInstalledRelatedApps do Android
+            if ('getInstalledRelatedApps' in navigator) {
+                try {
+                    const apps = await navigator.getInstalledRelatedApps();
+                    if (apps && apps.length > 0) {
+                        instaladoDetectado = true;
+                        if (apps[0].id) {
+                            appWebapkPackageId = apps[0].id;
+                        }
+                        console.log('Pelada Top: App verificado instalado via getInstalledRelatedApps:', apps);
+                    }
+                } catch(e) {
+                    console.log('getInstalledRelatedApps ignorado:', e);
+                }
+            }
+
+            // Verificação B: Flag de instalação confirmada salva no aparelho
+            if (!instaladoDetectado && localStorage.getItem('pelada_app_instalado') === 'true') {
+                instaladoDetectado = true;
+            }
+
+            // Aguarda 600ms para usuário ver a rotina de verificação em progresso
+            await new Promise(r => setTimeout(r, 600));
+
+            if (instaladoDetectado) {
+                appEstaInstaladoConfirmado = true;
+                liberarBotaoAbrirAplicativo();
+                return true;
+            } else {
+                appEstaInstaladoConfirmado = false;
+                liberarBotaoInstalarAgora();
+                return false;
+            }
+        }
+
+        function liberarBotaoAbrirAplicativo() {
+            const barra = document.getElementById('barra-progresso-fill');
+            const txtPorcento = document.getElementById('porcentagem-progresso');
+            const txtTitulo = document.getElementById('titulo-progresso');
+            const txtSub = document.getElementById('subtitulo-progresso');
+            const icone = document.getElementById('icone-progresso');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            const telaFechando = document.getElementById('tela-fechando-navegador');
+
+            const e1 = document.getElementById('etapa-1');
+            const e2 = document.getElementById('etapa-2');
+            const e3 = document.getElementById('etapa-3');
+            const e4 = document.getElementById('etapa-4');
+
+            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
+            atualizarEtapaInstalacao(e2, '2. Pacote Baixado', 'concluida');
+            atualizarEtapaInstalacao(e3, '3. App Confirmado', 'concluida');
+            atualizarEtapaInstalacao(e4, '4. Liberado!', 'concluida');
+
+            if (barra) barra.style.width = '100%';
+            if (txtPorcento) txtPorcento.innerText = '100%';
+            if (txtTitulo) {
+                txtTitulo.className = "font-black text-xs text-emerald-600 flex items-center gap-1";
+                txtTitulo.innerHTML = '<span>✅ Aplicativo Instalado no Aparelho!</span>';
+            }
+            if (txtSub) txtSub.innerText = 'Verificação concluída com sucesso. Toque em ABRIR APLICATIVO:';
+            if (icone) {
+                icone.className = "material-symbols-outlined text-emerald-600 text-lg";
+                icone.innerText = "verified";
+            }
+
+            // Oculta o botão de instalar e LIBERA O BOTÃO DE ABRIR APLICATIVO
+            if (btnInstalar) btnInstalar.classList.add('hidden');
+            if (telaFechando) telaFechando.classList.add('hidden');
+            if (blocoConcluido) blocoConcluido.classList.remove('hidden');
+        }
+
+        function liberarBotaoInstalarAgora() {
+            const barra = document.getElementById('barra-progresso-fill');
+            const txtPorcento = document.getElementById('porcentagem-progresso');
+            const txtTitulo = document.getElementById('titulo-progresso');
+            const txtSub = document.getElementById('subtitulo-progresso');
+            const icone = document.getElementById('icone-progresso');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            const telaFechando = document.getElementById('tela-fechando-navegador');
+            const txtBtn = document.getElementById('texto-btn-instalar');
+
+            const e1 = document.getElementById('etapa-1');
+            const e2 = document.getElementById('etapa-2');
+            const e3 = document.getElementById('etapa-3');
+            const e4 = document.getElementById('etapa-4');
+
+            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
+            atualizarEtapaInstalacao(e2, '2. Não Instalado', 'ativa');
+            atualizarEtapaInstalacao(e3, '3. Instalar no Celular', 'pendente');
+            atualizarEtapaInstalacao(e4, '4. Liberar Acesso', 'pendente');
+
             if (barra) barra.style.width = '25%';
             if (txtPorcento) txtPorcento.innerText = '25%';
             if (txtTitulo) txtTitulo.innerText = 'Download & Instalação do App';
-            if (txtSub) txtSub.innerText = 'Toque em INSTALAR AGORA para instalar no celular';
+            if (txtSub) txtSub.innerText = 'O aplicativo ainda não foi instalado. Toque em INSTALAR AGORA:';
             if (icone) {
                 icone.className = "material-symbols-outlined text-primary text-lg animate-pulse";
                 icone.innerText = "downloading";
             }
 
-            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
-            atualizarEtapaInstalacao(e2, '2. Pronto p/ Instalar', 'ativa');
-            atualizarEtapaInstalacao(e3, '3. Confirmar no Celular', 'pendente');
-            atualizarEtapaInstalacao(e4, '4. Abrir no Login', 'pendente');
+            // Exibe o botão de instalar e bloqueia o botão de abrir
+            if (btnInstalar) btnInstalar.classList.remove('hidden');
+            if (txtBtn) txtBtn.innerText = 'INSTALAR AGORA';
+            if (blocoConcluido) blocoConcluido.classList.add('hidden');
+            if (telaFechando) telaFechando.classList.add('hidden');
+        }
+
+        function acionarAberturaAppEFecharNavegador() {
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const host = window.location.host;
+            const path = window.location.pathname.replace(/\/+$/, '') || '';
+
+            // Transiciona a interface do navegador imediatamente para a tela de fechamento
+            const cardProgresso = document.getElementById('card-progresso-instalacao');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+            const telaFechando = document.getElementById('tela-fechando-navegador');
+
+            if (cardProgresso) cardProgresso.classList.add('hidden');
+            if (blocoConcluido) blocoConcluido.classList.add('hidden');
+            if (btnInstalar) btnInstalar.classList.add('hidden');
+            if (telaFechando) telaFechando.classList.remove('hidden');
+
+            if (isAndroid) {
+                // No Android: Dispara a Intent para o pacote WebAPK instalado
+                let intentUrl = '';
+                if (appWebapkPackageId) {
+                    intentUrl = `intent://${host}${path}/index.html?source=pwa#Intent;scheme=https;package=${appWebapkPackageId};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end;`;
+                } else {
+                    intentUrl = `intent://${host}${path}/index.html?source=pwa#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end;`;
+                }
+
+                try {
+                    const a = document.createElement('a');
+                    a.href = intentUrl;
+                    a.rel = 'noopener';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        if (a.parentNode) a.parentNode.removeChild(a);
+                    }, 400);
+                } catch(e) {
+                    window.location.href = intentUrl;
+                }
+
+                // Tenta fechar o navegador
+                setTimeout(() => {
+                    tentarFecharNavegador();
+                }, 600);
+
+            } else if (isIos) {
+                // No iOS: Fecha aba do Safari se possível e orienta usuário
+                tentarFecharNavegador();
+            } else {
+                tentarFecharNavegador();
+            }
+        }
+
+        function tentarFecharNavegador() {
+            try {
+                window.open('', '_self', '');
+                window.close();
+            } catch(e) {}
+
+            try {
+                window.history.back();
+            } catch(e) {}
+        }
+
+        function reiniciarTelaInstalacao() {
+            localStorage.removeItem('pelada_app_instalado');
+            appEstaInstaladoConfirmado = false;
+            liberarBotaoInstalarAgora();
+        }
+
+        function configurarTelaInstalacao() {
+            const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isInsideInApp = /FBAN|FBAV|Instagram|WhatsApp/i.test(navigator.userAgent);
+            const guiaIos = document.getElementById('guia-instalacao-ios');
+            const guiaAndroid = document.getElementById('guia-instalacao-android-manual');
+            const avisoInApp = document.getElementById('aviso-navegador-interno');
 
             if (isInsideInApp && avisoInApp) {
                 avisoInApp.classList.remove('hidden');
@@ -1438,11 +1645,9 @@
             if (isIos) {
                 if (guiaIos) guiaIos.classList.remove('hidden');
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
-                if (textoBtn) textoBtn.innerText = 'ADICIONAR À TELA DE INÍCIO';
             } else {
                 if (guiaIos) guiaIos.classList.add('hidden');
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
-                if (textoBtn) textoBtn.innerText = 'INSTALAR AGORA';
             }
         }
 
@@ -1560,13 +1765,10 @@
                     concluirInstalacaoEIniciarApp();
                 } else {
                     // Jogador cancelou
+                    liberarBotaoInstalarAgora();
                     if (txtTitulo) txtTitulo.innerText = 'Instalação Cancelada';
                     if (txtSub) txtSub.innerText = 'Toque no botão para tentar novamente';
-                    if (barra) barra.style.width = '25%';
-                    if (txtPorcento) txtPorcento.innerText = '25%';
                     if (txtBtn) txtBtn.innerText = 'TENTAR INSTALAR NOVAMENTE';
-                    atualizarEtapaInstalacao(e2, '2. Pronto p/ Instalar', 'ativa');
-                    atualizarEtapaInstalacao(e3, '3. Confirmar no Celular', 'pendente');
                 }
                 deferredPrompt = null;
             }).catch((err) => {
@@ -1580,70 +1782,12 @@
         }
 
         function concluirInstalacaoEIniciarApp() {
-            const barra = document.getElementById('barra-progresso-fill');
-            const txtPorcento = document.getElementById('porcentagem-progresso');
-            const txtTitulo = document.getElementById('titulo-progresso');
-            const txtSub = document.getElementById('subtitulo-progresso');
-            const icone = document.getElementById('icone-progresso');
-            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
-            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
-
-            const e1 = document.getElementById('etapa-1');
-            const e2 = document.getElementById('etapa-2');
-            const e3 = document.getElementById('etapa-3');
-            const e4 = document.getElementById('etapa-4');
-
-            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
-            atualizarEtapaInstalacao(e2, '2. Arquivos Baixados', 'concluida');
-            atualizarEtapaInstalacao(e3, '3. Instalado no Aparelho', 'concluida');
-            atualizarEtapaInstalacao(e4, '4. Concluído!', 'concluida');
-
-            if (barra) barra.style.width = '100%';
-            if (txtPorcento) txtPorcento.innerText = '100%';
-            if (txtTitulo) {
-                txtTitulo.className = "font-black text-xs text-emerald-600 flex items-center gap-1";
-                txtTitulo.innerHTML = '<span>🎉 Aplicativo Instalado com Sucesso!</span>';
-            }
-            if (txtSub) txtSub.innerText = 'Toque no botão verde abaixo para abrir o Pelada Top no Login:';
-            if (icone) {
-                icone.className = "material-symbols-outlined text-emerald-600 text-lg";
-                icone.innerText = "task_alt";
-            }
-
             localStorage.setItem('pelada_app_instalado', 'true');
-            if (btnInstalar) btnInstalar.classList.add('hidden');
-            if (blocoConcluido) blocoConcluido.classList.remove('hidden');
-
             if (navigator.vibrate) {
                 try { navigator.vibrate([100, 50, 100]); } catch(e) {}
             }
-        }
-
-        function reiniciarTelaInstalacao() {
-            localStorage.removeItem('pelada_app_instalado');
-            const cardProgresso = document.getElementById('card-progresso-instalacao');
-            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
-            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
-            if (cardProgresso) cardProgresso.classList.remove('hidden');
-            if (btnInstalar) btnInstalar.classList.remove('hidden');
-            if (blocoConcluido) blocoConcluido.classList.add('hidden');
-            configurarTelaInstalacao();
-        }
-
-        function exibirAvisoAppJaInstaladoFecharNavegador() {
-            const cardProgresso = document.getElementById('card-progresso-instalacao');
-            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
-            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
-            const guiaIos = document.getElementById('guia-instalacao-ios');
-            const guiaAndroid = document.getElementById('guia-instalacao-android-manual');
-
-            if (cardProgresso) cardProgresso.classList.add('hidden');
-            if (btnInstalar) btnInstalar.classList.add('hidden');
-            if (guiaIos) guiaIos.classList.add('hidden');
-            if (guiaAndroid) guiaAndroid.classList.add('hidden');
-            if (blocoConcluido) {
-                blocoConcluido.classList.remove('hidden');
-            }
+            // Dispara liberação oficial do botão Abrir Aplicativo
+            liberarBotaoAbrirAplicativo();
         }
 
         function fazerLogout() {
@@ -2997,19 +3141,7 @@
             trocarAba('login');
         } else {
             trocarAba('instalacao');
-            if (localStorage.getItem('pelada_app_instalado') === 'true') {
-                exibirAvisoAppJaInstaladoFecharNavegador();
-            }
-        }
-
-        // Verificação assíncrona adicional nativa (Chrome Android / Desktop)
-        if ('getInstalledRelatedApps' in navigator && !isExecutandoNoAppOficial) {
-            navigator.getInstalledRelatedApps().then(apps => {
-                if (apps && apps.length > 0) {
-                    localStorage.setItem('pelada_app_instalado', 'true');
-                    exibirAvisoAppJaInstaladoFecharNavegador();
-                }
-            }).catch(() => {});
+            verificarSeAppEstaInstaladoNoCelular();
         }
 
         conectarRealtime();
