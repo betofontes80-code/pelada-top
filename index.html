@@ -203,13 +203,65 @@
                         </div>
                     </div>
 
-                    <!-- BLOCO INTELIGENTE DE INSTALAÇÃO -->
+                    <!-- BLOCO INTELIGENTE DE INSTALAÇÃO COM ANIMAÇÃO DE PROGRESSO -->
                     <div id="bloco-instalador-dinamico" class="flex flex-col gap-2.5">
                         
+                        <!-- CARD COM ANIMAÇÃO DE INSTALAÇÃO EM PROGRESSO -->
+                        <div id="card-progresso-instalacao" class="flex flex-col gap-2 p-3 rounded-2xl bg-surface-container-low border border-primary/25 shadow-xs">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span id="icone-progresso" class="material-symbols-outlined text-primary text-lg animate-spin">sync</span>
+                                    <div class="flex flex-col">
+                                        <span id="titulo-progresso" class="font-bold text-xs text-on-surface">Instalando Aplicativo...</span>
+                                        <span id="subtitulo-progresso" class="text-[10px] text-on-surface-variant">Baixando pacote do app no celular</span>
+                                    </div>
+                                </div>
+                                <span id="porcentagem-progresso" class="font-mono text-xs font-black text-primary px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">0%</span>
+                            </div>
+
+                            <!-- Barra de Progresso Animada -->
+                            <div class="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden p-0.5 border border-surface-container-highest">
+                                <div id="barra-progresso-fill" class="h-full bg-gradient-to-r from-primary via-red-500 to-emerald-500 rounded-full transition-all duration-300 ease-out" style="width: 5%;"></div>
+                            </div>
+
+                            <!-- Lista de Etapas em Tempo Real -->
+                            <div class="grid grid-cols-2 gap-1.5 pt-0.5 text-[10px]">
+                                <div id="etapa-1" class="flex items-center gap-1 text-on-surface-variant font-medium">
+                                    <span class="material-symbols-outlined text-xs text-primary animate-pulse">radio_button_unchecked</span>
+                                    <span class="truncate">1. Conexão</span>
+                                </div>
+                                <div id="etapa-2" class="flex items-center gap-1 text-on-surface-variant/60 font-medium">
+                                    <span class="material-symbols-outlined text-xs">radio_button_unchecked</span>
+                                    <span class="truncate">2. Escudo & Dados</span>
+                                </div>
+                                <div id="etapa-3" class="flex items-center gap-1 text-on-surface-variant/60 font-medium">
+                                    <span class="material-symbols-outlined text-xs">radio_button_unchecked</span>
+                                    <span class="truncate">3. App Offline</span>
+                                </div>
+                                <div id="etapa-4" class="flex items-center gap-1 text-on-surface-variant/60 font-medium">
+                                    <span class="material-symbols-outlined text-xs">radio_button_unchecked</span>
+                                    <span class="truncate">4. Tela Inicial</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BLOCO: APLICATIVO PRONTO / ABRIR DIRETO NO CELULAR (EXIBIDO APÓS 100%) -->
+                        <div id="bloco-concluido-abrir-app" class="hidden flex-col gap-2 animate-[fade-in-up_0.4s_ease-out]">
+                            <button id="btn-abrir-app-instalado" onclick="abrirAppInstaladoDireto()" 
+                                    class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-success-green to-emerald-600 text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-success-green/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 animate-pulse">
+                                <span class="material-symbols-outlined text-xl">sports_soccer</span>
+                                <span>ABRIR O APP INSTALADO</span>
+                                <span class="material-symbols-outlined text-base">arrow_forward</span>
+                            </button>
+                            <p class="text-[10px] text-center text-on-surface-variant font-medium px-1">
+                                ⚽ <strong>Instalação concluída!</strong> Toque acima para abrir direto ou acesse pelo ícone criado na tela inicial do seu celular.
+                            </p>
+                        </div>
+
                         <!-- BOTÃO DE DESTAQUE: BAIXAR E INSTALAR NO CELULAR -->
                         <button id="btn-instalar-pwa-acao" onclick="instalarAppPwa()" 
-                                class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-primary via-red-600 to-primary text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-primary/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group">
-                            <span class="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">download_for_offline</span>
+                                class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-primary via-red-600 to-primary text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-primary/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group">
+                            <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">download_for_offline</span>
                             <span id="texto-btn-instalar">BAIXAR & INSTALAR NO CELULAR</span>
                         </button>
 
@@ -1276,6 +1328,143 @@
             trocarAba('login');
         }
 
+        let animacaoProgressoAtiva = false;
+
+        function iniciarAnimacaoProgressoInstalacao() {
+            if (animacaoProgressoAtiva) return;
+            animacaoProgressoAtiva = true;
+
+            const barra = document.getElementById('barra-progresso-fill');
+            const txtPorcento = document.getElementById('porcentagem-progresso');
+            const txtTitulo = document.getElementById('titulo-progresso');
+            const txtSub = document.getElementById('subtitulo-progresso');
+            const icone = document.getElementById('icone-progresso');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+
+            const e1 = document.getElementById('etapa-1');
+            const e2 = document.getElementById('etapa-2');
+            const e3 = document.getElementById('etapa-3');
+            const e4 = document.getElementById('etapa-4');
+
+            function atualizarEtapa(elem, texto, status) {
+                if (!elem) return;
+                if (status === 'concluida') {
+                    elem.className = "flex items-center gap-1 text-success-green font-bold transition-all";
+                    elem.innerHTML = `<span class="material-symbols-outlined text-xs text-success-green">check_circle</span><span class="truncate">${texto}</span>`;
+                } else if (status === 'ativa') {
+                    elem.className = "flex items-center gap-1 text-primary font-bold animate-pulse transition-all";
+                    elem.innerHTML = `<span class="material-symbols-outlined text-xs text-primary animate-spin">progress_activity</span><span class="truncate">${texto}</span>`;
+                } else {
+                    elem.className = "flex items-center gap-1 text-on-surface-variant/50 font-medium transition-all";
+                    elem.innerHTML = `<span class="material-symbols-outlined text-xs">radio_button_unchecked</span><span class="truncate">${texto}</span>`;
+                }
+            }
+
+            let progresso = 5;
+            if (barra) barra.style.width = '5%';
+            if (txtPorcento) txtPorcento.innerText = '5%';
+            atualizarEtapa(e1, '1. Conexão', 'ativa');
+
+            const intervalo = setInterval(() => {
+                progresso += Math.floor(Math.random() * 8) + 5;
+                if (progresso > 100) progresso = 100;
+
+                if (barra) barra.style.width = `${progresso}%`;
+                if (txtPorcento) txtPorcento.innerText = `${progresso}%`;
+
+                if (progresso >= 25 && progresso < 50) {
+                    atualizarEtapa(e1, '1. Conectado', 'concluida');
+                    atualizarEtapa(e2, '2. Escudo & Dados', 'ativa');
+                    if (txtTitulo) txtTitulo.innerText = 'Baixando Recursos...';
+                    if (txtSub) txtSub.innerText = 'Escudo oficial e banco de dados';
+                } else if (progresso >= 50 && progresso < 80) {
+                    atualizarEtapa(e2, '2. Escudo & Dados', 'concluida');
+                    atualizarEtapa(e3, '3. App Offline', 'ativa');
+                    if (txtTitulo) txtTitulo.innerText = 'Configurando App PWA...';
+                    if (txtSub) txtSub.innerText = 'Modo independente sem barras';
+                } else if (progresso >= 80 && progresso < 100) {
+                    atualizarEtapa(e3, '3. App Offline', 'concluida');
+                    atualizarEtapa(e4, '4. Tela Inicial', 'ativa');
+                    if (txtTitulo) txtTitulo.innerText = 'Finalizando Instalação...';
+                    if (txtSub) txtSub.innerText = 'Registrando atalho no seu celular';
+                } else if (progresso >= 100) {
+                    clearInterval(intervalo);
+                    atualizarEtapa(e4, '4. Instalado!', 'concluida');
+                    if (txtTitulo) {
+                        txtTitulo.className = "font-black text-xs text-success-green flex items-center gap-1";
+                        txtTitulo.innerHTML = '<span>Instalação Concluída!</span><span class="material-symbols-outlined text-xs">check_circle</span>';
+                    }
+                    if (txtSub) txtSub.innerText = 'Pronto para abrir como aplicativo!';
+                    if (icone) {
+                        icone.className = "material-symbols-outlined text-success-green text-lg";
+                        icone.innerText = "task_alt";
+                    }
+
+                    // Marca como instalado
+                    localStorage.setItem('pelada_app_instalado', 'true');
+
+                    // Exibe o botão de abrir o app instalado
+                    if (blocoConcluido) blocoConcluido.classList.remove('hidden');
+                    if (btnInstalar) btnInstalar.classList.add('hidden');
+
+                    // Notificação ou vibração tátil se suportado
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate([80, 40, 80]); } catch(e) {}
+                    }
+
+                    // Se o navegador já tiver o prompt nativo PWA pronto, oferece ao usuário
+                    if (deferredPrompt) {
+                        try {
+                            deferredPrompt.prompt();
+                            deferredPrompt.userChoice.then((choice) => {
+                                if (choice.outcome === 'accepted') {
+                                    abrirAppInstaladoDireto();
+                                }
+                                deferredPrompt = null;
+                            }).catch(() => {});
+                        } catch(e) {}
+                    }
+
+                    // Tenta abrir direto no celular após 1.6 segundos
+                    setTimeout(() => {
+                        abrirAppInstaladoDireto(true);
+                    }, 1600);
+                }
+            }, 130);
+        }
+
+        function abrirAppInstaladoDireto(auto = false) {
+            localStorage.setItem('pelada_app_instalado', 'true');
+
+            // 1. Se já estiver no modo standalone, navega direto para o login
+            if ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true) {
+                trocarAba('login');
+                return;
+            }
+
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            if (isAndroid) {
+                try {
+                    // Tenta acionar a abertura direta do WebAPK no Android
+                    const intentUrl = `intent://${window.location.host}${window.location.pathname}?source=pwa#Intent;scheme=https;action=android.intent.action.VIEW;end;`;
+                    window.location.href = intentUrl;
+                    setTimeout(() => {
+                        window.location.replace('./index.html?source=pwa');
+                    }, 500);
+                    return;
+                } catch(e) {}
+            }
+
+            // Redireciona com o parâmetro de PWA para abrir como aplicativo
+            if (!auto) {
+                window.location.replace('./index.html?source=pwa');
+            } else {
+                // No modo automático de teste, vai para o login
+                trocarAba('login');
+            }
+        }
+
         function configurarTelaInstalacao() {
             const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
             const isAndroid = /Android/i.test(navigator.userAgent);
@@ -1296,6 +1485,9 @@
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
                 if (textoBtn) textoBtn.innerText = 'INSTALAR NO COMPUTADOR';
             }
+
+            // Dispara a animação de instalação em progresso automaticamente quando abrir a tela!
+            iniciarAnimacaoProgressoInstalacao();
         }
 
         function fazerLogout() {
@@ -2719,8 +2911,8 @@
             localStorage.setItem('pelada_app_instalado', 'true');
             fecharBannerCascata(true);
             console.log('Pelada Top: App instalado com sucesso!');
-            // Abre a tela de login após instalar
-            trocarAba('login');
+            // Abre o aplicativo instalado diretamente
+            abrirAppInstaladoDireto();
         });
 
         function instalarAppPwa() {
@@ -2730,9 +2922,8 @@
                     if (choice.outcome === 'accepted') {
                         localStorage.setItem('pelada_app_instalado', 'true');
                         fecharBannerCascata(true);
-                        alert('🎉 Pelada Top instalado com sucesso na sua tela inicial! 📲⚽');
-                        // Abre a tela de login após instalar
-                        trocarAba('login');
+                        // Abre o aplicativo instalado diretamente
+                        abrirAppInstaladoDireto();
                     }
                     deferredPrompt = null;
                 });
