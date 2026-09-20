@@ -17,3 +17,6 @@ desktop.ini
 # Arquivos de teste e capturas de tela locais
 screen_capture.png
 *.tmp
+
+# Subpasta aninhada
+pelada-top/

@@ -195,7 +195,7 @@
                             <div class="relative flex items-center">
                                 <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-lg">mail</span>
                                 <input class="w-full h-10 pl-9 pr-3 rounded-xl bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary" 
-                                       id="login-email" placeholder="seu@email.com" value="beto@peladatop.com" required="" type="email"/>
+                                       id="login-email" placeholder="seu@email.com" required="" type="email"/>
                             </div>
                         </div>
 
@@ -204,7 +204,7 @@
                             <div class="relative flex items-center">
                                 <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-lg">lock</span>
                                 <input class="w-full h-10 pl-9 pr-10 rounded-xl bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary" 
-                                       id="login-password" placeholder="••••••••" value="123456" required="" type="password"/>
+                                       id="login-password" placeholder="••••••••" required="" type="password"/>
                                 <button class="absolute right-2.5 w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" 
                                         id="togglePassword" type="button" onclick="alternarVisibilidadeSenha()">
                                     <span id="icon-senha" class="material-symbols-outlined text-[18px]">visibility_off</span>
@@ -215,7 +215,7 @@
                                     <span class="material-symbols-outlined text-sm text-primary group-hover:scale-110 transition-transform">info</span>
                                     <span class="hover:underline font-bold">Sobre o App</span>
                                 </button>
-                                <a class="font-label-md text-[11px] text-primary hover:underline font-bold" href="#" onclick="alert('Dica: use qualquer e-mail e senha para testar!')">Esqueci minha senha</a>
+                                <a class="font-label-md text-[11px] text-primary hover:underline font-bold" href="#" onclick="alert('Informe seu e-mail cadastrado ao organizador para redefinição de acesso.')">Esqueci minha senha</a>
                             </div>
                         </div>
 
@@ -394,15 +394,11 @@
                     <span id="txt-aviso-play">Escale os times no sorteio para liberar o Play</span>
                 </div>
 
-                <!-- Botão de teste rápido de 10s e apito -->
-                <div class="flex items-center gap-2">
-                    <button onclick="definirTempoTeste(10)" class="px-2.5 py-1 rounded-lg bg-surface-container-low border border-surface-container-highest text-on-surface-variant hover:text-primary text-[10px] font-bold active:scale-95 flex items-center gap-1 shadow-2xs">
-                        <span class="material-symbols-outlined text-xs text-primary">speed</span>
-                        <span>Testar Alarme (10s)</span>
-                    </button>
-                    <button onclick="testarNotificacaoManual()" class="px-2.5 py-1 rounded-lg bg-surface-container-low border border-surface-container-highest text-on-surface-variant hover:text-primary text-[10px] font-bold active:scale-95 flex items-center gap-1 shadow-2xs">
+                <!-- Teste do Apito Oficial -->
+                <div class="flex items-center justify-center">
+                    <button onclick="testarNotificacaoManual()" class="px-3 py-1.5 rounded-lg bg-surface-container-low border border-surface-container-highest text-on-surface-variant hover:text-primary text-[10px] font-bold active:scale-95 flex items-center gap-1.5 shadow-2xs">
                         <span class="material-symbols-outlined text-xs text-secondary">sports</span>
-                        <span>Ouvir Apito</span>
+                        <span>Testar Som do Apito</span>
                     </button>
                 </div>
             </div>
@@ -477,19 +473,13 @@
                         </button>
                     </div>
 
-                    <!-- 4. AÇÕES RÁPIDAS DE TESTE -->
+                    <!-- 4. AÇÕES DA PELADA -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
-                        <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Ações de Teste:</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="injetarJogadoresSimulados(false)" class="py-2.5 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-surface-container-highest active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-primary text-sm">group_add</span>
-                                <span>Inserir 12 Atletas</span>
-                            </button>
-                            <button onclick="zerarListaConfirmados()" class="py-2.5 bg-red-50 hover:bg-red-100 text-primary rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-red-200 active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-sm">delete</span>
-                                <span>Limpar Lista</span>
-                            </button>
-                        </div>
+                        <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Ações da Pelada:</label>
+                        <button onclick="zerarListaConfirmados()" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-primary rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1.5 border border-red-200 active:scale-95 transition-all">
+                            <span class="material-symbols-outlined text-sm">restart_alt</span>
+                            <span>Zerar Lista (Nova Pelada)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -914,20 +904,7 @@
             if (!peladaConfig.raioMaximoMetros) peladaConfig.raioMaximoMetros = 500;
         }
 
-        let listaConfirmados = JSON.parse(localStorage.getItem('pelada_confirmados')) || [
-            { id: '1', nome: 'Beto Artilheiro', posicao: 'ATA', condicao: 'excelente', idade: 28, hora: '18:40', fitness: 98, foto: usuarioAtual.foto },
-            { id: '2', nome: 'Marcos Silva', posicao: 'GOL', condicao: 'excelente', idade: 31, hora: '18:42', fitness: 95, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_' },
-            { id: '3', nome: 'Diego Costa', posicao: 'MEI', condicao: 'boa', idade: 42, hora: '18:45', fitness: 92, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgUPsqBtwqY-wTXynR-JuTosfEpI-oihJb5PFIeXr75WsV0QP-J_eUqt_gO27HLT0uxXEhL1zVAQOBkIAl6j5a3nQCMFdUx-AgLkxtz_QLXnafJetPeybrjwTin-NQh1D1eIGe1fVQebhJ7B0lFSyv9BRrXxxi50stcf3M9628WLPh2sdLH0F7AUqFOxzunqx3ah3sKBYGcvgE6EkYDOHHhI5wfe72SVasH4oXAJU0z2tK-NXxvI7B' },
-            { id: '4', nome: 'Lucas Moura', posicao: 'ATA', condicao: 'regular', idade: 23, hora: '18:47', fitness: 74, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAyzcRri3mZx0ZcvKW5FXsnPV4ayUzC1W-KdRiKBXl1rUtC4Us7H1an0kcGZSuop3fk7ZrRL73CXPDRawjf8R3xcV9WwkirfUBiNWlvJvwEQt66UDIuWZLO7vcvIEjtSJY9CFqSI0Bay5keXSpoyR5whkC1WpOucC60n3zet1mKr6Xyv5SV3BTXB_YXChTdJA-cpZObxa1a89-ro2zFMDYdRBJN09v2EhRaQ8TlSt1i3PfQSt0P7VPT' },
-            { id: '5', nome: 'Carlos Silva', posicao: 'ATA', condicao: 'excelente', idade: 26, hora: '18:50', fitness: 88, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABblwGh55YW14k26eWxvRk1CHJMBWcbXMVFeRz_m5hEDhbcA0180kKprPICjrmAsYqqSOYExyzmmlKO8Chbu6Iy-K2pM_Ti-Yk3I1dNKd29YauZjFdrPAdF-BDlOn5zVe7Ev6FE9frVzmI7SUK774inGrY3KDrHnjeuzhjIKr1vcm8nZv9J3Jgi_tNjrEKx28qv28kXoQKnWrRrtiTpxKM1MqUX5WLvIzUmezvreDlEYMrhAbYo0Bq' },
-            { id: '6', nome: 'Marcos Paulo', posicao: 'MEI', condicao: 'boa', idade: 39, hora: '18:52', fitness: 85, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy4JkEBsUdGiZBD37jjx8GXKn4bjEGHbZ-vngcS7VFn6gOfRYVhfpzOB-fBgY6QpZec0QoR1819CW_x5zJZdBjnq0I9AXhJm-3iCbGBMvknMpKgeFzQoyyvWljFlv8UkLfM3wkYB-BO-TN9BQExtuW4P0Wug0MUjLGTfTHDDzLDl2gQEPTii8nQn9ZVXbj6w2Zp17puXN8kzWszozwe9rt1gIsGaMxFaExPoB_yHRxNKlH_uTJKs2D' },
-            { id: '7', nome: 'João Pedro', posicao: 'ZAG', condicao: 'boa', idade: 21, hora: '18:55', fitness: 82, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnTjNM5tn1vRLvTcQsJdIXHJPGRgs3Ry9ja5UPJVweNooIqqDwusoMbFIQzmH0pIpayOCzxQojyKe93-vlIC8dvVNPQESlN0Ktg0JIedmU7V8EiopLTP9G2tRabcKyurjobjdQ-njx_Dv--uEjjUYdDd6O0iIX3qYPTqjk5WfMjBEN_5jPeDKKc8NOJlouH-p71Zs9JlGvUxP8ykOV5sedVZQcXk_R_XsgU9Eo6l-7EQ3MPTUkC-Rw' },
-            { id: '8', nome: 'Felipe Costa', posicao: 'ATA', condicao: 'excelente', idade: 29, hora: '18:58', fitness: 87, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcRNqUKxDsswQr0ijLpj7q9IzU__uvIVChxXH2LpWLDqdjAWeaeKtGs0ozhtMOnUWTgZHzC3VdauKmeLavSmAvlpv-QLLooqGG11RGmiXrPHUD6vimG21eiHYUSa3eioUK3XF0YsjhGqGW3lGMgLIu5vqg2jSmLmBTzDmWQP6QmkHmhPdCXZVJolzh_gEyM9aXtMIzgpvK2cz4CJeNIoSSJMoEGXSh2_V4bzNkKC4L6F78HVnhmQuM' },
-            { id: '9', nome: 'Thiago Alves', posicao: 'GOL', condicao: 'boa', idade: 44, hora: '19:00', fitness: 80, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfJPCsl6gZd0_Cj1ihhGyAKW1OPba0Jw-G_lB7C4tGioL7llzyOUXc9E2964dOaxTmfDrAxLWhwMiXCJwbbQ2LTRUL2UNvr3cUUxQ2tEwwQYhJNGr4RwtQl6XU0HWdFOVlIxyN5b8dW4MKvokTloGgquHVPCvZQyYqnwf6k-FwFn0RBoVAu-uMY4r7b3V7kpAuBJLahKFsGjNSG8HdC9v_Hak9UXx5D0BZXr_vNbAMXWqivgzOwkV0' },
-            { id: '10', nome: 'Rodrigo Zagueiro', posicao: 'ZAG', condicao: 'excelente', idade: 40, hora: '19:02', fitness: 84, foto: '' },
-            { id: '11', nome: 'Eduardo Meia', posicao: 'MEI', condicao: 'boa', idade: 33, hora: '19:05', fitness: 86, foto: '' },
-            { id: '12', nome: 'Gabriel Volante', posicao: 'VOL', condicao: 'regular', idade: 22, hora: '19:08', fitness: 76, foto: '' }
-        ];
+        let listaConfirmados = JSON.parse(localStorage.getItem('pelada_confirmados')) || [];
 
         let roleSelecionadoLogin = 'jogador';
         let qtdTimesSorteio = 4;
@@ -1375,7 +1352,6 @@
         // CHECK-IN & REGRA DE PROXIMIDADE (ARENA ESQUERDINHA - 500M)
         // ==============================================================
         let distanciaAtualMetros = null;
-        let simulandoProximidade = false;
 
         function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // raio da Terra em metros
@@ -1390,13 +1366,6 @@
 
         function atualizarLocalizacaoGps(mostrarAlerta = false) {
             const txtInfo = document.getElementById('txt-distancia-campo');
-            if (simulandoProximidade) {
-                distanciaAtualMetros = 45;
-                if (txtInfo) txtInfo.innerHTML = '<span class="text-success-green font-bold">📍 A 45m do Campo (Liberado!)</span>';
-                if (mostrarAlerta) alert(`📍 Simulação ativa: Você está a 45m do local oficial (${peladaConfig.local})! Check-in liberado.`);
-                renderizarStatusCheckin();
-                return;
-            }
 
             if (!navigator.geolocation) {
                 if (txtInfo) txtInfo.innerText = 'GPS não disponível neste navegador';
@@ -1429,17 +1398,11 @@
                             alert(`📍 Sinal GPS Confirmado!\nVocê está a ${distanciaAtualMetros}m do local oficial da pelada:\n${peladaConfig.local}\nPode se escalar! 🔥`);
                         } else {
                             const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros/1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
-                            const querSimular = confirm(
+                            alert(
                                 `📍 Medição GPS Realizada:\n\n` +
                                 `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
-                                `Pela regra da pelada, só pode se escalar quem estiver a menos de 500 metros do campo.\n\n` +
-                                `Deseja simular que você chegou no campo para realizar testes?`
+                                `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar.`
                             );
-                            if (querSimular) {
-                                simulandoProximidade = true;
-                                distanciaAtualMetros = 45;
-                                atualizarLocalizacaoGps();
-                            }
                         }
                     }
                     renderizarStatusCheckin();
@@ -1448,16 +1411,11 @@
                     console.warn('Erro GPS:', err.message);
                     if (txtInfo) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
                     if (mostrarAlerta) {
-                        const querSimular = confirm(
+                        alert(
                             `Não foi possível obter o sinal GPS exato (${err.message}).\n\n` +
                             `Local Oficial:\n${peladaConfig.local}\n\n` +
-                            `Deseja simular presença no campo para testar o check-in?`
+                            `Por favor, ative a localização no seu celular/dispositivo para validar sua presença no campo.`
                         );
-                        if (querSimular) {
-                            simulandoProximidade = true;
-                            distanciaAtualMetros = 45;
-                            atualizarLocalizacaoGps();
-                        }
                     }
                 },
                 { enableHighAccuracy: true, timeout: 8000 }
@@ -1559,17 +1517,11 @@
                     return;
                 } else {
                     const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros / 1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
-                    const querSimular = confirm(
+                    alert(
                         `🚫 CHECK-IN BLOQUEADO POR DISTÂNCIA!\n\n` +
                         `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
-                        `Regra obrigatória: você só pode se escalar se estiver a menos de 500 metros do campo!\n\n` +
-                        `Está testando o sistema? Clique em "OK" para simular chegada no campo e se escalar.`
+                        `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar!`
                     );
-                    if (querSimular) {
-                        simulandoProximidade = true;
-                        distanciaAtualMetros = 45;
-                        efetuarEscalacao();
-                    }
                     return;
                 }
             }
@@ -1592,31 +1544,20 @@
                             efetuarEscalacao();
                         } else {
                             const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros / 1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
-                            const querSimular = confirm(
+                            alert(
                                 `🚫 CHECK-IN BLOQUEADO POR DISTÂNCIA!\n\n` +
                                 `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
-                                `Regra obrigatória: você só pode se escalar a no máximo 500 metros do campo!\n\n` +
-                                `Deseja simular que você chegou no campo para realizar o teste?`
+                                `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar!`
                             );
-                            if (querSimular) {
-                                simulandoProximidade = true;
-                                distanciaAtualMetros = 45;
-                                efetuarEscalacao();
-                            }
                         }
                     },
                     (err) => {
                         if (btn) btn.innerHTML = origHtml;
-                        const querSimular = confirm(
+                        alert(
                             `📍 Não foi possível obter o sinal GPS (${err.message}).\n\n` +
                             `Pela regra da pelada, é obrigatório estar a menos de 500m do campo:\n${peladaConfig.local}\n\n` +
-                            `Deseja simular presença no campo para testar o check-in?`
+                            `Por favor, ative a localização do seu dispositivo para confirmar presença.`
                         );
-                        if (querSimular) {
-                            simulandoProximidade = true;
-                            distanciaAtualMetros = 45;
-                            efetuarEscalacao();
-                        }
                     },
                     { enableHighAccuracy: true, timeout: 6000 }
                 );
@@ -1786,22 +1727,15 @@
                         <span class="material-symbols-outlined text-secondary text-3xl">groups</span>
                         <div>
                             <h4 class="font-bold text-on-surface text-sm">Equipes Indisponíveis (${listaConfirmados ? listaConfirmados.length : 0}/4 atletas)</h4>
-                            <p class="text-[11px] text-on-surface-variant mt-0.5">São necessários ao menos 4 atletas confirmados para realizar o sorteio.</p>
+                            <p class="text-[11px] text-on-surface-variant mt-0.5">São necessários ao menos 4 atletas confirmados na lista para realizar o sorteio.</p>
                         </div>
-                        <button onclick="injetarJogadoresSimulados(false)" class="mt-1 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg active:scale-95 shadow-sm inline-flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-sm">group_add</span>
-                            <span>Inserir 12 Atletas e Sortear</span>
-                        </button>
                     </div>
                 `;
                 if (containerEquipes) containerEquipes.innerHTML = vazioHtml;
                 timesGeradosSorteio = [];
 
                 if (!silencioso) {
-                    const querInserir = confirm('É necessário ter ao menos 4 atletas confirmados para sortear!\n\nDeseja inserir 12 atletas de teste agora para gerar as equipes automaticamente?');
-                    if (querInserir) {
-                        injetarJogadoresSimulados(false);
-                    }
+                    alert('É necessário ter ao menos 4 atletas confirmados na lista para realizar o sorteio das equipes.');
                 }
                 return;
             }
@@ -2367,19 +2301,6 @@
             dispararNotificacaoFimDeJogo();
         }
 
-        function definirTempoTeste(segundos) {
-            pararCronometro();
-            tempoTotalCronometro = segundos;
-            segundosTimer = segundos;
-            const display = document.getElementById('crono-display-digits');
-            if (display) display.innerText = formatarTempo(segundosTimer);
-            const stroke = document.getElementById('timer-stroke');
-            if (stroke) stroke.style.strokeDashoffset = '0';
-            const sub = document.getElementById('crono-substatus');
-            if (sub) sub.innerText = `Modo Teste (${segundos}s)`;
-            alternarPlayCronometro();
-        }
-
         // ==============================================================
         // GESTÃO DE ATLETAS NO PAINEL DE CONFIG (EDITAR E EXCLUIR)
         // ==============================================================
@@ -2394,7 +2315,7 @@
                     <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-secondary text-2xl">person_off</span>
                         <p class="font-bold text-on-surface">Nenhum jogador confirmado</p>
-                        <p class="text-[10px]">Toque em "+ Atleta" para cadastrar ou em "Inserir 12 Atletas".</p>
+                        <p class="text-[10px]">Toque em "+ Atleta" para cadastrar ou aguarde o check-in dos jogadores.</p>
                     </div>
                 `;
                 return;
@@ -2524,28 +2445,7 @@
         // ==============================================================
         // MÉTODOS DO ORGANIZADOR / ADMIN
         // ==============================================================
-        function injetarJogadoresSimulados(mudarAba = false) {
-            listaConfirmados = [
-                { id: '1', nome: 'Beto Artilheiro', posicao: 'ATA', condicao: 'excelente', idade: 28, hora: '18:40', fitness: 98, foto: usuarioAtual.foto },
-                { id: '2', nome: 'Marcos Silva', posicao: 'GOL', condicao: 'excelente', idade: 31, hora: '18:42', fitness: 95, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_' },
-                { id: '3', nome: 'Diego Costa', posicao: 'MEI', condicao: 'boa', idade: 42, hora: '18:45', fitness: 92, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgUPsqBtwqY-wTXynR-JuTosfEpI-oihJb5PFIeXr75WsV0QP-J_eUqt_gO27HLT0uxXEhL1zVAQOBkIAl6j5a3nQCMFdUx-AgLkxtz_QLXnafJetPeybrjwTin-NQh1D1eIGe1fVQebhJ7B0lFSyv9BRrXxxi50stcf3M9628WLPh2sdLH0F7AUqFOxzunqx3ah3sKBYGcvgE6EkYDOHHhI5wfe72SVasH4oXAJU0z2tK-NXxvI7B' },
-                { id: '4', nome: 'Lucas Moura', posicao: 'ATA', condicao: 'regular', idade: 23, hora: '18:47', fitness: 74, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAyzcRri3mZx0ZcvKW5FXsnPV4ayUzC1W-KdRiKBXl1rUtC4Us7H1an0kcGZSuop3fk7ZrRL73CXPDRawjf8R3xcV9WwkirfUBiNWlvJvwEQt66UDIuWZLO7vcvIEjtSJY9CFqSI0Bay5keXSpoyR5whkC1WpOucC60n3zet1mKr6Xyv5SV3BTXB_YXChTdJA-cpZObxa1a89-ro2zFMDYdRBJN09v2EhRaQ8TlSt1i3PfQSt0P7VPT' },
-                { id: '5', nome: 'Carlos Silva', posicao: 'ATA', condicao: 'excelente', idade: 26, hora: '18:50', fitness: 88, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABblwGh55YW14k26eWxvRk1CHJMBWcbXMVFeRz_m5hEDhbcA0180kKprPICjrmAsYqqSOYExyzmmlKO8Chbu6Iy-K2pM_Ti-Yk3I1dNKd29YauZjFdrPAdF-BDlOn5zVe7Ev6FE9frVzmI7SUK774inGrY3KDrHnjeuzhjIKr1vcm8nZv9J3Jgi_tNjrEKx28qv28kXoQKnWrRrtiTpxKM1MqUX5WLvIzUmezvreDlEYMrhAbYo0Bq' },
-                { id: '6', nome: 'Marcos Paulo', posicao: 'MEI', condicao: 'boa', idade: 39, hora: '18:52', fitness: 85, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy4JkEBsUdGiZBD37jjx8GXKn4bjEGHbZ-vngcS7VFn6gOfRYVhfpzOB-fBgY6QpZec0QoR1819CW_x5zJZdBjnq0I9AXhJm-3iCbGBMvknMpKgeFzQoyyvWljFlv8UkLfM3wkYB-BO-TN9BQExtuW4P0Wug0MUjLGTfTHDDzLDl2gQEPTii8nQn9ZVXbj6w2Zp17puXN8kzWszozwe9rt1gIsGaMxFaExPoB_yHRxNKlH_uTJKs2D' },
-                { id: '7', nome: 'João Pedro', posicao: 'ZAG', condicao: 'boa', idade: 21, hora: '18:55', fitness: 82, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnTjNM5tn1vRLvTcQsJdIXHJPGRgs3Ry9ja5UPJVweNooIqqDwusoMbFIQzmH0pIpayOCzxQojyKe93-vlIC8dvVNPQESlN0Ktg0JIedmU7V8EiopLTP9G2tRabcKyurjobjdQ-njx_Dv--uEjjUYdDd6O0iIX3qYPTqjk5WfMjBEN_5jPeDKKc8NOJlouH-p71Zs9JlGvUxP8ykOV5sedVZQcXk_R_XsgU9Eo6l-7EQ3MPTUkC-Rw' },
-                { id: '8', nome: 'Felipe Costa', posicao: 'ATA', condicao: 'excelente', idade: 29, hora: '18:58', fitness: 87, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcRNqUKxDsswQr0ijLpj7q9IzU__uvIVChxXH2LpWLDqdjAWeaeKtGs0ozhtMOnUWTgZHzC3VdauKmeLavSmAvlpv-QLLooqGG11RGmiXrPHUD6vimG21eiHYUSa3eioUK3XF0YsjhGqGW3lGMgLIu5vqg2jSmLmBTzDmWQP6QmkHmhPdCXZVJolzh_gEyM9aXtMIzgpvK2cz4CJeNIoSSJMoEGXSh2_V4bzNkKC4L6F78HVnhmQuM' },
-                { id: '9', nome: 'Thiago Alves', posicao: 'GOL', condicao: 'boa', idade: 44, hora: '19:00', fitness: 80, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfJPCsl6gZd0_Cj1ihhGyAKW1OPba0Jw-G_lB7C4tGioL7llzyOUXc9E2964dOaxTmfDrAxLWhwMiXCJwbbQ2LTRUL2UNvr3cUUxQ2tEwwQYhJNGr4RwtQl6XU0HWdFOVlIxyN5b8dW4MKvokTloGgquHVPCvZQyYqnwf6k-FwFn0RBoVAu-uMY4r7b3V7kpAuBJLahKFsGjNSG8HdC9v_Hak9UXx5D0BZXr_vNbAMXWqivgzOwkV0' },
-                { id: '10', nome: 'Rodrigo Zagueiro', posicao: 'ZAG', condicao: 'excelente', idade: 40, hora: '19:02', fitness: 84, foto: '' },
-                { id: '11', nome: 'Eduardo Meia', posicao: 'MEI', condicao: 'boa', idade: 33, hora: '19:05', fitness: 86, foto: '' },
-                { id: '12', nome: 'Gabriel Volante', posicao: 'VOL', condicao: 'regular', idade: 22, hora: '19:08', fitness: 76, foto: '' }
-            ];
-            sincronizarServidor();
-            renderizarListaJogadores();
-            renderizarListaGestaoAdmin();
-            realizarSorteioStitch(true);
-            alert('12 Atletas inseridos e equipes sorteadas com sucesso!');
-            if (mudarAba) trocarAba('jogadores');
-        }
+
 
         function zerarListaConfirmados() {
             listaConfirmados = [];

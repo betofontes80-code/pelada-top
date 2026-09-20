@@ -29,20 +29,7 @@ const DEFAULT_CONFIG = {
   exigirGps: true
 };
 
-const DEFAULT_CONFIRMADOS = [
-  { id: '1', nome: 'Beto Artilheiro', posicao: 'ATA', condicao: 'excelente', idade: 28, hora: '18:40', fitness: 98, foto: '' },
-  { id: '2', nome: 'Marcos Silva', posicao: 'GOL', condicao: 'excelente', idade: 31, hora: '18:42', fitness: 95, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_' },
-  { id: '3', nome: 'Diego Costa', posicao: 'MEI', condicao: 'boa', idade: 42, hora: '18:45', fitness: 92, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgUPsqBtwqY-wTXynR-JuTosfEpI-oihJb5PFIeXr75WsV0QP-J_eUqt_gO27HLT0uxXEhL1zVAQOBkIAl6j5a3nQCMFdUx-AgLkxtz_QLXnafJetPeybrjwTin-NQh1D1eIGe1fVQebhJ7B0lFSyv9BRrXxxi50stcf3M9628WLPh2sdLH0F7AUqFOxzunqx3ah3sKBYGcvgE6EkYDOHHhI5wfe72SVasH4oXAJU0z2tK-NXxvI7B' },
-  { id: '4', nome: 'Lucas Moura', posicao: 'ATA', condicao: 'regular', idade: 23, hora: '18:47', fitness: 74, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAyzcRri3mZx0ZcvKW5FXsnPV4ayUzC1W-KdRiKBXl1rUtC4Us7H1an0kcGZSuop3fk7ZrRL73CXPDRawjf8R3xcV9WwkirfUBiNWlvJvwEQt66UDIuWZLO7vcvIEjtSJY9CFqSI0Bay5keXSpoyR5whkC1WpOucC60n3zet1mKr6Xyv5SV3BTXB_YXChTdJA-cpZObxa1a89-ro2zFMDYdRBJN09v2EhRaQ8TlSt1i3PfQSt0P7VPT' },
-  { id: '5', nome: 'Carlos Silva', posicao: 'ATA', condicao: 'excelente', idade: 26, hora: '18:50', fitness: 88, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABblwGh55YW14k26eWxvRk1CHJMBWcbXMVFeRz_m5hEDhbcA0180kKprPICjrmAsYqqSOYExyzmmlKO8Chbu6Iy-K2pM_Ti-Yk3I1dNKd29YauZjFdrPAdF-BDlOn5zVe7Ev6FE9frVzmI7SUK774inGrY3KDrHnjeuzhjIKr1vcm8nZv9J3Jgi_tNjrEKx28qv28kXoQKnWrRrtiTpxKM1MqUX5WLvIzUmezvreDlEYMrhAbYo0Bq' },
-  { id: '6', nome: 'Marcos Paulo', posicao: 'MEI', condicao: 'boa', idade: 39, hora: '18:52', fitness: 85, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy4JkEBsUdGiZBD37jjx8GXKn4bjEGHbZ-vngcS7VFn6gOfRYVhfpzOB-fBgY6QpZec0QoR1819CW_x5zJZdBjnq0I9AXhJm-3iCbGBMvknMpKgeFzQoyyvWljFlv8UkLfM3wkYB-BO-TN9BQExtuW4P0Wug0MUjLGTfTHDDzLDl2gQEPTii8nQn9ZVXbj6w2Zp17puXN8kzWszozwe9rt1gIsGaMxFaExPoB_yHRxNKlH_uTJKs2D' },
-  { id: '7', nome: 'João Pedro', posicao: 'ZAG', condicao: 'boa', idade: 21, hora: '18:55', fitness: 82, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnTjNM5tn1vRLvTcQsJdIXHJPGRgs3Ry9ja5UPJVweNooIqqDwusoMbFIQzmH0pIpayOCzxQojyKe93-vlIC8dvVNPQESlN0Ktg0JIedmU7V8EiopLTP9G2tRabcKyurjobjdQ-njx_Dv--uEjjUYdDd6O0iIX3qYPTqjk5WfMjBEN_5jPeDKKc8NOJlouH-p71Zs9JlGvUxP8ykOV5sedVZQcXk_R_XsgU9Eo6l-7EQ3MPTUkC-Rw' },
-  { id: '8', nome: 'Felipe Costa', posicao: 'ATA', condicao: 'excelente', idade: 29, hora: '18:58', fitness: 87, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcRNqUKxDsswQr0ijLpj7q9IzU__uvIVChxXH2LpWLDqdjAWeaeKtGs0ozhtMOnUWTgZHzC3VdauKmeLavSmAvlpv-QLLooqGG11RGmiXrPHUD6vimG21eiHYUSa3eioUK3XF0YsjhGqGW3lGMgLIu5vqg2jSmLmBTzDmWQP6QmkHmhPdCXZVJolzh_gEyM9aXtMIzgpvK2cz4CJeNIoSSJMoEGXSh2_V4bzNkKC4L6F78HVnhmQuM' },
-  { id: '9', nome: 'Thiago Alves', posicao: 'GOL', condicao: 'boa', idade: 44, hora: '19:00', fitness: 80, foto: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfJPCsl6gZd0_Cj1ihhGyAKW1OPba0Jw-G_lB7C4tGioL7llzyOUXc9E2964dOaxTmfDrAxLWhwMiXCJwbbQ2LTRUL2UNvr3cUUxQ2tEwwQYhJNGr4RwtQl6XU0HWdFOVlIxyN5b8dW4MKvokTloGgquHVPCvZQyYqnwf6k-FwFn0RBoVAu-uMY4r7b3V7kpAuBJLahKFsGjNSG8HdC9v_Hak9UXx5D0BZXr_vNbAMXWqivgzOwkV0' },
-  { id: '10', nome: 'Rodrigo Zagueiro', posicao: 'ZAG', condicao: 'excelente', idade: 40, hora: '19:02', fitness: 84, foto: '' },
-  { id: '11', nome: 'Eduardo Meia', posicao: 'MEI', condicao: 'boa', idade: 33, hora: '19:05', fitness: 86, foto: '' },
-  { id: '12', nome: 'Gabriel Volante', posicao: 'VOL', condicao: 'regular', idade: 22, hora: '19:08', fitness: 76, foto: '' }
-];
+const DEFAULT_CONFIRMADOS = [];
 
 // Estado na memória
 let appData = {
