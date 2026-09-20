@@ -288,16 +288,25 @@
                             <span id="texto-btn-instalar">INSTALAR AGORA</span>
                         </button>
 
+                        <!-- BLOCO: APLICATIVO PRONTO (QUANDO CONCLUÍDO) -->
                         <!-- BLOCO: APLICATIVO PRONTO E LIBERADO APÓS VERIFICAÇÃO -->
                         <div id="bloco-concluido-abrir-app" class="hidden flex-col gap-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 animate-[fade-in-up_0.4s_ease-out] text-center">
                             <div class="flex items-center justify-center gap-2 text-emerald-600 font-black text-sm">
                                 <span class="material-symbols-outlined text-2xl">verified</span>
+                                <span>App Instalado no seu Celular!</span>
                                 <span>App Instalado no Celular!</span>
                             </div>
                             <p class="text-[11px] text-on-surface-variant leading-relaxed">
+                                ⚽ O aplicativo oficial <strong>Pelada Top</strong> foi instalado com sucesso.<br>
+                                Toque no botão verde abaixo para abrir a <strong>Tela de Login</strong> do app:
                                 ⚽ O aplicativo oficial <strong>Pelada Top</strong> foi verificado no seu aparelho.<br>
                                 Toque abaixo para abrir o app no celular e fechar o navegador:
                             </p>
+                            <a href="./index.html?source=pwa" 
+                               class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 active:scale-[0.98] transition-all ring-4 ring-emerald-500/20 animate-pulse">
+                                <span class="material-symbols-outlined text-xl">sports_soccer</span>
+                                <span>ABRIR APLICATIVO (LOGIN)</span>
+                            </a>
                             <button type="button" id="btn-abrir-app-oficial" onclick="acionarAberturaAppEFecharNavegador()" 
                                     class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 active:scale-[0.98] transition-all ring-4 ring-emerald-500/20 animate-pulse">
                                 <span class="material-symbols-outlined text-2xl">open_in_new</span>
@@ -1313,10 +1322,12 @@
             )) {
                 return true;
             }
+            // 3. iOS standalone
             // iOS WebClip standalone
             if (window.navigator && window.navigator.standalone === true) {
                 return true;
             }
+            // 4. Android WebAPK / App links referrer
             // Android WebAPK
             if (document.referrer && (
                 document.referrer.startsWith('android-app://') ||
@@ -1549,12 +1560,17 @@
             if (barra) barra.style.width = '25%';
             if (txtPorcento) txtPorcento.innerText = '25%';
             if (txtTitulo) txtTitulo.innerText = 'Download & Instalação do App';
+            if (txtSub) txtSub.innerText = 'Toque em INSTALAR AGORA para instalar no celular';
             if (txtSub) txtSub.innerText = 'O aplicativo ainda não foi instalado. Toque em INSTALAR AGORA:';
             if (icone) {
                 icone.className = "material-symbols-outlined text-primary text-lg animate-pulse";
                 icone.innerText = "downloading";
             }
 
+            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
+            atualizarEtapaInstalacao(e2, '2. Pronto p/ Instalar', 'ativa');
+            atualizarEtapaInstalacao(e3, '3. Confirmar no Celular', 'pendente');
+            atualizarEtapaInstalacao(e4, '4. Abrir no Login', 'pendente');
             // Exibe o botão de instalar e bloqueia o botão de abrir
             if (btnInstalar) btnInstalar.classList.remove('hidden');
             if (txtBtn) txtBtn.innerText = 'INSTALAR AGORA';
@@ -1645,9 +1661,11 @@
             if (isIos) {
                 if (guiaIos) guiaIos.classList.remove('hidden');
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
+                if (textoBtn) textoBtn.innerText = 'ADICIONAR À TELA DE INÍCIO';
             } else {
                 if (guiaIos) guiaIos.classList.add('hidden');
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
+                if (textoBtn) textoBtn.innerText = 'INSTALAR AGORA';
             }
         }
 
@@ -1688,7 +1706,7 @@
                 return;
             }
 
-            // 3. No Android: se deferredPrompt ainda está preparando, aguarda até 3 segundos com spinner
+            // 3. No Android: se deferredPrompt ainda está preparando, aguarda até 1 segundo com feedback visual
             const barra = document.getElementById('barra-progresso-fill');
             const txtPorcento = document.getElementById('porcentagem-progresso');
             const txtTitulo = document.getElementById('titulo-progresso');
@@ -1706,13 +1724,24 @@
                 icone.innerText = "sync";
             }
 
+            // Checagem se o app já estiver instalado no sistema
+            if ('getInstalledRelatedApps' in navigator) {
+                navigator.getInstalledRelatedApps().then(apps => {
+                    if (apps && apps.length > 0) {
+                        appEstaInstaladoConfirmado = true;
+                        if (apps[0].id) appWebapkPackageId = apps[0].id;
+                        concluirInstalacaoEIniciarApp();
+                    }
+                }).catch(() => {});
+            }
+
             let tentativas = 0;
             const timerEspera = setInterval(() => {
                 tentativas++;
                 if (deferredPrompt) {
                     clearInterval(timerEspera);
                     executarPromptNativo();
-                } else if (tentativas >= 15) {
+                } else if (tentativas >= 4) { // 800ms
                     clearInterval(timerEspera);
                     if (isAndroid) {
                         const guiaAndroid = document.getElementById('guia-instalacao-android-manual');
@@ -1720,12 +1749,13 @@
                             guiaAndroid.classList.remove('hidden');
                             guiaAndroid.scrollIntoView({ behavior: 'smooth' });
                         }
-                        if (txtTitulo) txtTitulo.innerText = 'Instalação via Navegador';
+                        if (txtTitulo) txtTitulo.innerText = 'Instalação pelo Menu do Chrome';
                         if (txtSub) txtSub.innerText = 'Toque nos 3 pontinhos (⋮) no topo e escolha "Instalar aplicativo"';
+                        if (txtBtn) txtBtn.innerText = 'TOQUE NOS 3 PONTINHOS (⋮)';
                     } else {
                         if (txtSub) txtSub.innerText = 'Clique no ícone de instalar na barra de endereços';
+                        if (txtBtn) txtBtn.innerText = 'INSTALAR AGORA';
                     }
-                    if (txtBtn) txtBtn.innerText = 'INSTALAR AGORA';
                 }
             }, 200);
         }
@@ -1768,7 +1798,11 @@
                     liberarBotaoInstalarAgora();
                     if (txtTitulo) txtTitulo.innerText = 'Instalação Cancelada';
                     if (txtSub) txtSub.innerText = 'Toque no botão para tentar novamente';
+                    if (barra) barra.style.width = '25%';
+                    if (txtPorcento) txtPorcento.innerText = '25%';
                     if (txtBtn) txtBtn.innerText = 'TENTAR INSTALAR NOVAMENTE';
+                    atualizarEtapaInstalacao(e2, '2. Pronto p/ Instalar', 'ativa');
+                    atualizarEtapaInstalacao(e3, '3. Confirmar no Celular', 'pendente');
                 }
                 deferredPrompt = null;
             }).catch((err) => {
@@ -1782,12 +1816,72 @@
         }
 
         function concluirInstalacaoEIniciarApp() {
+            const barra = document.getElementById('barra-progresso-fill');
+            const txtPorcento = document.getElementById('porcentagem-progresso');
+            const txtTitulo = document.getElementById('titulo-progresso');
+            const txtSub = document.getElementById('subtitulo-progresso');
+            const icone = document.getElementById('icone-progresso');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+
+            const e1 = document.getElementById('etapa-1');
+            const e2 = document.getElementById('etapa-2');
+            const e3 = document.getElementById('etapa-3');
+            const e4 = document.getElementById('etapa-4');
+
+            atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
+            atualizarEtapaInstalacao(e2, '2. Arquivos Baixados', 'concluida');
+            atualizarEtapaInstalacao(e3, '3. Instalado no Aparelho', 'concluida');
+            atualizarEtapaInstalacao(e4, '4. Concluído!', 'concluida');
+
+            if (barra) barra.style.width = '100%';
+            if (txtPorcento) txtPorcento.innerText = '100%';
+            if (txtTitulo) {
+                txtTitulo.className = "font-black text-xs text-emerald-600 flex items-center gap-1";
+                txtTitulo.innerHTML = '<span>🎉 Aplicativo Instalado com Sucesso!</span>';
+            }
+            if (txtSub) txtSub.innerText = 'Toque no botão verde abaixo para abrir o Pelada Top no Login:';
+            if (icone) {
+                icone.className = "material-symbols-outlined text-emerald-600 text-lg";
+                icone.innerText = "task_alt";
+            }
+
             localStorage.setItem('pelada_app_instalado', 'true');
+            if (btnInstalar) btnInstalar.classList.add('hidden');
+            if (blocoConcluido) blocoConcluido.classList.remove('hidden');
+
             if (navigator.vibrate) {
                 try { navigator.vibrate([100, 50, 100]); } catch(e) {}
             }
             // Dispara liberação oficial do botão Abrir Aplicativo
             liberarBotaoAbrirAplicativo();
+        }
+
+        function reiniciarTelaInstalacao() {
+            localStorage.removeItem('pelada_app_instalado');
+            const cardProgresso = document.getElementById('card-progresso-instalacao');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            if (cardProgresso) cardProgresso.classList.remove('hidden');
+            if (btnInstalar) btnInstalar.classList.remove('hidden');
+            if (blocoConcluido) blocoConcluido.classList.add('hidden');
+            configurarTelaInstalacao();
+        }
+
+        function exibirAvisoAppJaInstaladoFecharNavegador() {
+            const cardProgresso = document.getElementById('card-progresso-instalacao');
+            const btnInstalar = document.getElementById('btn-instalar-pwa-acao');
+            const blocoConcluido = document.getElementById('bloco-concluido-abrir-app');
+            const guiaIos = document.getElementById('guia-instalacao-ios');
+            const guiaAndroid = document.getElementById('guia-instalacao-android-manual');
+
+            if (cardProgresso) cardProgresso.classList.add('hidden');
+            if (btnInstalar) btnInstalar.classList.add('hidden');
+            if (guiaIos) guiaIos.classList.add('hidden');
+            if (guiaAndroid) guiaAndroid.classList.add('hidden');
+            if (blocoConcluido) {
+                blocoConcluido.classList.remove('hidden');
+            }
         }
 
         function fazerLogout() {
@@ -3141,7 +3235,20 @@
             trocarAba('login');
         } else {
             trocarAba('instalacao');
+            if (localStorage.getItem('pelada_app_instalado') === 'true') {
+                exibirAvisoAppJaInstaladoFecharNavegador();
+            }
             verificarSeAppEstaInstaladoNoCelular();
+        }
+
+        // Verificação assíncrona adicional nativa (Chrome Android / Desktop)
+        if ('getInstalledRelatedApps' in navigator && !isExecutandoNoAppOficial) {
+            navigator.getInstalledRelatedApps().then(apps => {
+                if (apps && apps.length > 0) {
+                    localStorage.setItem('pelada_app_instalado', 'true');
+                    exibirAvisoAppJaInstaladoFecharNavegador();
+                }
+            }).catch(() => {});
         }
 
         conectarRealtime();
