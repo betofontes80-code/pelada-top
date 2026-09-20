@@ -3,7 +3,7 @@
   "name": "Pelada Top - Football Match Manager",
   "short_name": "Pelada Top",
   "description": "Sua resenha organizada. Gerenciador completo de partidas com check-in, sorteio inteligente e cronômetro.",
-  "start_url": "./index.html",
+  "start_url": "./index.html?source=pwa",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
