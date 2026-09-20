@@ -218,8 +218,8 @@
                                 <div class="flex items-center gap-2">
                                     <span id="icone-progresso" class="material-symbols-outlined text-primary text-lg animate-pulse">downloading</span>
                                     <div class="flex flex-col">
-                                        <span id="titulo-progresso" class="font-bold text-xs text-on-surface">Verificação da Instalação</span>
-                                        <span id="subtitulo-progresso" class="text-[10px] text-on-surface-variant">Pronto para instalar no celular</span>
+                                        <span id="titulo-progresso" class="font-bold text-xs text-on-surface">Download & Instalação do App</span>
+                                        <span id="subtitulo-progresso" class="text-[10px] text-on-surface-variant">Toque em INSTALAR AGORA para baixar no celular</span>
                                     </div>
                                 </div>
                                 <span id="porcentagem-progresso" class="font-mono text-xs font-black text-primary px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">25%</span>
@@ -246,37 +246,37 @@
                                 </div>
                                 <div id="etapa-4" class="flex items-center gap-1 text-on-surface-variant/60 font-medium transition-all">
                                     <span class="material-symbols-outlined text-xs">radio_button_unchecked</span>
-                                    <span class="truncate">4. Abrir App Oficial</span>
+                                    <span class="truncate">4. Abrir no Login</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- BOTÃO DE DESTAQUE: BAIXAR E INSTALAR NO CELULAR -->
+                        <!-- BOTÃO DE DESTAQUE: INSTALAR AGORA -->
                         <button id="btn-instalar-pwa-acao" onclick="iniciarInstalacaoComClique()" 
                                 class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-primary via-red-600 to-primary text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-primary/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group">
                             <span class="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">download_for_offline</span>
-                            <span id="texto-btn-instalar">BAIXAR & INSTALAR NO CELULAR</span>
+                            <span id="texto-btn-instalar">INSTALAR AGORA</span>
                         </button>
 
                         <!-- BLOCO: APLICATIVO PRONTO (QUANDO CONCLUÍDO) -->
                         <div id="bloco-concluido-abrir-app" class="hidden flex-col gap-2.5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 animate-[fade-in-up_0.4s_ease-out]">
                             <div class="flex items-center gap-2 text-emerald-600 font-bold text-xs">
                                 <span class="material-symbols-outlined text-xl">verified</span>
-                                <span class="text-sm">Aplicativo Instalado no Celular!</span>
+                                <span class="text-sm">App Baixado e Instalado!</span>
                             </div>
                             <p class="text-[11px] text-on-surface-variant leading-relaxed">
-                                ⚽ <strong>Instalação concluída com sucesso!</strong> Abrindo o aplicativo oficial no seu celular e fechando esta tela de navegação...
+                                ⚽ <strong>Instalação concluída com sucesso!</strong> Abrindo o aplicativo oficial na tela de login e fechando esta página de download...
                             </p>
                             <div class="flex flex-col gap-2 mt-1">
                                 <button onclick="abrirAppInstaladoEFecharNavegador()" 
                                         class="w-full py-3 px-3 rounded-xl bg-primary hover:bg-red-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md active:scale-[0.98]">
-                                    <span class="material-symbols-outlined text-base">launch</span>
-                                    <span>ABRIR APLICATIVO INSTALADO</span>
+                                    <span class="material-symbols-outlined text-base">login</span>
+                                    <span>ABRIR APP NA TELA DE LOGIN</span>
                                 </button>
                                 <button onclick="fecharAbaNavegador()" 
                                         class="w-full py-2.5 px-3 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold text-xs flex items-center justify-center gap-1.5 border border-surface-container-highest active:scale-[0.98]">
                                     <span class="material-symbols-outlined text-sm">close</span>
-                                    <span>Fechar Esta Aba do Navegador</span>
+                                    <span>Fechar Esta Página de Download</span>
                                 </button>
                             </div>
                         </div>
@@ -1394,8 +1394,8 @@
 
             if (barra) barra.style.width = '25%';
             if (txtPorcento) txtPorcento.innerText = '25%';
-            if (txtTitulo) txtTitulo.innerText = 'Verificação da Instalação';
-            if (txtSub) txtSub.innerText = 'Pronto para baixar e instalar no celular';
+            if (txtTitulo) txtTitulo.innerText = 'Download & Instalação do App';
+            if (txtSub) txtSub.innerText = 'Toque em INSTALAR AGORA para baixar no celular';
             if (icone) {
                 icone.className = "material-symbols-outlined text-primary text-lg animate-pulse";
                 icone.innerText = "downloading";
@@ -1404,7 +1404,7 @@
             atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
             atualizarEtapaInstalacao(e2, '2. Pronto p/ Baixar', 'ativa');
             atualizarEtapaInstalacao(e3, '3. Confirmar no Celular', 'pendente');
-            atualizarEtapaInstalacao(e4, '4. Abrir App Oficial', 'pendente');
+            atualizarEtapaInstalacao(e4, '4. Abrir no Login', 'pendente');
 
             if (isInsideInApp && avisoInApp) {
                 avisoInApp.classList.remove('hidden');
@@ -1417,11 +1417,11 @@
             } else if (isAndroid) {
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
                 if (guiaIos) guiaIos.classList.add('hidden');
-                if (textoBtn) textoBtn.innerText = 'BAIXAR & INSTALAR NO CELULAR';
+                if (textoBtn) textoBtn.innerText = 'INSTALAR AGORA';
             } else {
                 if (guiaIos) guiaIos.classList.add('hidden');
                 if (guiaAndroid) guiaAndroid.classList.add('hidden');
-                if (textoBtn) textoBtn.innerText = 'INSTALAR NO COMPUTADOR';
+                if (textoBtn) textoBtn.innerText = 'INSTALAR AGORA';
             }
         }
 
@@ -1536,15 +1536,15 @@
             atualizarEtapaInstalacao(e1, '1. Conexão OK', 'concluida');
             atualizarEtapaInstalacao(e2, '2. Baixado OK', 'concluida');
             atualizarEtapaInstalacao(e3, '3. Instalado!', 'concluida');
-            atualizarEtapaInstalacao(e4, '4. Abrindo App...', 'ativa');
+            atualizarEtapaInstalacao(e4, '4. Abrindo Login...', 'ativa');
 
             if (barra) barra.style.width = '100%';
             if (txtPorcento) txtPorcento.innerText = '100%';
             if (txtTitulo) {
                 txtTitulo.className = "font-black text-xs text-emerald-600 flex items-center gap-1";
-                txtTitulo.innerHTML = '<span>🎉 Instalação Concluída!</span>';
+                txtTitulo.innerHTML = '<span>🎉 App Baixado e Instalado!</span>';
             }
-            if (txtSub) txtSub.innerText = 'Abrindo aplicativo oficial e fechando navegador...';
+            if (txtSub) txtSub.innerText = 'Abrindo o aplicativo na tela de login e fechando esta página...';
             if (icone) {
                 icone.className = "material-symbols-outlined text-emerald-600 text-lg";
                 icone.innerText = "task_alt";
@@ -1558,9 +1558,9 @@
                 try { navigator.vibrate([100, 50, 100]); } catch(e) {}
             }
 
-            // Aguarda 1.2s para visualizar a barra em 100% concluída e abre de forma automática o app instalado
+            // Aguarda 1.2s para visualizar a barra em 100% e abre o app instalado diretamente no login
             setTimeout(() => {
-                atualizarEtapaInstalacao(e4, '4. App Concluído', 'concluida');
+                atualizarEtapaInstalacao(e4, '4. Aberto no Login', 'concluida');
                 abrirAppInstaladoEFecharNavegador();
             }, 1200);
         }
@@ -1569,12 +1569,13 @@
             localStorage.setItem('pelada_app_instalado', 'true');
             const cleanHost = window.location.host;
             const cleanPath = window.location.pathname;
-            const pwaUrl = window.location.origin + cleanPath + '?source=pwa';
+            // O app oficial instalado deve abrir diretamente na tela de login
+            const pwaUrl = window.location.origin + cleanPath + '?source=pwa&view=login';
             const isAndroid = /Android/i.test(navigator.userAgent);
 
             // 1. Tenta abrir de forma automática o app oficial instalado fora do navegador
             if (isAndroid) {
-                const intentUrl = `intent://${cleanHost}${cleanPath}?source=pwa#Intent;scheme=https;action=android.intent.action.VIEW;end;`;
+                const intentUrl = `intent://${cleanHost}${cleanPath}?source=pwa&view=login#Intent;scheme=https;action=android.intent.action.VIEW;end;`;
                 try {
                     window.location.href = intentUrl;
                 } catch(e) {
@@ -1584,7 +1585,7 @@
                 window.location.href = pwaUrl;
             }
 
-            // 2. Fecha a aba da tela de instalação do navegador
+            // 2. Fecha a página de download do navegador
             setTimeout(() => {
                 fecharAbaNavegador();
             }, 800);
@@ -2953,6 +2954,10 @@
             if (window.location.search && (window.location.search.includes('source=pwa') || window.location.search.includes('mode=app'))) {
                 return true;
             }
+            // Se aberto via QR Code de download, a página do navegador é para baixar e instalar!
+            if (window.location.search && (window.location.search.includes('download=1') || window.location.search.includes('action=download'))) {
+                return false;
+            }
             // 5. Marcação persistente no celular de que o app já foi instalado
             if (localStorage.getItem('pelada_app_instalado') === 'true') {
                 return true;
@@ -3042,18 +3047,36 @@
         atualizarNavbarPorRole();
         configurarTelaInstalacao();
 
-        // VERIFICAÇÃO INTELIGENTE:
-        // A tela de instalação é EXCLUSIVA para quando o app NÃO estiver instalado no celular do jogador.
-        // Se a verificação detectar que já foi instalado -> abre a tela de LOGIN como estava!
-        // Se por ventura o app NÃO foi instalado no celular do jogador -> abre a tela de INSTALAÇÃO!
-        if (verificarSeAppInstalado()) {
+        // 1. Detecta se a execução atual é dentro do aplicativo oficial instalado (Standalone / WebAPK / PWA)
+        const isExecutandoNoAppOficial = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                                        (window.navigator && window.navigator.standalone === true) ||
+                                        (document.referrer && document.referrer.startsWith('android-app://')) ||
+                                        (window.location.search && (window.location.search.includes('source=pwa') || window.location.search.includes('view=login')));
+
+        // 2. Detecta se foi aberto especificamente pelo QR Code de download
+        const isQrCodeDownload = window.location.search && (
+            window.location.search.includes('download=1') ||
+            window.location.search.includes('action=download') ||
+            window.location.search.includes('instalar=1')
+        );
+
+        // ROTEAMENTO DEFINITIVO:
+        // - Se está rodando no APP INSTALADO: abre DIRETAMENTE a tela de LOGIN!
+        // - Se foi aberto pelo QR CODE: abre EXCLUSIVAMENTE a tela de DOWNLOAD/INSTALAÇÃO!
+        // - Se já possui o app instalado e abriu via navegador comum: abre LOGIN.
+        // - Senão: abre a tela de INSTALAÇÃO.
+        if (isExecutandoNoAppOficial) {
+            trocarAba('login');
+        } else if (isQrCodeDownload) {
+            trocarAba('instalacao');
+        } else if (verificarSeAppInstalado()) {
             trocarAba('login');
         } else {
             trocarAba('instalacao');
         }
 
         // Verificação assíncrona adicional nativa (Chrome Android / Desktop)
-        if ('getInstalledRelatedApps' in navigator) {
+        if ('getInstalledRelatedApps' in navigator && !isQrCodeDownload) {
             navigator.getInstalledRelatedApps().then(apps => {
                 if (apps && apps.length > 0) {
                     localStorage.setItem('pelada_app_instalado', 'true');
