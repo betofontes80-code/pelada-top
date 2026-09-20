@@ -265,11 +265,16 @@
                                 <span>App Instalado no seu Celular!</span>
                             </div>
                             <p class="text-[11px] text-on-surface-variant leading-relaxed">
-                                ⚽ O aplicativo oficial <strong>Pelada Top</strong> foi instalado no seu aparelho.<br>
-                                <strong>Feche esta aba do navegador</strong> e abra pelo ícone do aplicativo adicionado à sua tela inicial.
+                                ⚽ O aplicativo oficial <strong>Pelada Top</strong> foi instalado com sucesso.<br>
+                                Abra o aplicativo pelo botão abaixo ou feche o navegador e toque no ícone na sua tela inicial:
                             </p>
+                            <button onclick="abrirAppInstaladoEFecharNavegador()" 
+                                    class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 active:scale-[0.98] transition-all ring-4 ring-emerald-500/20 animate-pulse">
+                                <span class="material-symbols-outlined text-xl">open_in_new</span>
+                                <span>ABRIR APLICATIVO INSTALADO</span>
+                            </button>
                             <button onclick="fecharAbaNavegador()" 
-                                    class="w-full py-3.5 px-4 rounded-xl bg-primary hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]">
+                                    class="w-full py-2.5 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all">
                                 <span class="material-symbols-outlined text-base">close</span>
                                 <span>FECHAR NAVEGADOR</span>
                             </button>
@@ -1281,6 +1286,15 @@
         // NAVEGAÇÃO DE ABAS (JOGADOR = APENAS JOGADORES E PERFIL)
         // ==============================================================
         function trocarAba(aba) {
+            const isNoAppOficial = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                                   (window.navigator && window.navigator.standalone === true);
+
+            // REGRA ABSOLUTA: A tela de LOGIN NUNCA abre no navegador comum (Chrome, Safari, etc.)!
+            // No navegador, a tela é 100% exclusiva para download/instalação e fechamento da aba.
+            if (!isNoAppOficial && aba === 'login') {
+                aba = 'instalacao';
+            }
+
             // Regra Estrita: Na tela de Jogador é SÓ para liberar Perfil e Jogador! As demais só aparecem no Admin.
             if (usuarioAtual.role === 'jogador' && ['equipes', 'timer', 'admin'].includes(aba)) {
                 aba = 'jogadores';
@@ -1566,27 +1580,12 @@
             }
 
             // 2. Fecha a página de download do navegador (sem nunca navegar para a tela de login na aba)
-            fecharAbaNavegador();
+            setTimeout(() => {
+                fecharAbaNavegador();
+            }, 300);
         }
 
         function fecharAbaNavegador() {
-            const cleanHost = window.location.host;
-            const cleanPath = window.location.pathname;
-            const isAndroid = /Android/i.test(navigator.userAgent);
-
-            // Dispara o Intent do app instalado no Android para abrir o aplicativo oficial
-            if (isAndroid) {
-                const intentUrl = `intent://${cleanHost}${cleanPath}?source=pwa#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end;`;
-                try {
-                    const a = document.createElement('a');
-                    a.href = intentUrl;
-                    a.rel = 'noopener';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 500);
-                } catch(e) {}
-            }
-
             try {
                 window.open('', '_self', '');
                 window.close();
@@ -3040,7 +3039,10 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA ServiceWorker ativo com sucesso! Escopo:', reg.scope))
+                    .then(reg => {
+                        reg.update();
+                        console.log('PWA ServiceWorker ativo com sucesso! Escopo:', reg.scope);
+                    })
                     .catch(err => console.log('Falha ao registrar ServiceWorker:', err));
             });
         }
