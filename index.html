@@ -182,12 +182,18 @@
                 <div class="bg-surface-container-lowest rounded-2xl shadow-md p-3.5 flex flex-col gap-2.5 w-full border border-surface-container-highest animate-[fade-in-up_0.6s_ease-out]">
                     <!-- Alternador de Papel -->
                     <div class="flex p-0.5 bg-surface-container-low rounded-xl gap-1 relative" id="roleTabs">
-                        <button id="tabRoleJogador" onclick="selecionarRole('jogador')" class="flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold">
+                        <button id="tabRoleJogador" type="button" onclick="selecionarRole('jogador')" class="flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold">
                             Jogador
                         </button>
-                        <button id="tabRoleAdmin" onclick="selecionarRole('admin')" class="flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface">
+                        <button id="tabRoleAdmin" type="button" onclick="selecionarRole('admin')" class="flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface">
                             Admin
                         </button>
+                    </div>
+
+                    <!-- Alerta de Erro de Login -->
+                    <div id="login-alerta-erro" class="hidden p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-bold flex items-center gap-1.5 animate-[fade-in_0.2s_ease-out]">
+                        <span class="material-symbols-outlined text-sm shrink-0">error</span>
+                        <span id="login-erro-msg">E-mail ou senha inválidos.</span>
                     </div>
 
                     <!-- Formulário -->
@@ -233,7 +239,7 @@
                 <div class="mt-3 flex flex-col items-center gap-1 text-center w-full">
                     <p class="font-body-md text-xs text-on-surface-variant">
                         Ainda não tem conta? 
-                        <button onclick="trocarAba('perfil')" class="text-primary font-bold hover:underline">Cadastre-se</button>
+                        <button type="button" onclick="abrirModalCadastro()" class="text-primary font-bold hover:underline">Cadastre-se</button>
                     </p>
                 </div>
 
@@ -613,6 +619,11 @@
                         <span>Salvar Alterações</span>
                         <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
                     </button>
+                    <!-- Botão de Sair / Trocar de Conta -->
+                    <button type="button" onclick="fazerLogout()" class="w-full flex items-center justify-center gap-1.5 bg-surface-container text-red-500 hover:bg-red-50 font-headline-md py-2 rounded-lg border border-red-500/20 active:scale-95 text-xs font-bold uppercase transition-all">
+                        <span class="material-symbols-outlined text-sm">logout</span>
+                        <span>Sair / Trocar de Conta</span>
+                    </button>
                 </form>
             </div>
         </section>
@@ -763,6 +774,97 @@
         </div>
     </div>
 
+    <!-- MODAL CADASTRO DE NOVO ATLETA -->
+    <div id="modalCadastroAtleta" class="fixed inset-0 z-[110] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="absolute inset-0 bg-on-background/50 backdrop-blur-xs" onclick="fecharModalCadastro()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl shadow-2xl flex flex-col relative z-10 p-4 border border-surface-container-highest">
+            <div class="flex items-center justify-between border-b border-surface-container-highest pb-2 mb-3">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-base">how_to_reg</span>
+                    <h3 class="font-headline-md text-sm font-bold text-on-surface">Cadastro de Atleta</h3>
+                </div>
+                <button type="button" onclick="fecharModalCadastro()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+
+            <!-- Alerta de Erro de Cadastro -->
+            <div id="cadastro-alerta-erro" class="hidden p-2 mb-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-bold flex items-center gap-1.5 animate-[fade-in_0.2s_ease-out]">
+                <span class="material-symbols-outlined text-sm shrink-0">error</span>
+                <span id="cadastro-erro-msg">Preencha todos os campos.</span>
+            </div>
+
+            <!-- Foto do Atleta com Câmera / Galeria -->
+            <div class="flex flex-col items-center justify-center my-1">
+                <div class="relative w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 shadow-sm cursor-pointer group bg-surface-container-high" 
+                     onclick="document.getElementById('input-foto-cadastro').click()" title="Escolher Foto">
+                    <img id="cadastro-foto-preview" src="./logo-transparent.png" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center text-white opacity-80 group-hover:opacity-100 transition-opacity">
+                        <span class="material-symbols-outlined text-lg">add_a_photo</span>
+                    </div>
+                </div>
+                <input type="file" id="input-foto-cadastro" accept="image/*" class="hidden" onchange="aoCarregarFotoCadastro(event)">
+                <span class="text-[10px] text-on-surface-variant font-medium mt-0.5">Toque p/ foto (opcional)</span>
+            </div>
+
+            <form class="flex flex-col gap-2 text-xs" id="cadastroForm" onsubmit="realizarCadastro(event)">
+                <!-- Nome / Apelido -->
+                <div class="flex flex-col gap-0.5">
+                    <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-nome">Nome Completo / Apelido *</label>
+                    <input class="w-full h-8 px-2.5 rounded-lg bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary font-bold" 
+                           id="cad-nome" placeholder="Ex: Lucas Silva" required="" type="text"/>
+                </div>
+
+                <!-- E-mail -->
+                <div class="flex flex-col gap-0.5">
+                    <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-email">E-mail *</label>
+                    <input class="w-full h-8 px-2.5 rounded-lg bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary font-bold" 
+                           id="cad-email" placeholder="lucas@exemplo.com" required="" type="email"/>
+                </div>
+
+                <!-- Senha -->
+                <div class="flex flex-col gap-0.5">
+                    <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-senha">Crie uma Senha *</label>
+                    <input class="w-full h-8 px-2.5 rounded-lg bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary font-bold" 
+                           id="cad-senha" placeholder="Mínimo 3 caracteres" minlength="3" required="" type="password"/>
+                </div>
+
+                <!-- Posição e Ficha Física -->
+                <div class="grid grid-cols-3 gap-1.5">
+                    <div class="flex flex-col gap-0.5 col-span-1">
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-posicao">Posição</label>
+                        <select id="cad-posicao" class="w-full h-8 px-1 rounded-lg bg-surface font-body-md text-[11px] text-on-surface outline-none border border-surface-container-highest focus:border-primary cursor-pointer font-bold">
+                            <option value="ATA" selected>⚡ ATA</option>
+                            <option value="MEI">🎯 MEI</option>
+                            <option value="VOL">🛡️ VOL</option>
+                            <option value="ZAG">🧱 ZAG</option>
+                            <option value="LAT">🚀 LAT</option>
+                            <option value="GOL">🧤 GOL</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-0.5 col-span-1">
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-idade">Idade</label>
+                        <input id="cad-idade" type="number" min="14" max="75" value="25" class="w-full h-8 px-2 rounded-lg bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary font-bold"/>
+                    </div>
+                    <div class="flex flex-col gap-0.5 col-span-1">
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-peso">Peso kg</label>
+                        <input id="cad-peso" type="number" min="40" max="140" value="75" class="w-full h-8 px-2 rounded-lg bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary font-bold"/>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-2 pt-2 border-t border-surface-container-highest">
+                    <button type="button" onclick="fecharModalCadastro()" class="flex-1 py-2 rounded-lg bg-surface-container text-on-surface font-bold text-xs active:scale-95">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btnCadastrarSubmit" class="flex-1 py-2 rounded-lg bg-primary text-white font-bold text-xs shadow-sm active:scale-95 flex items-center justify-center gap-1">
+                        <span>Cadastrar</span>
+                        <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE NOTIFICAÇÃO: FIM DE PARTIDA (10 MINUTOS) -->
     <div id="modalFimDeJogo" class="fixed inset-0 z-[130] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
         <div class="absolute inset-0 bg-on-background/60 backdrop-blur-sm" onclick="fecharModalFimDeJogo()"></div>
@@ -861,12 +963,14 @@
         // DADOS E ESTADO GERAL
         // ==============================================================
         let usuarioAtual = JSON.parse(localStorage.getItem('pelada_usuario')) || {
-            nome: 'Beto Artilheiro',
+            id: '',
+            nome: '',
+            email: '',
             posicao: 'ATA',
             condicao: 'excelente',
-            idade: 28,
+            idade: 25,
             peso: 75,
-            foto: 'https://lh3.googleusercontent.com/aida/AP1WRLtubcc79IzzDnmAA5E-_jLY637WpPxAgZIO1lXh9li3XPAZA1lEP90LkzOtTJwo4VJycWvmudRZaW6tlWEyyyg57omxPqzztGaa_V1dQ_57ttsYnIgGJrfjidmUHEgbROup33OyCvciI8W4AxcU0J_qX0Afj3z4gJ0YnET3eXzfEkiCfHFwxjGeOaVLQM_-PCZo3jYvzxrvItB37sWK69FFR36vmy_s8TT1IaJkLKGE0d30dEQgQlQLNg',
+            foto: '',
             role: 'jogador'
         };
 
@@ -897,7 +1001,7 @@
 
         // ==============================================================
         // SINCRONIZAÇÃO EM TEMPO REAL PARA TODOS OS PARTICIPANTES
-        // (BroadcastChannel + SSE Server-Sent Events + Storage Event)
+        // (BroadcastChannel + SSE Server-Sent Events + Polling Contínuo)
         // ==============================================================
         const realtimeChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('pelada_realtime') : null;
 
@@ -940,41 +1044,30 @@
 
         function aplicarSincronizacaoRemota(data) {
             if (!data) return;
-            // Se o dado recebido for mais antigo que o que salvamos localmente, ignora para evitar concorrência
-            if (data.version && ultimaVersaoSincronizada && data.version < ultimaVersaoSincronizada) {
-                return;
-            }
+
             if (data.version) {
                 ultimaVersaoSincronizada = data.version;
                 localStorage.setItem('pelada_version', String(data.version));
             }
 
-            let houveMudanca = false;
-            if (data.listaConfirmados && JSON.stringify(data.listaConfirmados) !== JSON.stringify(listaConfirmados)) {
+            if (data.listaConfirmados !== undefined) {
                 listaConfirmados = data.listaConfirmados;
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
-                houveMudanca = true;
             }
-            if (data.peladaConfig && JSON.stringify(data.peladaConfig) !== JSON.stringify(peladaConfig)) {
+            if (data.peladaConfig !== undefined) {
                 peladaConfig = data.peladaConfig;
                 localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
-                houveMudanca = true;
             }
-            if (data.escalacaoAtiva !== undefined && JSON.stringify(data.escalacaoAtiva) !== JSON.stringify(escalacaoAtiva)) {
+            if (data.escalacaoAtiva !== undefined) {
                 escalacaoAtiva = data.escalacaoAtiva;
                 localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
-                verificarEExibirNumeralTimeJogador();
-                atualizarEstadoBotaoPlayTimer();
             }
-            if (data.partidaEstado !== undefined && JSON.stringify(data.partidaEstado) !== JSON.stringify(partidaEstado)) {
+            if (data.partidaEstado !== undefined) {
                 partidaEstado = data.partidaEstado;
                 localStorage.setItem('pelada_partida_estado', JSON.stringify(partidaEstado));
-                verificarEExibirNumeralTimeJogador();
-                atualizarEstadoBotaoPlayTimer();
             }
-            if (houveMudanca) {
-                aplicarDadosAtualizados();
-            }
+
+            aplicarDadosAtualizados();
         }
 
         async function sincronizarServidor() {
@@ -1030,54 +1123,83 @@
         }
 
         let sseConectado = false;
+        let sseInstancia = null;
+        let sseReconnectTimeout = null;
+
         function conectarRealtime() {
             if (!window.location.protocol.startsWith('http')) {
                 console.log('[Realtime] Rodando via file:///. Sincronização multi-aba via BroadcastChannel ativa.');
                 return;
             }
 
-            // Busca os dados mais recentes do servidor ao abrir
-            fetch('/api/pelada')
+            // Busca os dados mais recentes do servidor imediatamente
+            buscarDadosServidor();
+
+            // Inicia fluxo de eventos em tempo real SSE
+            iniciarSse();
+
+            // Polling garantido a cada 3.5 segundos para celular ou app PWA instalado
+            setInterval(buscarDadosServidor, 3500);
+
+            // Reativação instantânea ao desbloquear tela ou voltar ao app
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    buscarDadosServidor();
+                    if (!sseConectado) iniciarSse();
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                buscarDadosServidor();
+                if (!sseConectado) iniciarSse();
+            });
+
+            window.addEventListener('online', () => {
+                buscarDadosServidor();
+                iniciarSse();
+            });
+        }
+
+        function buscarDadosServidor() {
+            if (!window.location.protocol.startsWith('http')) return;
+            fetch('/api/pelada?t=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
-                    if (data.listaConfirmados || data.peladaConfig) {
+                    if (data && (data.listaConfirmados || data.peladaConfig || data.partidaEstado)) {
                         aplicarSincronizacaoRemota(data);
                     }
                 })
                 .catch(() => {});
+        }
 
-            // Conecta ao fluxo de eventos em tempo real SSE
+        function iniciarSse() {
+            if (sseInstancia) {
+                try { sseInstancia.close(); } catch(e) {}
+            }
             try {
-                const sse = new EventSource('/api/stream');
-                sse.onopen = () => {
+                sseInstancia = new EventSource('/api/stream');
+                sseInstancia.onopen = () => {
                     sseConectado = true;
                     atualizarBadgeConexao(true);
                 };
-                sse.onmessage = (event) => {
+                sseInstancia.onmessage = (event) => {
                     try {
                         const msg = JSON.parse(event.data);
-                        if (msg.type === 'SYNC' || msg.type === 'CONNECTED') {
+                        if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
                             aplicarSincronizacaoRemota(msg);
                         }
                     } catch(err) {}
                 };
-                sse.onerror = () => {
+                sseInstancia.onerror = () => {
                     sseConectado = false;
                     atualizarBadgeConexao(false);
+                    try { sseInstancia.close(); } catch(e) {}
+                    clearTimeout(sseReconnectTimeout);
+                    sseReconnectTimeout = setTimeout(iniciarSse, 4000);
                 };
             } catch(e) {
-                console.warn('[Realtime] Erro SSE:', e);
+                console.warn('[Realtime] Erro ao iniciar SSE:', e);
             }
-
-            // Polling suave de segurança caso o SSE oscile
-            setInterval(() => {
-                if (!sseConectado && window.location.protocol.startsWith('http')) {
-                    fetch('/api/pelada')
-                        .then(r => r.json())
-                        .then(d => aplicarSincronizacaoRemota(d))
-                        .catch(() => {});
-                }
-            }, 4000);
         }
 
         function atualizarBadgeConexao(conectado) {
@@ -1228,19 +1350,58 @@
         }
 
         // ==============================================================
-        // LOGIN & PAPEL
+        // AUTENTICAÇÃO REAL: LOGIN, CADASTRO & PAPEL
         // ==============================================================
+        let fotoCadastroBase64 = '';
+
+        function abrirModalCadastro() {
+            const modal = document.getElementById('modalCadastroAtleta');
+            const erroBox = document.getElementById('cadastro-alerta-erro');
+            if (erroBox) erroBox.classList.add('hidden');
+            if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalCadastro() {
+            const modal = document.getElementById('modalCadastroAtleta');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function alternarModoAuth(modo) {
+            if (modo === 'cadastro') {
+                abrirModalCadastro();
+            } else {
+                fecharModalCadastro();
+            }
+        }
+
+        async function aoCarregarFotoCadastro(event) {
+            const file = event.target.files[0];
+            if (file) {
+                try {
+                    fotoCadastroBase64 = await comprimirImagem(file, 240, 240, 0.8);
+                    const preview = document.getElementById('cadastro-foto-preview');
+                    if (preview) preview.src = fotoCadastroBase64;
+                } catch(err) {
+                    console.warn('Erro ao processar foto:', err);
+                }
+            }
+        }
+
         function selecionarRole(role) {
             roleSelecionadoLogin = role;
             const tabJog = document.getElementById('tabRoleJogador');
             const tabAdm = document.getElementById('tabRoleAdmin');
+            const emailInput = document.getElementById('login-email');
 
             if (role === 'jogador') {
-                tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
-                tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+                if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
+                if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+                if (emailInput && emailInput.value === 'admin@peladatop.com') emailInput.value = '';
+                if (emailInput) emailInput.placeholder = 'seu@email.com';
             } else {
-                tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
-                tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+                if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
+                if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+                if (emailInput && !emailInput.value) emailInput.placeholder = 'admin@peladatop.com';
             }
         }
 
@@ -1256,25 +1417,194 @@
             }
         }
 
-        function realizarLogin(e) {
+        async function realizarLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('loginBtn');
-            const orig = btn.innerHTML;
-            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span>';
+            const erroBox = document.getElementById('login-alerta-erro');
+            const erroMsg = document.getElementById('login-erro-msg');
+            erroBox.classList.add('hidden');
 
-            setTimeout(() => {
-                btn.innerHTML = orig;
-                usuarioAtual.role = roleSelecionadoLogin;
+            const email = document.getElementById('login-email').value.trim();
+            const senha = document.getElementById('login-password').value;
+
+            if (!email || !senha) {
+                erroMsg.innerText = 'Preencha seu e-mail e senha.';
+                erroBox.classList.remove('hidden');
+                return;
+            }
+
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span><span>Verificando...</span>';
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        email,
+                        senha,
+                        role: roleSelecionadoLogin
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok || !data.sucesso) {
+                    throw new Error(data.erro || 'Falha na autenticação.');
+                }
+
+                // Autenticado com sucesso!
+                usuarioAtual = data.usuario;
+                if (usuarioAtual.role === 'admin') usuarioAtual.autenticado = true;
                 localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+
+                sincronizarPerfilCamposUi();
                 atualizarNavbarPorRole();
 
-                if (usuarioAtual.role === 'admin') {
-                    trocarAba('admin');
+                btn.innerHTML = '<span>Entrando...</span><span class="material-symbols-outlined text-base">done_all</span>';
+                btn.className = 'w-full mt-1 bg-success-green text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md py-2.5 font-bold flex items-center justify-center gap-1.5';
+
+                setTimeout(() => {
+                    if (usuarioAtual.role === 'admin') {
+                        trocarAba('admin');
+                    } else {
+                        trocarAba('jogadores');
+                    }
+                    verificarEExibirNumeralTimeJogador();
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                    btn.className = 'w-full mt-1 bg-primary text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md shadow-primary/20 hover:bg-surface-tint active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 py-2.5 font-bold';
+                }, 400);
+
+            } catch (err) {
+                let msg = err.message || 'E-mail ou senha inválidos.';
+                if (msg.toLowerCase().includes('não encontrado') || msg.toLowerCase().includes('não cadastrado')) {
+                    erroMsg.innerHTML = `${msg} <br><button type="button" onclick="abrirModalCadastro()" class="text-primary font-bold underline mt-1 inline-block">Clique aqui para se cadastrar</button>`;
                 } else {
-                    trocarAba('jogadores');
+                    erroMsg.innerText = msg;
                 }
+                erroBox.classList.remove('hidden');
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        }
+
+        async function realizarCadastro(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnCadastrarSubmit');
+            const erroBox = document.getElementById('cadastro-alerta-erro');
+            const erroMsg = document.getElementById('cadastro-erro-msg');
+            erroBox.classList.add('hidden');
+
+            const nome = document.getElementById('cad-nome').value.trim();
+            const email = document.getElementById('cad-email').value.trim();
+            const senha = document.getElementById('cad-senha').value.trim();
+            const posicao = document.getElementById('cad-posicao').value;
+            const idade = parseInt(document.getElementById('cad-idade').value) || 25;
+            const peso = parseFloat(document.getElementById('cad-peso').value) || 75;
+
+            if (!nome || !email || !senha) {
+                erroMsg.innerText = 'Preencha Nome, E-mail e Senha.';
+                erroBox.classList.remove('hidden');
+                return;
+            }
+
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span><span>Salvando...</span>';
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch('/api/auth/cadastro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        nome,
+                        email,
+                        senha,
+                        posicao,
+                        condicao: 'excelente',
+                        idade,
+                        peso,
+                        foto: fotoCadastroBase64 || ''
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok || !data.sucesso) {
+                    throw new Error(data.erro || 'Falha ao salvar cadastro.');
+                }
+
+                // Cadastro concluído com sucesso no servidor!
+                usuarioAtual = data.usuario;
+                localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+
+                sincronizarPerfilCamposUi();
+                atualizarNavbarPorRole();
+
+                btn.innerHTML = '<span>Cadastro Realizado!</span><span class="material-symbols-outlined text-base">done_all</span>';
+                btn.className = 'flex-1 py-2 rounded-lg bg-success-green text-white font-bold text-xs shadow-sm active:scale-95 flex items-center justify-center gap-1';
+
+                setTimeout(() => {
+                    fecharModalCadastro();
+                    document.getElementById('cadastroForm').reset();
+                    fotoCadastroBase64 = '';
+                    const prev = document.getElementById('cadastro-foto-preview');
+                    if (prev) prev.src = './logo-transparent.png';
+
+                    trocarAba('jogadores');
+                    verificarEExibirNumeralTimeJogador();
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                    btn.className = 'flex-1 py-2 rounded-lg bg-primary text-white font-bold text-xs shadow-sm active:scale-95 flex items-center justify-center gap-1';
+                }, 400);
+
+            } catch (err) {
+                erroMsg.innerText = err.message;
+                erroBox.classList.remove('hidden');
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        }
+
+        function sincronizarPerfilCamposUi() {
+            const inputAtletaNome = document.getElementById('atleta-nome');
+            if (inputAtletaNome && usuarioAtual.nome) inputAtletaNome.value = usuarioAtual.nome;
+            const inputAtletaPosicao = document.getElementById('atleta-posicao');
+            if (inputAtletaPosicao && usuarioAtual.posicao) inputAtletaPosicao.value = usuarioAtual.posicao;
+            const inputAtletaCondicao = document.getElementById('atleta-condicao');
+            if (inputAtletaCondicao && usuarioAtual.condicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+            const inputAtletaIdade = document.getElementById('atleta-idade');
+            if (inputAtletaIdade && usuarioAtual.idade) inputAtletaIdade.value = usuarioAtual.idade;
+            const inputAtletaPeso = document.getElementById('atleta-peso');
+            if (inputAtletaPeso && usuarioAtual.peso) inputAtletaPeso.value = usuarioAtual.peso;
+            if (usuarioAtual.foto) {
+                const preview = document.getElementById('perfil-foto-preview');
+                const avatarHeader = document.getElementById('header-profile-avatar');
+                if (preview) preview.src = usuarioAtual.foto;
+                if (avatarHeader) avatarHeader.src = usuarioAtual.foto;
+            }
+        }
+
+        function fazerLogout() {
+            if (confirm('Deseja realmente sair da sua conta?')) {
+                localStorage.removeItem('pelada_usuario');
+                usuarioAtual = { role: 'jogador', nome: '', email: '', foto: '' };
+                const emailInput = document.getElementById('login-email');
+                const pwdInput = document.getElementById('login-password');
+                if (emailInput) emailInput.value = '';
+                if (pwdInput) pwdInput.value = '';
+                const alertLog = document.getElementById('login-alerta-erro');
+                const alertCad = document.getElementById('cadastro-alerta-erro');
+                if (alertLog) alertLog.classList.add('hidden');
+                if (alertCad) alertCad.classList.add('hidden');
+                fecharModalCadastro();
+                selecionarRole('jogador');
+                atualizarNavbarPorRole();
+                trocarAba('login');
                 verificarEExibirNumeralTimeJogador();
-            }, 400);
+            }
         }
 
         // ==============================================================
@@ -2570,7 +2900,22 @@
         }
 
         atualizarNavbarPorRole();
-        trocarAba('login');
+
+        // Verifica se o usuário já possui sessão autenticada no app
+        const sessaoSalva = localStorage.getItem('pelada_usuario');
+        const estaAutenticado = sessaoSalva && usuarioAtual && (usuarioAtual.id || usuarioAtual.email || (usuarioAtual.role === 'admin' && usuarioAtual.autenticado));
+
+        if (estaAutenticado) {
+            sincronizarPerfilCamposUi();
+            if (usuarioAtual.role === 'admin') {
+                trocarAba('admin');
+            } else {
+                trocarAba('jogadores');
+            }
+        } else {
+            trocarAba('login');
+        }
+
         verificarEExibirNumeralTimeJogador();
         atualizarEstadoBotaoPlayTimer();
     </script>
