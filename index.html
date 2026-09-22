@@ -871,25 +871,19 @@
         };
 
         let peladaConfig = JSON.parse(localStorage.getItem('pelada_config')) || {};
-        if (!peladaConfig.local || !peladaConfig.local.includes('Abelardo Targino da Fonseca')) {
-            peladaConfig = {
-                listaAberta: true,
-                local: 'R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB',
-                lat: -7.190405,
-                lng: -34.870103,
-                mapsUrl: 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7',
-                raioMaximoMetros: 500,
-                exigirGps: true
-            };
-            localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
-        } else {
-            if (!peladaConfig.lat) peladaConfig.lat = -7.190405;
-            if (!peladaConfig.lng) peladaConfig.lng = -34.870103;
-            if (!peladaConfig.mapsUrl) peladaConfig.mapsUrl = 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7';
-            if (!peladaConfig.raioMaximoMetros) peladaConfig.raioMaximoMetros = 500;
+        if (!peladaConfig.local) {
+            peladaConfig.local = 'R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB';
         }
+        if (peladaConfig.listaAberta === undefined) peladaConfig.listaAberta = true;
+        if (peladaConfig.lat === undefined) peladaConfig.lat = -7.190405;
+        if (peladaConfig.lng === undefined) peladaConfig.lng = -34.870103;
+        if (peladaConfig.mapsUrl === undefined) peladaConfig.mapsUrl = 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7';
+        if (peladaConfig.raioMaximoMetros === undefined) peladaConfig.raioMaximoMetros = 500;
+        if (peladaConfig.exigirGps === undefined) peladaConfig.exigirGps = true;
+        localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
 
         let listaConfirmados = JSON.parse(localStorage.getItem('pelada_confirmados')) || [];
+        let ultimaVersaoSincronizada = parseInt(localStorage.getItem('pelada_version')) || 0;
 
         let roleSelecionadoLogin = 'jogador';
         let qtdTimesSorteio = 4;
@@ -945,6 +939,16 @@
         });
 
         function aplicarSincronizacaoRemota(data) {
+            if (!data) return;
+            // Se o dado recebido for mais antigo que o que salvamos localmente, ignora para evitar concorrência
+            if (data.version && ultimaVersaoSincronizada && data.version < ultimaVersaoSincronizada) {
+                return;
+            }
+            if (data.version) {
+                ultimaVersaoSincronizada = data.version;
+                localStorage.setItem('pelada_version', String(data.version));
+            }
+
             let houveMudanca = false;
             if (data.listaConfirmados && JSON.stringify(data.listaConfirmados) !== JSON.stringify(listaConfirmados)) {
                 listaConfirmados = data.listaConfirmados;
@@ -973,12 +977,16 @@
             }
         }
 
-        function sincronizarServidor() {
+        async function sincronizarServidor() {
             // 1. Salva localmente
             localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
             localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
             localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
             localStorage.setItem('pelada_partida_estado', JSON.stringify(partidaEstado));
+
+            const novaVersao = Date.now();
+            ultimaVersaoSincronizada = novaVersao;
+            localStorage.setItem('pelada_version', String(novaVersao));
 
             // 2. Sincroniza abas no mesmo dispositivo via BroadcastChannel
             if (realtimeChannel) {
@@ -988,18 +996,36 @@
                         listaConfirmados,
                         peladaConfig,
                         escalacaoAtiva,
-                        partidaEstado
+                        partidaEstado,
+                        version: novaVersao
                     });
                 } catch(e) {}
             }
 
             // 3. Propaga para todos os outros aparelhos conectados via HTTP POST
             if (window.location.protocol.startsWith('http')) {
-                fetch('/api/pelada', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ listaConfirmados, peladaConfig, escalacaoAtiva, partidaEstado })
-                }).catch(err => console.warn('[Realtime] Falha no sync servidor:', err.message));
+                try {
+                    const resp = await fetch('/api/pelada', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({
+                            listaConfirmados,
+                            peladaConfig,
+                            escalacaoAtiva,
+                            partidaEstado,
+                            version: novaVersao
+                        })
+                    });
+                    if (resp.ok) {
+                        const json = await resp.json();
+                        if (json && json.version) {
+                            ultimaVersaoSincronizada = json.version;
+                            localStorage.setItem('pelada_version', String(json.version));
+                        }
+                    }
+                } catch(err) {
+                    console.warn('[Realtime] Falha no sync servidor:', err.message);
+                }
             }
         }
 
@@ -1275,27 +1301,68 @@
             setTimeout(() => btn.innerHTML = orig, 1500);
         }
 
-        // ==============================================================
-        // FOTO DO PERFIL COM + DA GALERIA
-        // ==============================================================
-        function aoCarregarFotoGaleria(event) {
+        function comprimirImagem(file, maxLargura = 240, maxAltura = 240, qualidade = 0.8) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxLargura || h > maxAltura) {
+                            if (w > h) {
+                                h = Math.round((h * maxLargura) / w);
+                                w = maxLargura;
+                            } else {
+                                w = Math.round((w * maxAltura) / h);
+                                h = maxAltura;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', qualidade));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function aoCarregarFotoGaleria(event) {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const novaFoto = e.target.result;
-                    usuarioAtual.foto = novaFoto;
-                    document.getElementById('perfil-foto-preview').src = novaFoto;
-                    document.getElementById('header-profile-avatar').src = novaFoto;
+                try {
+                    const fotoOtimizada = await comprimirImagem(file, 240, 240, 0.8);
+                    usuarioAtual.foto = fotoOtimizada;
+                    const preview = document.getElementById('perfil-foto-preview');
+                    const avatarHeader = document.getElementById('header-profile-avatar');
+                    if (preview) preview.src = fotoOtimizada;
+                    if (avatarHeader) avatarHeader.src = fotoOtimizada;
                     localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+
+                    // Se o atleta já estava na lista de confirmados, atualiza também a foto dele na lista
+                    const atletaNaLista = listaConfirmados.find(j => (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase());
+                    if (atletaNaLista) {
+                        atletaNaLista.foto = fotoOtimizada;
+                    }
                     renderizarListaJogadores();
-                };
-                reader.readAsDataURL(file);
+                } catch(err) {
+                    console.warn('Erro ao processar imagem:', err);
+                }
             }
         }
 
-        function salvarPerfilAtleta(e) {
+        async function salvarPerfilAtleta(e) {
             e.preventDefault();
+            const btn = document.getElementById('btn-salvar-perfil');
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span><span>Salvando...</span>';
+
             const nomeAntigo = usuarioAtual.nome;
             usuarioAtual.nome = document.getElementById('atleta-nome').value.trim() || 'Atleta';
             usuarioAtual.posicao = document.getElementById('atleta-posicao').value;
@@ -1314,21 +1381,38 @@
             }
 
             localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
-            sincronizarServidor();
+
+            // Salva no banco de dados local do servidor central
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    await fetch('/api/perfil', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({
+                            ...usuarioAtual,
+                            nomeAntigo: nomeAntigo
+                        })
+                    });
+                } catch (err) {
+                    console.warn('[Perfil] Falha ao enviar perfil ao servidor local:', err.message);
+                }
+            }
+
+            await sincronizarServidor();
             atualizarNavbarPorRole();
             renderizarListaJogadores();
             renderizarListaGestaoAdmin();
 
-            const btn = document.getElementById('btn-salvar-perfil');
-            const orig = btn.innerHTML;
-            btn.className = "w-full flex items-center justify-center gap-1.5 bg-success-green text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm font-bold text-xs tracking-wider uppercase mt-1";
-            btn.innerHTML = '<span>Salvo com Sucesso!</span><span class="material-symbols-outlined text-base">done_all</span>';
+            if (btn) {
+                btn.className = "w-full flex items-center justify-center gap-1.5 bg-success-green text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm font-bold text-xs tracking-wider uppercase mt-1";
+                btn.innerHTML = '<span>Salvo com Sucesso!</span><span class="material-symbols-outlined text-base">done_all</span>';
 
-            setTimeout(() => {
-                btn.className = "w-full flex items-center justify-center gap-1.5 bg-primary text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm font-bold text-xs tracking-wider uppercase mt-1";
-                btn.innerHTML = orig;
-                trocarAba('jogadores');
-            }, 800);
+                setTimeout(() => {
+                    btn.className = "w-full flex items-center justify-center gap-1.5 bg-primary text-on-primary font-headline-md py-2.5 rounded-lg shadow-sm font-bold text-xs tracking-wider uppercase mt-1";
+                    btn.innerHTML = orig;
+                    trocarAba('jogadores');
+                }, 700);
+            }
         }
 
         // ==============================================================
@@ -1491,6 +1575,12 @@
                 alert(`⚽ Presença Confirmada!\nVocê está escalado na partida!\n📍 Local: ${peladaConfig.local}\nBom jogo! 🔥`);
             };
 
+            // Se GPS não for exigido na configuração da pelada, confirma direto
+            if (peladaConfig.exigirGps === false) {
+                efetuarEscalacao();
+                return;
+            }
+
             const raio = peladaConfig.raioMaximoMetros || 500;
 
             // Se já tem medição recente:
@@ -1549,10 +1639,10 @@
             }
         }
 
-        function cancelarPresencaLogado() {
+        async function cancelarPresencaLogado() {
             if (confirm('Deseja cancelar sua presença na partida?')) {
                 listaConfirmados = listaConfirmados.filter(j => (j.nome || '').trim().toLowerCase() !== (usuarioAtual.nome || '').trim().toLowerCase());
-                sincronizarServidor();
+                await sincronizarServidor();
                 renderizarListaJogadores();
                 renderizarListaGestaoAdmin();
                 renderizarStatusCheckin();
@@ -1560,9 +1650,9 @@
             }
         }
 
-        function alternarTravaLista() {
+        async function alternarTravaLista() {
             peladaConfig.listaAberta = !peladaConfig.listaAberta;
-            sincronizarServidor();
+            await sincronizarServidor();
             renderizarStatusCheckin();
         }
 
@@ -1576,13 +1666,13 @@
             }
         }
 
-        function salvarNovoLocal() {
+        async function salvarNovoLocal() {
             const val = document.getElementById('input-admin-local').value.trim();
             if (val) {
                 peladaConfig.local = val;
-                sincronizarServidor();
+                await sincronizarServidor();
                 renderizarStatusCheckin();
-                alert('Local atualizado com sucesso!');
+                alert('Local da pelada atualizado e salvo com sucesso no servidor local!');
             }
         }
 
@@ -2352,7 +2442,7 @@
             if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        function salvarEdicaoAtleta(e) {
+        async function salvarEdicaoAtleta(e) {
             e.preventDefault();
             const id = document.getElementById('edit-atleta-id').value;
             const j = listaConfirmados.find(x => String(x.id) === String(id));
@@ -2363,21 +2453,21 @@
             j.idade = parseInt(document.getElementById('edit-atleta-idade').value) || 25;
             j.fitness = parseInt(document.getElementById('edit-atleta-fitness').value) || 85;
 
-            sincronizarServidor();
+            await sincronizarServidor();
             renderizarListaJogadores();
             renderizarListaGestaoAdmin();
             realizarSorteioStitch(true);
             fecharModalEditarAtleta();
-            alert(`Dados do atleta "${j.nome}" atualizados com sucesso!`);
+            alert(`Dados do atleta "${j.nome}" atualizados e salvos com sucesso!`);
         }
 
-        function excluirJogadorAdmin(id) {
+        async function excluirJogadorAdmin(id) {
             const j = listaConfirmados.find(x => String(x.id) === String(id));
             if (!j) return;
 
             if (confirm(`Deseja realmente excluir o atleta "${j.nome}" da pelada?`)) {
                 listaConfirmados = listaConfirmados.filter(x => String(x.id) !== String(id));
-                sincronizarServidor();
+                await sincronizarServidor();
                 renderizarListaJogadores();
                 renderizarListaGestaoAdmin();
                 renderizarStatusCheckin();
@@ -2399,7 +2489,7 @@
             if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        function salvarNovoAtletaManual(e) {
+        async function salvarNovoAtletaManual(e) {
             e.preventDefault();
             const nome = document.getElementById('novo-atleta-nome').value.trim();
             if (!nome) return;
@@ -2416,13 +2506,13 @@
             };
 
             listaConfirmados.push(novo);
-            sincronizarServidor();
+            await sincronizarServidor();
             renderizarListaJogadores();
             renderizarListaGestaoAdmin();
             renderizarStatusCheckin();
             realizarSorteioStitch(true);
             fecharModalAdicionarAtleta();
-            alert(`Atleta "${nome}" adicionado com sucesso!`);
+            alert(`Atleta "${nome}" cadastrado e adicionado com sucesso!`);
         }
 
         // ==============================================================
@@ -2430,14 +2520,16 @@
         // ==============================================================
 
 
-        function zerarListaConfirmados() {
-            listaConfirmados = [];
-            sincronizarServidor();
-            renderizarListaJogadores();
-            renderizarListaGestaoAdmin();
-            renderizarStatusCheckin();
-            realizarSorteioStitch(true);
-            alert('Lista de confirmação zerada com sucesso!');
+        async function zerarListaConfirmados() {
+            if (confirm('Tem certeza que deseja zerar toda a lista de confirmados?')) {
+                listaConfirmados = [];
+                await sincronizarServidor();
+                renderizarListaJogadores();
+                renderizarListaGestaoAdmin();
+                renderizarStatusCheckin();
+                realizarSorteioStitch(true);
+                alert('Lista de confirmação zerada com sucesso!');
+            }
         }
 
         // ==============================================================
@@ -2449,14 +2541,21 @@
         renderizarStatusCheckin();
         realizarSorteioStitch(true);
 
-        document.getElementById('atleta-nome').value = usuarioAtual.nome;
-        document.getElementById('atleta-posicao').value = usuarioAtual.posicao;
-        document.getElementById('atleta-condicao').value = usuarioAtual.condicao;
-        document.getElementById('atleta-idade').value = usuarioAtual.idade;
-        document.getElementById('atleta-peso').value = usuarioAtual.peso;
+        const inputAtletaNome = document.getElementById('atleta-nome');
+        if (inputAtletaNome) inputAtletaNome.value = usuarioAtual.nome;
+        const inputAtletaPosicao = document.getElementById('atleta-posicao');
+        if (inputAtletaPosicao) inputAtletaPosicao.value = usuarioAtual.posicao;
+        const inputAtletaCondicao = document.getElementById('atleta-condicao');
+        if (inputAtletaCondicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+        const inputAtletaIdade = document.getElementById('atleta-idade');
+        if (inputAtletaIdade) inputAtletaIdade.value = usuarioAtual.idade;
+        const inputAtletaPeso = document.getElementById('atleta-peso');
+        if (inputAtletaPeso) inputAtletaPeso.value = usuarioAtual.peso;
         if (usuarioAtual.foto) {
-            document.getElementById('perfil-foto-preview').src = usuarioAtual.foto;
-            document.getElementById('header-profile-avatar').src = usuarioAtual.foto;
+            const preview = document.getElementById('perfil-foto-preview');
+            const avatarHeader = document.getElementById('header-profile-avatar');
+            if (preview) preview.src = usuarioAtual.foto;
+            if (avatarHeader) avatarHeader.src = usuarioAtual.foto;
         }
 
         // ==============================================================
@@ -2472,7 +2571,6 @@
 
         atualizarNavbarPorRole();
         trocarAba('login');
-        conectarRealtime();
         verificarEExibirNumeralTimeJogador();
         atualizarEstadoBotaoPlayTimer();
     </script>
