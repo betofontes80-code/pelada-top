@@ -1,5 +1,5 @@
 // Service Worker do Pelada Top PWA
-const CACHE_NAME = 'pelada-top-v5.1';
+const CACHE_NAME = 'pelada-top-v6.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

@@ -197,13 +197,13 @@
                     </div>
 
                     <!-- Formulário -->
-                    <form class="flex flex-col gap-2" id="loginForm" onsubmit="realizarLogin(event)">
+                    <form class="flex flex-col gap-2" id="loginForm" novalidate onsubmit="realizarLogin(event)">
                         <div class="flex flex-col gap-0.5 relative">
-                            <label class="font-label-md text-[11px] text-on-surface-variant px-1 font-bold" for="login-email">E-mail</label>
+                            <label class="font-label-md text-[11px] text-on-surface-variant px-1 font-bold" id="login-label-email" for="login-email">E-mail ou Apelido</label>
                             <div class="relative flex items-center">
                                 <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-lg">mail</span>
                                 <input class="w-full h-10 pl-9 pr-3 rounded-xl bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary" 
-                                       id="login-email" placeholder="seu@email.com" required="" type="email"/>
+                                       id="login-email" placeholder="seu@email.com ou apelido" required="" type="text" inputmode="email" autocomplete="username"/>
                             </div>
                         </div>
 
@@ -212,9 +212,9 @@
                             <div class="relative flex items-center">
                                 <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-lg">lock</span>
                                 <input class="w-full h-10 pl-9 pr-10 rounded-xl bg-surface font-body-md text-xs text-on-surface outline-none border border-surface-container-highest focus:border-primary" 
-                                       id="login-password" placeholder="••••••••" required="" type="password"/>
+                                       id="login-password" placeholder="••••••••" required="" type="password" autocomplete="current-password"/>
                                 <button class="absolute right-2.5 w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" 
-                                        id="togglePassword" type="button" onclick="alternarVisibilidadeSenha()">
+                                       id="togglePassword" type="button" onclick="alternarVisibilidadeSenha()">
                                     <span id="icon-senha" class="material-symbols-outlined text-[18px]">visibility_off</span>
                                 </button>
                             </div>
@@ -228,7 +228,7 @@
                         </div>
 
                         <button class="w-full mt-1 bg-primary text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md shadow-primary/20 hover:bg-surface-tint active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 py-2.5 font-bold" 
-                                id="loginBtn" type="submit">
+                                id="loginBtn" type="submit" onclick="realizarLogin(event)">
                             <span>Entrar no Jogo</span>
                             <span class="material-symbols-outlined text-base">arrow_forward</span>
                         </button>
@@ -270,13 +270,17 @@
                 <!-- Preenchido dinamicamente via JS -->
             </div>
 
-            <!-- Cabeçalho da Lista -->
+            <!-- Cabeçalho da Lista com Indicadores de Cores -->
             <div class="flex items-center justify-between px-1 shrink-0 pt-0.5">
                 <h3 class="font-label-md text-on-surface-variant uppercase tracking-widest text-[10px] font-bold flex items-center gap-1">
                     <span class="material-symbols-outlined text-xs text-primary">format_list_numbered</span>
                     <span>Lista Oficial de Presença</span>
                 </h3>
-                <span class="font-label-md text-on-surface-variant text-[10px] font-bold">Fitness</span>
+                <div class="flex items-center gap-2 text-[9px] font-bold text-on-surface-variant">
+                    <span class="flex items-center gap-0.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Chegou</span>
+                    <span class="flex items-center gap-0.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Próximo</span>
+                    <span class="flex items-center gap-0.5"><span class="w-2 h-2 rounded-full bg-red-500"></span>Longe</span>
+                </div>
             </div>
 
             <!-- Lista de Chegada com Container de Rolagem Amplo (Ocupa todo o espaço vertical) -->
@@ -592,10 +596,10 @@
                             <label class="font-label-md text-[10px] font-bold text-secondary" for="atleta-condicao">Condição Física</label>
                             <select class="w-full bg-surface-container-lowest text-on-surface font-body-md px-2 py-1.5 rounded-lg outline-none border border-surface-container-highest focus:border-primary text-xs cursor-pointer" 
                                     id="atleta-condicao">
-                                <option value="excelente" selected>🏃 100% (Top)</option>
-                                <option value="boa">💪 80% (Boa)</option>
-                                <option value="regular">⚖️ 60% (Ok)</option>
-                                <option value="recuperacao">🩹 Recuperação</option>
+                                <option value="100% (Top)" selected>🏃 100% (Top)</option>
+                                <option value="80% (Boa)">💪 80% (Boa)</option>
+                                <option value="60% (Ok)">⚖️ 60% (Ok)</option>
+                                <option value="Recuperação">🩹 Recuperação</option>
                             </select>
                         </div>
                     </div>
@@ -960,6 +964,11 @@
     <!-- JAVASCRIPT OTIMIZADO -->
     <script>
         // ==============================================================
+        // CONTROLE DE VERSÃO DA APLICAÇÃO & CACHE (V6.2)
+        // ==============================================================
+        const VERSAO_CACHE_APP = 'v6.2';
+
+        // ==============================================================
         // DADOS E ESTADO GERAL
         // ==============================================================
         let usuarioAtual = JSON.parse(localStorage.getItem('pelada_usuario')) || {
@@ -967,7 +976,7 @@
             nome: '',
             email: '',
             posicao: 'ATA',
-            condicao: 'excelente',
+            condicao: '100% (Top)',
             idade: 25,
             peso: 75,
             foto: '',
@@ -1052,6 +1061,20 @@
 
             if (data.listaConfirmados !== undefined) {
                 listaConfirmados = data.listaConfirmados;
+                // Garante que o atleta logado mantenha sua foto caso exista localmente ou no servidor
+                const eu = listaConfirmados.find(j => 
+                    (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                    (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                );
+                if (eu) {
+                    if (usuarioAtual.foto && !eu.foto) {
+                        eu.foto = usuarioAtual.foto;
+                    } else if (eu.foto && !usuarioAtual.foto) {
+                        usuarioAtual.foto = eu.foto;
+                        localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                        sincronizarPerfilCamposUi();
+                    }
+                }
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
             }
             if (data.peladaConfig !== undefined) {
@@ -1392,16 +1415,31 @@
             const tabJog = document.getElementById('tabRoleJogador');
             const tabAdm = document.getElementById('tabRoleAdmin');
             const emailInput = document.getElementById('login-email');
+            const pwdInput = document.getElementById('login-password');
+            const labelEmail = document.getElementById('login-label-email');
 
-            if (role === 'jogador') {
-                if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
-                if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
-                if (emailInput && emailInput.value === 'admin@peladatop.com') emailInput.value = '';
-                if (emailInput) emailInput.placeholder = 'seu@email.com';
-            } else {
+            if (role === 'admin') {
                 if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
                 if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
-                if (emailInput && !emailInput.value) emailInput.placeholder = 'admin@peladatop.com';
+                if (emailInput) {
+                    emailInput.placeholder = 'topadmin@gmail.com ou admin';
+                    if (!emailInput.value || emailInput.value === 'seu@email.com') emailInput.value = 'topadmin@gmail.com';
+                }
+                if (pwdInput) {
+                    pwdInput.placeholder = '••••••••';
+                }
+                if (labelEmail) labelEmail.innerText = 'E-mail ou Usuário Admin';
+            } else {
+                if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
+                if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
+                if (emailInput) {
+                    emailInput.placeholder = 'seu@email.com ou apelido';
+                    if (emailInput.value === 'topadmin@gmail.com' || emailInput.value === 'admin') emailInput.value = '';
+                }
+                if (pwdInput) {
+                    pwdInput.placeholder = '••••••••';
+                }
+                if (labelEmail) labelEmail.innerText = 'E-mail ou Apelido';
             }
         }
 
@@ -1418,40 +1456,95 @@
         }
 
         async function realizarLogin(e) {
-            e.preventDefault();
+            if (e) {
+                try { e.preventDefault(); } catch(err) {}
+                try { e.stopPropagation(); } catch(err) {}
+            }
             const btn = document.getElementById('loginBtn');
             const erroBox = document.getElementById('login-alerta-erro');
             const erroMsg = document.getElementById('login-erro-msg');
-            erroBox.classList.add('hidden');
+            if (erroBox) erroBox.classList.add('hidden');
 
-            const email = document.getElementById('login-email').value.trim();
-            const senha = document.getElementById('login-password').value;
+            const emailInput = document.getElementById('login-email');
+            const pwdInput = document.getElementById('login-password');
+            let emailDigitado = emailInput ? emailInput.value.trim() : '';
+            const senhaDigitada = pwdInput ? pwdInput.value.trim() : '';
 
-            if (!email || !senha) {
-                erroMsg.innerText = 'Preencha seu e-mail e senha.';
-                erroBox.classList.remove('hidden');
+            // Se for login admin: se o campo estiver vazio ou for "admin" / "topadmin", usa topadmin@gmail.com
+            let emailParaEnvio = emailDigitado;
+            if (roleSelecionadoLogin === 'admin') {
+                if (!emailParaEnvio || emailParaEnvio.toLowerCase() === 'admin' || emailParaEnvio.toLowerCase() === 'topadmin') {
+                    emailParaEnvio = 'topadmin@gmail.com';
+                }
+            } else {
+                // Se for jogador e digitou sem @ (apelido/nome), tenta resolver o e-mail cadastrado
+                if (emailParaEnvio && !emailParaEnvio.includes('@')) {
+                    const busca = emailParaEnvio.toLowerCase();
+                    // 1. Procura na lista local de confirmados
+                    let achado = (listaConfirmados || []).find(j => 
+                        (j.nome && j.nome.toLowerCase() === busca) ||
+                        (j.nome && j.nome.toLowerCase().split(' ')[0] === busca) ||
+                        (j.nome && j.nome.toLowerCase().includes(busca))
+                    );
+                    // 2. Tenta em /api/jogadores se necessário
+                    if (!achado || !achado.email) {
+                        try {
+                            const rJog = await fetch('/api/jogadores');
+                            if (rJog.ok) {
+                                const cads = await rJog.json();
+                                const cAchado = (cads || []).find(j => 
+                                    (j.nome && j.nome.toLowerCase() === busca) ||
+                                    (j.nome && j.nome.toLowerCase().split(' ')[0] === busca) ||
+                                    (j.nome && j.nome.toLowerCase().includes(busca))
+                                );
+                                if (cAchado && cAchado.email) achado = cAchado;
+                            }
+                        } catch(e) {}
+                    }
+                    if (achado && achado.email) {
+                        emailParaEnvio = achado.email;
+                    }
+                }
+            }
+
+            if (!emailParaEnvio && roleSelecionadoLogin === 'jogador') {
+                if (erroMsg) erroMsg.innerText = 'Preencha seu e-mail ou apelido cadastrado.';
+                if (erroBox) erroBox.classList.remove('hidden');
                 return;
             }
 
-            const orig = btn.innerHTML;
-            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span><span>Verificando...</span>';
-            btn.disabled = true;
+            if (!senhaDigitada) {
+                if (erroMsg) erroMsg.innerText = 'Preencha sua senha de acesso.';
+                if (erroBox) erroBox.classList.remove('hidden');
+                return;
+            }
+
+            const orig = btn ? btn.innerHTML : '<span>Entrar no Jogo</span>';
+            if (btn) {
+                btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">refresh</span><span>Verificando...</span>';
+                btn.disabled = true;
+            }
 
             try {
                 const resp = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json; charset=utf-8' },
                     body: JSON.stringify({
-                        email,
-                        senha,
-                        role: roleSelecionadoLogin
+                        email: emailParaEnvio,
+                        senha: senhaDigitada,
+                        role: roleSelecionadoLogin || 'jogador'
                     })
                 });
 
-                const data = await resp.json();
+                let data = null;
+                try {
+                    data = await resp.json();
+                } catch(errJson) {
+                    throw new Error('Erro ao processar resposta do servidor.');
+                }
 
-                if (!resp.ok || !data.sucesso) {
-                    throw new Error(data.erro || 'Falha na autenticação.');
+                if (!resp.ok || !data || !data.sucesso) {
+                    throw new Error((data && data.erro) || 'Falha na autenticação.');
                 }
 
                 // Autenticado com sucesso!
@@ -1462,8 +1555,10 @@
                 sincronizarPerfilCamposUi();
                 atualizarNavbarPorRole();
 
-                btn.innerHTML = '<span>Entrando...</span><span class="material-symbols-outlined text-base">done_all</span>';
-                btn.className = 'w-full mt-1 bg-success-green text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md py-2.5 font-bold flex items-center justify-center gap-1.5';
+                if (btn) {
+                    btn.innerHTML = '<span>Entrando...</span><span class="material-symbols-outlined text-base">done_all</span>';
+                    btn.className = 'w-full mt-1 bg-success-green text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md py-2.5 font-bold flex items-center justify-center gap-1.5';
+                }
 
                 setTimeout(() => {
                     if (usuarioAtual.role === 'admin') {
@@ -1472,21 +1567,25 @@
                         trocarAba('jogadores');
                     }
                     verificarEExibirNumeralTimeJogador();
-                    btn.innerHTML = orig;
-                    btn.disabled = false;
-                    btn.className = 'w-full mt-1 bg-primary text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md shadow-primary/20 hover:bg-surface-tint active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 py-2.5 font-bold';
-                }, 400);
+                    if (btn) {
+                        btn.innerHTML = orig;
+                        btn.disabled = false;
+                        btn.className = 'w-full mt-1 bg-primary text-on-primary rounded-xl font-headline-md text-xs uppercase tracking-wider shadow-md shadow-primary/20 hover:bg-surface-tint active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 py-2.5 font-bold';
+                    }
+                }, 300);
 
             } catch (err) {
                 let msg = err.message || 'E-mail ou senha inválidos.';
                 if (msg.toLowerCase().includes('não encontrado') || msg.toLowerCase().includes('não cadastrado')) {
-                    erroMsg.innerHTML = `${msg} <br><button type="button" onclick="abrirModalCadastro()" class="text-primary font-bold underline mt-1 inline-block">Clique aqui para se cadastrar</button>`;
+                    if (erroMsg) erroMsg.innerHTML = `${msg} <br><button type="button" onclick="abrirModalCadastro()" class="text-primary font-bold underline mt-1 inline-block">Clique aqui para se cadastrar</button>`;
                 } else {
-                    erroMsg.innerText = msg;
+                    if (erroMsg) erroMsg.innerText = msg;
                 }
-                erroBox.classList.remove('hidden');
-                btn.innerHTML = orig;
-                btn.disabled = false;
+                if (erroBox) erroBox.classList.remove('hidden');
+                if (btn) {
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                }
             }
         }
 
@@ -1540,8 +1639,18 @@
                 usuarioAtual = data.usuario;
                 localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
 
+                // Atualiza lista de confirmados recebida do servidor
+                if (data.listaConfirmados && Array.isArray(data.listaConfirmados)) {
+                    listaConfirmados = data.listaConfirmados;
+                    localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                }
+
                 sincronizarPerfilCamposUi();
                 atualizarNavbarPorRole();
+                renderizarListaJogadores();
+                renderizarListaGestaoAdmin();
+                renderizarStatusCheckin();
+                realizarSorteioStitch(true);
 
                 btn.innerHTML = '<span>Cadastro Realizado!</span><span class="material-symbols-outlined text-base">done_all</span>';
                 btn.className = 'flex-1 py-2 rounded-lg bg-success-green text-white font-bold text-xs shadow-sm active:scale-95 flex items-center justify-center gap-1';
@@ -1554,6 +1663,7 @@
                     if (prev) prev.src = './logo-transparent.png';
 
                     trocarAba('jogadores');
+                    renderizarListaJogadores();
                     verificarEExibirNumeralTimeJogador();
                     btn.innerHTML = orig;
                     btn.disabled = false;
@@ -1574,7 +1684,14 @@
             const inputAtletaPosicao = document.getElementById('atleta-posicao');
             if (inputAtletaPosicao && usuarioAtual.posicao) inputAtletaPosicao.value = usuarioAtual.posicao;
             const inputAtletaCondicao = document.getElementById('atleta-condicao');
-            if (inputAtletaCondicao && usuarioAtual.condicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+            if (inputAtletaCondicao) {
+                const cVal = String(usuarioAtual.condicao || usuarioAtual.condicaoFisica || usuarioAtual.fitness || '').toLowerCase();
+                if (cVal.includes('100') || cVal.includes('excelente') || cVal.includes('top')) inputAtletaCondicao.value = '100% (Top)';
+                else if (cVal.includes('80') || cVal.includes('boa')) inputAtletaCondicao.value = '80% (Boa)';
+                else if (cVal.includes('60') || cVal.includes('regular') || cVal.includes('ok')) inputAtletaCondicao.value = '60% (Ok)';
+                else if (cVal.includes('recupera') || cVal.includes('40')) inputAtletaCondicao.value = 'Recuperação';
+                else if (usuarioAtual.condicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+            }
             const inputAtletaIdade = document.getElementById('atleta-idade');
             if (inputAtletaIdade && usuarioAtual.idade) inputAtletaIdade.value = usuarioAtual.idade;
             const inputAtletaPeso = document.getElementById('atleta-peso');
@@ -1675,12 +1792,37 @@
                     if (avatarHeader) avatarHeader.src = fotoOtimizada;
                     localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
 
-                    // Se o atleta já estava na lista de confirmados, atualiza também a foto dele na lista
-                    const atletaNaLista = listaConfirmados.find(j => (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase());
+                    // Atualiza foto do atleta na lista de confirmados em memória
+                    const atletaNaLista = listaConfirmados.find(j => 
+                        (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                        (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                    );
                     if (atletaNaLista) {
                         atletaNaLista.foto = fotoOtimizada;
                     }
                     renderizarListaJogadores();
+                    renderizarListaGestaoAdmin();
+
+                    // Sincroniza imediatamente com o servidor central
+                    if (window.location.protocol.startsWith('http')) {
+                        try {
+                            fetch('/api/perfil', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                                body: JSON.stringify({
+                                    ...usuarioAtual,
+                                    foto: fotoOtimizada
+                                })
+                            }).then(r => r.json()).then(res => {
+                                if (res.sucesso && res.listaConfirmados) {
+                                    listaConfirmados = res.listaConfirmados;
+                                    renderizarListaJogadores();
+                                    renderizarListaGestaoAdmin();
+                                }
+                            }).catch(() => {});
+                        } catch(e) {}
+                    }
+                    await sincronizarServidor();
                 } catch(err) {
                     console.warn('Erro ao processar imagem:', err);
                 }
@@ -1696,38 +1838,75 @@
             const nomeAntigo = usuarioAtual.nome;
             usuarioAtual.nome = document.getElementById('atleta-nome').value.trim() || 'Atleta';
             usuarioAtual.posicao = document.getElementById('atleta-posicao').value;
-            usuarioAtual.condicao = document.getElementById('atleta-condicao').value;
+            const condicaoSelecionada = document.getElementById('atleta-condicao').value;
+            usuarioAtual.condicao = condicaoSelecionada;
+            usuarioAtual.condicaoFisica = condicaoSelecionada;
             usuarioAtual.idade = parseInt(document.getElementById('atleta-idade').value) || 28;
             usuarioAtual.peso = parseFloat(document.getElementById('atleta-peso').value) || 75;
 
-            // Se o atleta já estava na lista de confirmados com o nome anterior, atualiza os dados dele
-            const atletaNaLista = listaConfirmados.find(j => (j.nome || '').trim().toLowerCase() === (nomeAntigo || '').trim().toLowerCase());
+            // Conversão explícita de Condição Física:
+            // * "100% (Top)" -> 100
+            // * "80% (Boa)" -> 80
+            // * "60% (Ok)" -> 60
+            // * "Recuperação" -> 40
+            let condFit = 80;
+            const cStr = String(condicaoSelecionada || '').toLowerCase().trim();
+            if (cStr === '100% (top)' || cStr.includes('100') || cStr.includes('top') || cStr.includes('excelente')) {
+                condFit = 100;
+            } else if (cStr === '80% (boa)' || cStr.includes('80') || cStr.includes('boa')) {
+                condFit = 80;
+            } else if (cStr === '60% (ok)' || cStr.includes('60') || cStr.includes('ok') || cStr.includes('regular')) {
+                condFit = 60;
+            } else if (cStr === 'recuperação' || cStr === 'recuperacao' || cStr.includes('recupera') || cStr.includes('40')) {
+                condFit = 40;
+            }
+            usuarioAtual.fitness = condFit;
+
+            // Atualiza o registro do atleta na listaConfirmados (ordem de chegada)
+            const atletaNaLista = listaConfirmados.find(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (nomeAntigo || '').trim().toLowerCase() ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            );
             if (atletaNaLista) {
                 atletaNaLista.nome = usuarioAtual.nome;
                 atletaNaLista.posicao = usuarioAtual.posicao;
-                atletaNaLista.condicao = usuarioAtual.condicao;
+                atletaNaLista.condicao = condicaoSelecionada;
+                atletaNaLista.condicaoFisica = condicaoSelecionada;
+                atletaNaLista.fitness = condFit;
                 atletaNaLista.idade = usuarioAtual.idade;
+                atletaNaLista.peso = usuarioAtual.peso;
                 if (usuarioAtual.foto) atletaNaLista.foto = usuarioAtual.foto;
             }
 
             localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
 
-            // Salva no banco de dados local do servidor central
+            // Salva dados cadastrais no servidor central (/api/perfil)
             if (window.location.protocol.startsWith('http')) {
                 try {
-                    await fetch('/api/perfil', {
+                    const resp = await fetch('/api/perfil', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json; charset=utf-8' },
                         body: JSON.stringify({
                             ...usuarioAtual,
-                            nomeAntigo: nomeAntigo
+                            condicao: condicaoSelecionada,
+                            condicaoFisica: condicaoSelecionada,
+                            fitness: condFit,
+                            nomeAntigo: nomeAntigo,
+                            foto: usuarioAtual.foto || ''
                         })
                     });
+                    const resJson = await resp.json();
+                    if (resJson.sucesso && resJson.listaConfirmados) {
+                        listaConfirmados = resJson.listaConfirmados;
+                    }
                 } catch (err) {
-                    console.warn('[Perfil] Falha ao enviar perfil ao servidor local:', err.message);
+                    console.warn('[Perfil] Falha ao enviar perfil ao servidor central:', err.message);
                 }
             }
 
+            // Envia POST para o servidor (/api/pelada), sincronizando listaConfirmados com todos os aparelhos
             await sincronizarServidor();
             atualizarNavbarPorRole();
             renderizarListaJogadores();
@@ -1829,23 +2008,40 @@
             if (txtLocal) txtLocal.innerText = peladaConfig.local;
             if (inputLocal) inputLocal.value = peladaConfig.local;
 
-            const jaConfirmado = listaConfirmados.some(j => j.nome === usuarioAtual.nome);
+            const atletaLogado = listaConfirmados.find(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+            const jaConfirmado = !!atletaLogado;
+            const jaChegou = atletaLogado && (atletaLogado.chegadaConfirmada || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou');
 
             if (peladaConfig.listaAberta) {
-                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-success-green';
+                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-emerald-500';
                 title.innerText = 'Vestiário Aberto!';
 
-                if (jaConfirmado) {
-                    btn.className = "mt-2 w-full bg-success-green text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-default text-xs font-bold";
-                    btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> ESCALADO NA PARTIDA!';
+                if (jaChegou) {
+                    btn.className = "mt-2 w-full bg-emerald-600 text-white font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-default text-xs font-bold";
+                    btn.innerHTML = '<span class="material-symbols-outlined text-base">sports_soccer</span> CHEGADA CONFIRMADA NO CAMPO!';
                     btn.disabled = true;
+                } else if (jaConfirmado) {
+                    const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
+                    if (dist !== null && dist <= 500) {
+                        btn.className = "mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider animate-pulse";
+                        btn.innerHTML = '<span>Confirmar Chegada no Local ⚽</span><span class="material-symbols-outlined text-sm">sports_soccer</span>';
+                        btn.disabled = false;
+                    } else {
+                        const distTxt = dist !== null ? (dist >= 1000 ? `${(dist/1000).toFixed(1)}km` : `${dist}m`) : 'Aguardando GPS';
+                        btn.className = "mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider";
+                        btn.innerHTML = `<span>Na Lista (${distTxt}) • Chegada aos 500m</span><span class="material-symbols-outlined text-sm">radar</span>`;
+                        btn.disabled = false;
+                    }
                 } else {
                     btn.className = "mt-2 w-full bg-primary text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider";
-                    btn.innerHTML = '<span>Confirmar Presença (Check-in)</span><span class="material-symbols-outlined text-sm">arrow_forward</span>';
+                    btn.innerHTML = '<span>1. Confirmar Presença na Lista</span><span class="material-symbols-outlined text-sm">arrow_forward</span>';
                     btn.disabled = false;
                 }
             } else {
-                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-warning-amber';
+                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-amber-500';
                 title.innerText = 'Lista Bloqueada';
                 btn.className = "mt-2 w-full bg-surface-container-highest text-secondary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed text-xs font-bold";
                 btn.innerHTML = '<span class="material-symbols-outlined text-base">lock</span> CHECK-IN FECHADO';
@@ -1859,17 +2055,17 @@
 
             if (adminStatusBadge) {
                 if (peladaConfig.listaAberta) {
-                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-green/10 text-success-green flex items-center gap-1';
-                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span> Vestiário Aberto';
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário Aberto';
                 } else {
-                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-warning-amber/10 text-warning-amber flex items-center gap-1';
-                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-warning-amber"></span> Vestiário Fechado';
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Vestiário Fechado';
                 }
             }
 
             if (btnAdmTrava) {
                 if (peladaConfig.listaAberta) {
-                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-success-green';
+                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-emerald-600';
                     if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock_open';
                     if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA ABERTA (CLIQUE P/ TRAVAR)';
                 } else {
@@ -1880,92 +2076,207 @@
             }
         }
 
-        function cliqueBotaoCheckin() {
-            if (!peladaConfig.listaAberta) return;
-
-            const efetuarEscalacao = () => {
-                const jaConfirmado = listaConfirmados.some(j => (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase());
-                if (!jaConfirmado) {
-                    listaConfirmados.unshift({
-                        id: String(Date.now()),
-                        nome: usuarioAtual.nome,
-                        posicao: usuarioAtual.posicao || 'ATA',
-                        condicao: usuarioAtual.condicao || 'excelente',
-                        idade: usuarioAtual.idade || 28,
-                        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                        fitness: 98,
-                        foto: usuarioAtual.foto || ''
-                    });
-                    sincronizarServidor();
-                }
-                renderizarListaJogadores();
-                renderizarListaGestaoAdmin();
-                renderizarStatusCheckin();
-                realizarSorteioStitch(true);
-                alert(`⚽ Presença Confirmada!\nVocê está escalado na partida!\n📍 Local: ${peladaConfig.local}\nBom jogo! 🔥`);
-            };
-
-            // Se GPS não for exigido na configuração da pelada, confirma direto
-            if (peladaConfig.exigirGps === false) {
-                efetuarEscalacao();
+        // 1ª CONFIRMAÇÃO: PARTICIPAR DA LISTA DE PRESENÇA (FEITA A QUALQUER DISTÂNCIA)
+        async function confirmarPresencaLista() {
+            if (!peladaConfig.listaAberta) {
+                alert('A lista está temporariamente fechada pelo administrador.');
+                return;
+            }
+            if (!usuarioAtual || !usuarioAtual.nome) {
+                abrirModalCadastro();
                 return;
             }
 
-            const raio = peladaConfig.raioMaximoMetros || 500;
+            const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : 3500;
+            const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            // Se já tem medição recente:
-            if (distanciaAtualMetros !== null) {
-                if (distanciaAtualMetros <= raio) {
-                    efetuarEscalacao();
-                    return;
-                } else {
-                    const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros / 1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
-                    alert(
-                        `🚫 CHECK-IN BLOQUEADO POR DISTÂNCIA!\n\n` +
-                        `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
-                        `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar!`
-                    );
-                    return;
-                }
+            const jaExiste = listaConfirmados.some(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+
+            if (!jaExiste) {
+                const novo = {
+                    id: usuarioAtual.id || String(Date.now()),
+                    nome: usuarioAtual.nome,
+                    posicao: usuarioAtual.posicao || 'ATA',
+                    condicao: usuarioAtual.condicao || 'excelente',
+                    idade: usuarioAtual.idade || 28,
+                    fitness: 95,
+                    foto: usuarioAtual.foto || '',
+                    hora: hora,
+                    statusPresenca: 'confirmado',
+                    chegadaConfirmada: false,
+                    distanciaMetros: dist,
+                    statusAproximacao: dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe')
+                };
+                listaConfirmados.unshift(novo);
             }
 
-            // Se ainda não mediu, consulta o GPS agora:
-            if (navigator.geolocation) {
-                const btn = document.getElementById('btn-checkin-action');
-                const origHtml = btn ? btn.innerHTML : '';
-                if (btn) btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span><span>Verificando Localização...</span>';
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            renderizarStatusCheckin();
+            realizarSorteioStitch(true);
 
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        if (btn) btn.innerHTML = origHtml;
-                        const lat = pos.coords.latitude;
-                        const lng = pos.coords.longitude;
-                        distanciaAtualMetros = calcularDistanciaMetros(lat, lng, peladaConfig.lat || -7.190405, peladaConfig.lng || -34.870103);
-                        atualizarLocalizacaoGps();
-
-                        if (distanciaAtualMetros <= raio) {
-                            efetuarEscalacao();
-                        } else {
-                            const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros / 1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
-                            alert(
-                                `🚫 CHECK-IN BLOQUEADO POR DISTÂNCIA!\n\n` +
-                                `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
-                                `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar!`
-                            );
-                        }
-                    },
-                    (err) => {
-                        if (btn) btn.innerHTML = origHtml;
-                        alert(
-                            `📍 Não foi possível obter o sinal GPS (${err.message}).\n\n` +
-                            `Pela regra da pelada, é obrigatório estar a menos de 500m do campo:\n${peladaConfig.local}\n\n` +
-                            `Por favor, ative a localização do seu dispositivo para confirmar presença.`
-                        );
-                    },
-                    { enableHighAccuracy: true, timeout: 6000 }
-                );
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    const resp = await fetch('/api/pelada/confirmar-presenca', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({
+                            id: usuarioAtual.id,
+                            nome: usuarioAtual.nome,
+                            posicao: usuarioAtual.posicao || 'ATA',
+                            idade: usuarioAtual.idade || 28,
+                            fitness: 95,
+                            foto: usuarioAtual.foto || '',
+                            distanciaMetros: distanciaAtualMetros
+                        })
+                    });
+                    const data = await resp.json();
+                    if (data.sucesso && data.listaConfirmados) {
+                        listaConfirmados = data.listaConfirmados;
+                        renderizarListaJogadores();
+                        renderizarListaGestaoAdmin();
+                    }
+                } catch(err) {
+                    sincronizarServidor();
+                }
             } else {
-                efetuarEscalacao();
+                sincronizarServidor();
+            }
+
+            alert(`⚽ 1ª Confirmação Realizada!\n\n${usuarioAtual.nome}, você está confirmado na Lista Oficial de Presença!\n\nRegra dos 500m:\nAo se aproximar do local da pelada (${peladaConfig.local}), surgirá o botão para você confirmar sua chegada no campo!`);
+        }
+
+        // 2ª CONFIRMAÇÃO: CONFIRMAR CHEGADA FÍSICA NO LOCAL (AO SE APROXIMAR <= 500 METROS)
+        async function confirmarChegadaLocal() {
+            if (!usuarioAtual || !usuarioAtual.nome) return;
+
+            const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            let atleta = listaConfirmados.find(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+
+            if (atleta) {
+                atleta.statusPresenca = 'chegou';
+                atleta.chegadaConfirmada = true;
+                atleta.statusAproximacao = 'chegou';
+                atleta.distanciaTexto = 'No Campo';
+                atleta.horaChegada = hora;
+                if (distanciaAtualMetros !== null) atleta.distanciaMetros = distanciaAtualMetros;
+            } else {
+                atleta = {
+                    id: usuarioAtual.id || String(Date.now()),
+                    nome: usuarioAtual.nome,
+                    posicao: usuarioAtual.posicao || 'ATA',
+                    condicao: usuarioAtual.condicao || 'excelente',
+                    idade: usuarioAtual.idade || 28,
+                    fitness: 95,
+                    foto: usuarioAtual.foto || '',
+                    hora: hora,
+                    statusPresenca: 'chegou',
+                    chegadaConfirmada: true,
+                    statusAproximacao: 'chegou',
+                    distanciaTexto: 'No Campo',
+                    horaChegada: hora,
+                    distanciaMetros: distanciaAtualMetros !== null ? distanciaAtualMetros : 150
+                };
+                listaConfirmados.unshift(atleta);
+            }
+
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            renderizarStatusCheckin();
+            realizarSorteioStitch(true);
+
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    const resp = await fetch('/api/pelada/confirmar-chegada', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({
+                            id: usuarioAtual.id,
+                            nome: usuarioAtual.nome,
+                            posicao: usuarioAtual.posicao,
+                            foto: usuarioAtual.foto || '',
+                            distanciaMetros: distanciaAtualMetros !== null ? distanciaAtualMetros : 150
+                        })
+                    });
+                    const data = await resp.json();
+                    if (data.sucesso && data.listaConfirmados) {
+                        listaConfirmados = data.listaConfirmados;
+                        renderizarListaJogadores();
+                        renderizarListaGestaoAdmin();
+                    }
+                } catch(err) {
+                    sincronizarServidor();
+                }
+            } else {
+                sincronizarServidor();
+            }
+
+            alert(`⚽ CHEGADA NO LOCAL CONFIRMADA!\n\nAtleta: ${usuarioAtual.nome}\nHorário: ${hora}\nLocal: ${peladaConfig.local}\n\nStatus atualizado para VERDE (CHEGOU) para o Administrador e todos os atletas! 🔥`);
+        }
+
+        // CONFIRMAÇÃO MANUAL DE CHEGADA PELO ADMINISTRADOR
+        async function confirmarChegadaAtletaAdmin(id) {
+            const j = listaConfirmados.find(x => String(x.id) === String(id));
+            if (!j) return;
+
+            const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            j.statusPresenca = 'chegou';
+            j.chegadaConfirmada = true;
+            j.statusAproximacao = 'chegou';
+            j.horaChegada = hora;
+            j.distanciaTexto = 'No Campo';
+
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+            renderizarStatusCheckin();
+
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    const resp = await fetch('/api/pelada/confirmar-chegada', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({ id: j.id, nome: j.nome, distanciaMetros: 0 })
+                    });
+                    const data = await resp.json();
+                    if (data.sucesso && data.listaConfirmados) {
+                        listaConfirmados = data.listaConfirmados;
+                        renderizarListaJogadores();
+                        renderizarListaGestaoAdmin();
+                    }
+                } catch(err) {
+                    sincronizarServidor();
+                }
+            } else {
+                sincronizarServidor();
+            }
+        }
+
+        function cliqueBotaoCheckin() {
+            if (!peladaConfig.listaAberta) return;
+
+            const atletaLogado = listaConfirmados.find(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+
+            if (!atletaLogado) {
+                confirmarPresencaLista();
+                return;
+            }
+
+            const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
+
+            if (dist !== null && dist <= 500) {
+                confirmarChegadaLocal();
+            } else {
+                atualizarLocalizacaoGps(true);
             }
         }
 
@@ -2007,46 +2318,154 @@
         }
 
         // ==============================================================
-        // RENDERIZAÇÃO DA LISTA DE JOGADORES (COMPACTA E OTIMIZADA)
+        // CÁLCULO DA PORCENTAGEM / OVERALL DO ATLETA (CONDIÇÃO FÍSICA DO PERFIL)
+        // ==============================================================
+        function calcularOverallAtleta(j, usuarioLogado = null) {
+            // 1. Identifica o objeto de referência (prioriza o usuário logado para o próprio card)
+            const ehLogado = Boolean(usuarioLogado && (
+                (j && usuarioLogado.id && String(j.id) === String(usuarioLogado.id)) ||
+                (j && j.nome && (j.nome || '').trim().toLowerCase() === (usuarioLogado.nome || '').trim().toLowerCase())
+            ));
+
+            const ref = ehLogado ? usuarioLogado : (j || {});
+
+            // 2. Lê a condição física do atleta (j.condicao, j.condicaoFisica ou j.fitness)
+            const condicaoRaw = String(ref.condicao || ref.condicaoFisica || (ehLogado && (usuarioLogado.condicao || usuarioLogado.condicaoFisica)) || '').toLowerCase().trim();
+
+            // Mapeamento explícito solicitado:
+            // * "100% (Top)" -> 100
+            if (condicaoRaw === '100% (top)' || condicaoRaw.includes('100') || condicaoRaw.includes('top') || condicaoRaw.includes('excelente')) {
+                return 100;
+            }
+            // * "80% (Boa)" -> 80
+            if (condicaoRaw === '80% (boa)' || condicaoRaw.includes('80') || condicaoRaw.includes('boa')) {
+                return 80;
+            }
+            // * "60% (Ok)" -> 60
+            if (condicaoRaw === '60% (ok)' || condicaoRaw.includes('60') || condicaoRaw.includes('ok') || condicaoRaw.includes('regular')) {
+                return 60;
+            }
+            // * "Recuperação" -> 40
+            if (condicaoRaw === 'recuperação' || condicaoRaw === 'recuperacao' || condicaoRaw.includes('recupera') || condicaoRaw.includes('40')) {
+                return 40;
+            }
+
+            // 3. Lê o fitness ou overall numérico caso a condição não tenha vindo em formato texto
+            const fitSalvo = ref.fitness ?? (ehLogado ? usuarioLogado.fitness : null) ?? ref.overall ?? ref.nota;
+            if (fitSalvo !== undefined && fitSalvo !== null && fitSalvo !== '') {
+                const n = parseFloat(fitSalvo);
+                if (!isNaN(n) && n > 0) {
+                    return Math.min(100, Math.max(0, Math.round(n <= 10 ? n * 10 : n)));
+                }
+            }
+
+            return 80;
+        }
+
+        // ==============================================================
+        // RENDERIZAÇÃO DA LISTA DE JOGADORES (COM 2 CONFIRMAÇÕES E 3 CORES)
         // ==============================================================
         function renderizarListaJogadores() {
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
-            badge.innerText = `${listaConfirmados.length} Confirmados`;
+            if (badge) badge.innerText = `${listaConfirmados.length} Confirmados`;
 
-            // Atualiza o aviso de presença no topo da tela de jogadores
+            // Atualiza o aviso e botão de presença/chegada no topo da tela de jogadores
             const bannerPrompt = document.getElementById('banner-jogadores-checkin-prompt');
             if (bannerPrompt) {
-                const jaConfirmado = listaConfirmados.some(j => (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase());
-                if (jaConfirmado) {
-                    bannerPrompt.className = 'shrink-0 bg-success-green/10 border border-success-green/25 rounded-xl p-2 px-3 flex items-center justify-between shadow-xs';
+                const atletaLogado = listaConfirmados.find(j => 
+                    (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                    (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+                );
+
+                if (!atletaLogado) {
+                    // ESTADO 1: Ainda não confirmou presença na lista (1ª Confirmação)
+                    bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
-                        <div class="flex items-center gap-1.5 text-success-green text-xs font-bold">
-                            <span class="material-symbols-outlined text-base">verified</span>
-                            <span>Presença confirmada • Você está escalado!</span>
+                        <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
+                            <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
+                            <div>
+                                <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] bg-success-green text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 shadow-xs">
-                                <span class="material-symbols-outlined text-xs">check</span> Escalado
-                            </span>
-                            <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença na pelada">
-                                Cancelar
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2 px-3 flex items-center justify-between shadow-xs';
-                    bannerPrompt.onclick = null;
-                    bannerPrompt.innerHTML = `
-                        <div class="flex items-center gap-1.5 text-on-surface text-xs font-bold">
-                            <span class="material-symbols-outlined text-primary text-base">how_to_reg</span>
-                            <span>Falta confirmar sua presença hoje!</span>
-                        </div>
-                        <button onclick="cliqueBotaoCheckin()" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[10px] font-bold active:scale-95 shadow-xs flex items-center gap-1">
+                        <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
                             <span>Confirmar Presença</span>
                             <span class="material-symbols-outlined text-xs">arrow_forward</span>
                         </button>
                     `;
+                } else {
+                    const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou';
+                    const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
+
+                    if (chegouConfirmado) {
+                        // ESTADO 4: Chegada física confirmada no local (2ª etapa concluída!)
+                        bannerPrompt.className = 'shrink-0 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                        bannerPrompt.innerHTML = `
+                            <div class="flex items-center gap-2 text-emerald-700 text-xs font-bold">
+                                <span class="material-symbols-outlined text-emerald-600 text-xl">sports_soccer</span>
+                                <div>
+                                    <span class="block leading-tight">Chegada Confirmada no Campo! ⚽</span>
+                                    <span class="text-[10px] text-emerald-600 font-normal">Chegou às ${atletaLogado.horaChegada || atletaLogado.hora || 'No Local'} • Presença validada!</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 shadow-xs">
+                                    <span class="material-symbols-outlined text-xs">done_all</span> No Campo
+                                </span>
+                                <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença">
+                                    Sair
+                                </button>
+                            </div>
+                        `;
+                    } else if (dist !== null && dist <= 500) {
+                        // ESTADO 3: SURGE O BOTÃO DE CONFIRMAR CHEGADA NO LOCAL (<= 500 METROS)!
+                        bannerPrompt.className = 'shrink-0 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl p-3 shadow-md flex flex-col gap-2 border-2 border-emerald-300 animate-pulse';
+                        bannerPrompt.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-2xl animate-bounce">sports_soccer</span>
+                                    <div>
+                                        <h4 class="font-headline-md text-xs font-black uppercase tracking-wide">Você está a ${dist}m do Campo! (&le;500m)</h4>
+                                        <p class="text-[10px] text-emerald-100 font-medium">Toque abaixo para confirmar sua chegada física para o Administrador:</p>
+                                    </div>
+                                </div>
+                                <span class="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">2ª ETAPA</span>
+                            </div>
+                            <button onclick="confirmarChegadaLocal()" class="w-full py-2.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded-lg text-xs font-black uppercase tracking-wider active:scale-[0.98] shadow-sm flex items-center justify-center gap-1.5 transition-all">
+                                <span class="material-symbols-outlined text-base">check_circle</span>
+                                <span>Confirmar Chegada no Local ⚽</span>
+                            </button>
+                        `;
+                    } else {
+                        // ESTADO 2: Confirmado na lista, mas a distância é > 500m
+                        const distTexto = dist !== null ? (dist >= 1000 ? `${(dist/1000).toFixed(1)} km` : `${dist}m`) : 'Aguardando GPS';
+                        const statusDist = dist !== null && dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE';
+                        const badgeCor = dist !== null && dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30';
+
+                        bannerPrompt.className = 'shrink-0 bg-surface-container-low border border-surface-container-highest rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                        bannerPrompt.innerHTML = `
+                            <div class="flex items-center gap-2 text-on-surface text-xs font-bold min-w-0">
+                                <span class="material-symbols-outlined text-primary text-xl shrink-0">radar</span>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeCor}">${statusDist}</span>
+                                        <span class="text-xs font-bold text-on-surface truncate">${distTexto} do Campo</span>
+                                    </div>
+                                    <p class="text-[10px] text-on-surface-variant font-normal truncate">O botão de chegada surgirá quando você estiver a &le;500m.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button onclick="atualizarLocalizacaoGps(true)" class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-[10px] font-bold text-primary flex items-center gap-0.5 active:scale-95" title="Medir GPS">
+                                    <span class="material-symbols-outlined text-xs">my_location</span>
+                                    <span>GPS</span>
+                                </button>
+                                <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença">
+                                    Sair
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
             }
 
@@ -2057,41 +2476,83 @@
 
             let html = '';
             listaConfirmados.forEach((j, idx) => {
-                const corFitness = j.fitness >= 90 ? 'text-success-green' : (j.fitness >= 75 ? 'text-warning-amber' : 'text-primary');
-                const fotoSrc = j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+                const ehUsuarioLogado = (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                                        (usuarioAtual.id && String(j.id) === String(usuarioAtual.id));
 
-                const ehUsuarioLogado = (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase();
+                if (ehUsuarioLogado && usuarioAtual.foto && !j.foto) {
+                    j.foto = usuarioAtual.foto;
+                }
+                const fotoSrc = (ehUsuarioLogado && usuarioAtual.foto) ? usuarioAtual.foto : (j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_');
+
+                // CÁLCULO DO OVERALL REAL (0 A 100%) COM BASE NOS DADOS/ATRIBUTOS REAIS DO ATLETA
+                const overallReal = calcularOverallAtleta(j, ehUsuarioLogado ? usuarioAtual : null);
+                const corFitness = overallReal >= 90 ? 'text-success-green' : (overallReal >= 75 ? 'text-warning-amber' : 'text-primary');
+
+                // 3 CORES CONFORME REGRA SOLICITADA:
+                // Verde: Chegou (confirmado no local <= 500m)
+                // Amarelo: Próximo (distância entre 500m e 1500m ou no raio aguardando clique)
+                // Vermelho: Longe (distância > 1500m)
+                const chegou = j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
+                const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? j.distanciaMetros : null;
+                const proximo = !chegou && ((distMetros !== null && distMetros <= 1500) || j.statusAproximacao === 'proximo');
+                const longe = !chegou && !proximo;
+
+                let corBadge, corBorda, statusTexto, iconeStatus, distTexto;
+                if (chegou) {
+                    corBadge = 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
+                    corBorda = 'border-l-4 border-l-emerald-500';
+                    statusTexto = 'CHEGOU';
+                    iconeStatus = 'sports_soccer';
+                    distTexto = `<span class="text-emerald-600 font-bold">No Campo (${j.horaChegada || j.hora || '19:00'})</span>`;
+                } else if (proximo) {
+                    corBadge = 'bg-amber-500/15 text-amber-700 border border-amber-500/30';
+                    corBorda = 'border-l-4 border-l-amber-500';
+                    statusTexto = 'PRÓXIMO';
+                    iconeStatus = 'near_me';
+                    const m = distMetros !== null ? `${distMetros}m` : 'Próximo';
+                    distTexto = `<span class="text-amber-600 font-bold">${m} do campo</span>`;
+                } else {
+                    corBadge = 'bg-red-500/15 text-red-700 border border-red-500/30';
+                    corBorda = 'border-l-4 border-l-red-500';
+                    statusTexto = 'LONGE';
+                    iconeStatus = 'navigation';
+                    const km = distMetros !== null ? (distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`) : 'A caminho';
+                    distTexto = `<span class="text-red-500 font-bold">${km}</span>`;
+                }
 
                 const cardClasses = ehUsuarioLogado
-                    ? 'bg-success-green/10 border-2 border-success-green/70 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-success-green/20'
-                    : 'bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0';
+                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${corBorda}`
+                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${corBorda}`;
 
-                const badgeStatus = ehUsuarioLogado
-                    ? `<span class="bg-success-green text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-xs shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>VOCÊ (ESCALADO)</span>`
-                    : `<span class="bg-success-green/15 text-success-green border border-success-green/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[10px]">check</span>ESCALADO</span>`;
+                const badgeVoce = ehUsuarioLogado
+                    ? `<span class="bg-primary text-white text-[8px] font-black px-1.5 py-0.2 rounded uppercase">VOCÊ</span>`
+                    : '';
 
                 html += `
                     <article class="${cardClasses}">
                         <div class="w-5 flex justify-center">
-                            <span class="font-stat-lg ${ehUsuarioLogado ? 'text-success-green font-black text-base' : 'text-secondary text-sm font-bold'}">${idx + 1}</span>
+                            <span class="font-stat-lg ${ehUsuarioLogado ? 'text-primary font-black text-base' : 'text-secondary text-sm font-bold'}">${idx + 1}</span>
                         </div>
-                        <img class="w-9 h-9 rounded-full object-cover shadow-sm bg-surface-container ${ehUsuarioLogado ? 'border-2 border-success-green ring-1 ring-success-green/40' : 'border border-primary/15'} shrink-0" 
+                        <img class="w-9 h-9 rounded-full object-cover shadow-sm bg-surface-container ${ehUsuarioLogado ? 'border-2 border-primary ring-1 ring-primary/40' : 'border border-primary/15'} shrink-0" 
                              src="${fotoSrc}" alt="${j.nome}">
                         <div class="flex flex-col flex-1 min-w-0">
-                            <div class="flex items-center gap-1.5 truncate">
+                            <div class="flex items-center gap-1 truncate">
                                 <h4 class="font-headline-md text-xs ${ehUsuarioLogado ? 'font-black text-on-surface' : 'font-bold text-on-surface'} truncate">${j.nome}</h4>
-                                ${badgeStatus}
+                                ${badgeVoce}
+                                <span class="${corBadge} text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider flex items-center gap-0.5 shrink-0">
+                                    <span class="material-symbols-outlined text-[10px]">${iconeStatus}</span>${statusTexto}
+                                </span>
                             </div>
                             <span class="font-label-md text-on-surface-variant text-[10px] flex items-center gap-1 mt-0.5">
-                                <span class="font-bold ${ehUsuarioLogado ? 'text-success-green' : 'text-on-surface'}">${j.posicao}</span> • ${j.hora || '19:00'} • ${j.idade}a
+                                <strong class="text-primary font-bold">${j.posicao}</strong> • ${distTexto} • ${j.idade || 25}a
                             </span>
                         </div>
                         <div class="flex items-center justify-center relative w-8 h-8 shrink-0">
                             <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
                                 <path class="text-surface-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
-                                <path class="${corFitness}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${j.fitness || 85}, 100" stroke-width="3.5"></path>
+                                <path class="${corFitness}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${overallReal}, 100" stroke-width="3.5"></path>
                             </svg>
-                            <span class="absolute font-label-md text-[8px] font-bold text-on-surface">${j.fitness || 85}%</span>
+                            <span class="absolute font-label-md text-[8px] font-bold text-on-surface">${overallReal}%</span>
                         </div>
                     </article>
                 `;
@@ -2121,16 +2582,50 @@
             realizarSorteioStitch(false);
         }
 
+        // Verifica se o atleta realizou a confirmação de presença/chegada física no local (check-in <= 500m)
+        function atletaConfirmouChegada(j) {
+            if (!j) return false;
+            return j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
+        }
+
         function realizarSorteioStitch(silencioso = false) {
             const containerEquipes = document.getElementById('cards-times-container');
 
-            if (!listaConfirmados || listaConfirmados.length < 4) {
+            // 1. POOL ELEGÍVEL: Apenas atletas com chegada confirmada no local (check-in <= 500m)
+            const atletasElegiveis = (listaConfirmados || []).filter(atletaConfirmouChegada);
+            const atletasAusentes = (listaConfirmados || []).filter(j => !atletaConfirmouChegada(j));
+
+            if (!atletasElegiveis || atletasElegiveis.length < 4) {
+                const totalNoLocal = atletasElegiveis ? atletasElegiveis.length : 0;
+                const totalAguardando = atletasAusentes ? atletasAusentes.length : 0;
+
+                let infoAusentesHtml = '';
+                if (totalAguardando > 0) {
+                    infoAusentesHtml = `
+                        <div class="mt-2.5 text-left w-full bg-surface-container-lowest/80 p-2.5 rounded-lg border border-surface-container-highest">
+                            <span class="text-[10px] font-bold text-amber-600 uppercase flex items-center gap-1 mb-1">
+                                <span class="material-symbols-outlined text-xs">radar</span> Aguardando Chegada no Local (${totalAguardando}):
+                            </span>
+                            <div class="flex flex-wrap gap-1">
+                                ${atletasAusentes.map(a => `<span class="bg-surface-container px-1.5 py-0.5 rounded text-[9px] text-on-surface font-medium">${a.nome.split(' ')[0]} <strong class="text-secondary font-mono text-[8px]">(${a.posicao})</strong></span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
                 const vazioHtml = `
                     <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-secondary text-3xl">groups</span>
-                        <div>
-                            <h4 class="font-bold text-on-surface text-sm">Equipes Indisponíveis (${listaConfirmados ? listaConfirmados.length : 0}/4 atletas)</h4>
-                            <p class="text-[11px] text-on-surface-variant mt-0.5">São necessários ao menos 4 atletas confirmados na lista para realizar o sorteio.</p>
+                        <span class="material-symbols-outlined text-amber-500 text-3xl">sports_soccer</span>
+                        <div class="w-full">
+                            <h4 class="font-bold text-on-surface text-sm">Aguardando Chegada no Local (${totalNoLocal}/4 atletas presentes)</h4>
+                            <p class="text-[11px] text-on-surface-variant mt-1 leading-relaxed">
+                                Regra oficial: apenas atletas com <strong>chegada confirmada no campo (raio de 500m)</strong> entram no sorteio das equipes.<br>
+                                <span class="inline-flex items-center gap-2 mt-1.5 font-bold text-[10px]">
+                                    <span class="text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">${totalNoLocal} no campo</span>
+                                    <span class="text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">${totalAguardando} aguardando chegada</span>
+                                </span>
+                            </p>
+                            ${infoAusentesHtml}
                         </div>
                     </div>
                 `;
@@ -2138,7 +2633,7 @@
                 timesGeradosSorteio = [];
 
                 if (!silencioso) {
-                    alert('É necessário ter ao menos 4 atletas confirmados na lista para realizar o sorteio das equipes.');
+                    alert(`⚠️ Sorteio indisponível:\n\nÉ necessário ter ao menos 4 atletas com chegada confirmada no local (check-in no campo).\n\nPresentes no campo: ${totalNoLocal}\nConfirmados na lista aguardando chegada: ${totalAguardando}`);
                 }
                 return;
             }
@@ -2146,8 +2641,8 @@
             const k = qtdTimesSorteio;
             const times = Array.from({ length: k }, () => []);
 
-            const goleiros = listaConfirmados.filter(j => j.posicao === 'GOL');
-            const linha = listaConfirmados.filter(j => j.posicao !== 'GOL');
+            const goleiros = atletasElegiveis.filter(j => j.posicao === 'GOL');
+            const linha = atletasElegiveis.filter(j => j.posicao !== 'GOL');
 
             goleiros.forEach((g, i) => times[i % k].push(g));
             linha.sort((a, b) => (b.idade || 25) - (a.idade || 25));
@@ -2199,8 +2694,39 @@
 
                 textoWhatsappGerado += `*TIME ${letra}* (Média: ${mediaIdade} anos):\n`;
                 time.forEach(j => { textoWhatsappGerado += `• ${j.nome} (${j.posicao} - ${j.idade}a)\n`; });
+                textoWhatsappGerado += `*TIME ${letra}* (${time.length} atletas - Média: ${mediaIdade} anos):\n`;
+                time.forEach(j => { textoWhatsappGerado += `• ${j.nome} (${j.posicao} - ${j.idade || 25}a)\n`; });
                 textoWhatsappGerado += '\n';
             });
+
+            if (atletasAusentes.length > 0) {
+                html += `
+                    <div class="bg-surface-container-low rounded-xl p-2.5 shadow-xs border border-surface-container-highest flex flex-col gap-1.5 shrink-0 mt-1">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-amber-500 text-sm">schedule</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Aguardando Chegada no Local (${atletasAusentes.length})</h3>
+                            </div>
+                            <span class="text-[9px] font-bold text-amber-700 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">Fora da Escalação</span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant leading-snug">
+                            Atletas confirmados na lista de presença, mas que ainda não validaram o check-in no raio de 500m do campo:
+                        </p>
+                        <div class="grid grid-cols-2 gap-1.5 mt-0.5">
+                            ${atletasAusentes.map(j => `
+                                <div class="flex items-center justify-between p-1 px-1.5 rounded-lg bg-surface border border-surface-container-highest text-[10px] opacity-75">
+                                    <span class="font-medium text-on-surface truncate mr-1">${j.nome.split(' ')[0]}</span>
+                                    <span class="font-mono text-on-surface-variant text-[9px] shrink-0">${j.posicao}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                textoWhatsappGerado += `⏳ *Aguardando confirmação de chegada no campo (${atletasAusentes.length}):*\n`;
+                atletasAusentes.forEach(j => { textoWhatsappGerado += `• ${j.nome} (${j.posicao})\n`; });
+                textoWhatsappGerado += '\n';
+            }
 
             if (containerEquipes) containerEquipes.innerHTML = html;
         }
@@ -2224,15 +2750,21 @@
             }
 
             if (!timesGeradosSorteio || timesGeradosSorteio.length === 0 || !timesGeradosSorteio.some(t => t.jogadores && t.jogadores.length > 0)) {
-                alert('⚠️ Forme as equipes primeiro antes de escalar os atletas!');
+                alert('⚠️ Forme as equipes primeiro antes de escalar os atletas!\n\nRegra oficial: apenas atletas com chegada confirmada no local (check-in no campo) podem ser escalados.');
                 return;
             }
+
+            // Garante que APENAS atletas com chegada confirmada entrem na escalação oficial enviada aos celulares
+            const timesHigienizados = timesGeradosSorteio.map(t => ({
+                ...t,
+                jogadores: (t.jogadores || []).filter(j => atletaConfirmouChegada(j))
+            }));
 
             // Ativa a escalação e redefine o estado da partida para aguardando
             escalacaoAtiva = {
                 ativo: true,
                 timestamp: Date.now(),
-                times: timesGeradosSorteio
+                times: timesHigienizados
             };
 
             partidaEstado = {
@@ -2262,6 +2794,7 @@
             }
 
             alert('📢 Escalação Oficial enviada para o celular de todos os participantes!\n\nCada atleta verá o numeral gigante de seu time no centro da tela até o fim dos 10 minutos.');
+            alert('📢 Escalação Oficial enviada para o celular de todos os participantes!\n\nApenas atletas com chegada confirmada no campo foram incluídos nas equipes.');
         }
 
         function verificarEExibirNumeralTimeJogador() {
@@ -2726,20 +3259,61 @@
 
             let html = '';
             listaConfirmados.forEach((j, idx) => {
-                const fotoSrc = j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+                const ehEu = (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                             (usuarioAtual.id && String(j.id) === String(usuarioAtual.id));
+                if (ehEu && usuarioAtual.foto && !j.foto) {
+                    j.foto = usuarioAtual.foto;
+                }
+                const fotoSrc = (ehEu && usuarioAtual.foto) ? usuarioAtual.foto : (j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_');
+
+                // Cores de status no admin
+                const chegou = j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
+                const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? j.distanciaMetros : null;
+                const proximo = !chegou && ((distMetros !== null && distMetros <= 1500) || j.statusAproximacao === 'proximo');
+                const longe = !chegou && !proximo;
+
+                let corBadge, borderLeft, labelStatus, distTxt;
+                if (chegou) {
+                    corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
+                    borderLeft = 'border-l-4 border-l-emerald-500';
+                    labelStatus = '🟢 Chegou';
+                    distTxt = `No Campo (${j.horaChegada || j.hora || '19:00'})`;
+                } else if (proximo) {
+                    corBadge = 'bg-amber-500/15 text-amber-700 border-amber-500/30';
+                    borderLeft = 'border-l-4 border-l-amber-500';
+                    labelStatus = '🟡 Próximo';
+                    distTxt = distMetros !== null ? `${distMetros}m` : 'Próximo';
+                } else {
+                    corBadge = 'bg-red-500/15 text-red-700 border-red-500/30';
+                    borderLeft = 'border-l-4 border-l-red-500';
+                    labelStatus = '🔴 Longe';
+                    distTxt = distMetros !== null ? (distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`) : 'Longe';
+                }
+
+                const btnConfirmarAdmin = !chegou
+                    ? `<button onclick="confirmarChegadaAtletaAdmin('${j.id}')" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-300 flex items-center gap-0.5 active:scale-95 shadow-xs shrink-0" title="Confirmar Chegada no Campo">
+                           <span class="material-symbols-outlined text-xs">sports_score</span>
+                           <span>Chegou</span>
+                       </button>`
+                    : `<span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">✅ No Campo</span>`;
+
                 html += `
-                    <div class="flex items-center justify-between p-2 rounded-xl bg-surface border border-surface-container-highest gap-2">
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-surface border border-surface-container-highest gap-2 ${borderLeft}">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
-                            <span class="w-5 text-center font-bold text-secondary text-xs shrink-0">${idx + 1}</span>
+                            <span class="w-4 text-center font-bold text-secondary text-xs shrink-0">${idx + 1}</span>
                             <img src="${fotoSrc}" class="w-8 h-8 rounded-full object-cover border border-primary/20 shrink-0" alt="${j.nome}">
                             <div class="flex flex-col min-w-0 flex-1">
-                                <span class="font-bold text-xs text-on-surface truncate">${j.nome}</span>
+                                <div class="flex items-center gap-1.5 truncate">
+                                    <span class="font-bold text-xs text-on-surface truncate">${j.nome}</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${corBadge} shrink-0">${labelStatus}</span>
+                                </div>
                                 <span class="text-[10px] text-on-surface-variant flex items-center gap-1">
-                                    <strong class="text-primary">${j.posicao}</strong> • ${j.idade || 25}a • ${j.fitness || 85}%
+                                    <strong class="text-primary">${j.posicao}</strong> • <span>${distTxt}</span> • ${j.idade || 25}a
                                 </span>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
+                            ${btnConfirmarAdmin}
                             <button onclick="abrirModalEditarAtleta('${j.id}')" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Editar Atleta">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
@@ -2776,33 +3350,67 @@
             e.preventDefault();
             const id = document.getElementById('edit-atleta-id').value;
             const j = listaConfirmados.find(x => String(x.id) === String(id));
-            if (!j) return;
+            const nomeNovo = document.getElementById('edit-atleta-nome').value.trim();
+            const posicaoNova = document.getElementById('edit-atleta-posicao').value;
+            const idadeNova = parseInt(document.getElementById('edit-atleta-idade').value) || 25;
+            const fitnessNovo = parseInt(document.getElementById('edit-atleta-fitness').value) || 85;
 
-            j.nome = document.getElementById('edit-atleta-nome').value.trim();
-            j.posicao = document.getElementById('edit-atleta-posicao').value;
-            j.idade = parseInt(document.getElementById('edit-atleta-idade').value) || 25;
-            j.fitness = parseInt(document.getElementById('edit-atleta-fitness').value) || 85;
+            if (j) {
+                j.nome = nomeNovo;
+                j.posicao = posicaoNova;
+                j.idade = idadeNova;
+                j.fitness = fitnessNovo;
+            }
+
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    await fetch('/api/admin/atleta/salvar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({
+                            id,
+                            nome: nomeNovo,
+                            posicao: posicaoNova,
+                            idade: idadeNova,
+                            fitness: fitnessNovo
+                        })
+                    });
+                } catch(err) {
+                    console.warn('Erro ao salvar edição no servidor:', err);
+                }
+            }
 
             await sincronizarServidor();
             renderizarListaJogadores();
             renderizarListaGestaoAdmin();
             realizarSorteioStitch(true);
             fecharModalEditarAtleta();
-            alert(`Dados do atleta "${j.nome}" atualizados e salvos com sucesso!`);
+            alert(`Dados do atleta "${nomeNovo}" atualizados e salvos com sucesso no banco de dados local!`);
         }
 
         async function excluirJogadorAdmin(id) {
             const j = listaConfirmados.find(x => String(x.id) === String(id));
-            if (!j) return;
+            const nomeAtleta = j ? j.nome : 'Atleta';
 
-            if (confirm(`Deseja realmente excluir o atleta "${j.nome}" da pelada?`)) {
+            if (confirm(`Deseja realmente excluir o atleta "${nomeAtleta}" do banco de dados local?`)) {
                 listaConfirmados = listaConfirmados.filter(x => String(x.id) !== String(id));
+                if (window.location.protocol.startsWith('http')) {
+                    try {
+                        await fetch('/api/admin/atleta/excluir', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                            body: JSON.stringify({ id, nome: nomeAtleta })
+                        });
+                    } catch(err) {
+                        console.warn('Erro ao excluir no servidor:', err);
+                    }
+                }
                 await sincronizarServidor();
                 renderizarListaJogadores();
                 renderizarListaGestaoAdmin();
                 renderizarStatusCheckin();
                 realizarSorteioStitch(true);
-                alert(`Atleta "${j.nome}" removido da pelada.`);
+                alert(`Atleta "${nomeAtleta}" removido com sucesso do banco de dados local.`);
             }
         }
 
@@ -2836,6 +3444,19 @@
             };
 
             listaConfirmados.push(novo);
+
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    await fetch('/api/admin/atleta/salvar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify(novo)
+                    });
+                } catch(err) {
+                    console.warn('Erro ao salvar novo atleta no servidor:', err);
+                }
+            }
+
             await sincronizarServidor();
             renderizarListaJogadores();
             renderizarListaGestaoAdmin();
@@ -2876,7 +3497,14 @@
         const inputAtletaPosicao = document.getElementById('atleta-posicao');
         if (inputAtletaPosicao) inputAtletaPosicao.value = usuarioAtual.posicao;
         const inputAtletaCondicao = document.getElementById('atleta-condicao');
-        if (inputAtletaCondicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+        if (inputAtletaCondicao) {
+            const cVal = String(usuarioAtual.condicao || usuarioAtual.condicaoFisica || usuarioAtual.fitness || '').toLowerCase();
+            if (cVal.includes('100') || cVal.includes('excelente') || cVal.includes('top')) inputAtletaCondicao.value = '100% (Top)';
+            else if (cVal.includes('80') || cVal.includes('boa')) inputAtletaCondicao.value = '80% (Boa)';
+            else if (cVal.includes('60') || cVal.includes('regular') || cVal.includes('ok')) inputAtletaCondicao.value = '60% (Ok)';
+            else if (cVal.includes('recupera') || cVal.includes('40')) inputAtletaCondicao.value = 'Recuperação';
+            else if (usuarioAtual.condicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+        }
         const inputAtletaIdade = document.getElementById('atleta-idade');
         if (inputAtletaIdade) inputAtletaIdade.value = usuarioAtual.idade;
         const inputAtletaPeso = document.getElementById('atleta-peso');
@@ -2889,12 +3517,15 @@
         }
 
         // ==============================================================
-        // INICIALIZAÇÃO PADRÃO DO APP E SERVICE WORKER
+        // INICIALIZAÇÃO PADRÃO DO APP E SERVICE WORKER (V6.2)
         // ==============================================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA ServiceWorker ativo com sucesso! Escopo:', reg.scope))
+                navigator.serviceWorker.register('./sw.js?v=6.2')
+                    .then(reg => {
+                        console.log('PWA ServiceWorker v6.2 ativo com sucesso! Escopo:', reg.scope);
+                        reg.update();
+                    })
                     .catch(err => console.log('Falha ao registrar ServiceWorker:', err));
             });
         }
@@ -2914,6 +3545,10 @@
             }
         } else {
             trocarAba('login');
+            const emailInp = document.getElementById('login-email');
+            const pwdInp = document.getElementById('login-password');
+            if (emailInp) emailInp.value = '';
+            if (pwdInp) pwdInp.value = '';
         }
 
         verificarEExibirNumeralTimeJogador();
