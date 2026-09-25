@@ -207,3 +207,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('Todos os participantes conectados verão a lista em TEMPO REAL!');
   console.log('====================================================');
 });
+
+module.exports = server;
+

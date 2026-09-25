@@ -261,11 +261,9 @@ if (typeof document !== 'undefined') {
     });
 }
 
-// Fallback CommonJS caso Node.js execute este arquivo no backend
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = function handler(req, res) {
-        if (res && typeof res.status === 'function') {
-            return res.status(200).json({ status: 'ok', message: 'Pelada Top PWA Client Script' });
-        }
-    };
+// Export padrão caso Vercel ou Node.js execute este módulo no backend
+export default function handler(req, res) {
+    if (res && typeof res.status === 'function') {
+        return res.status(200).json({ status: 'ok', message: 'Pelada Top PWA Client Script' });
+    }
 }
