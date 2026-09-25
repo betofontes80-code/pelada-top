@@ -1,47 +1,58 @@
-﻿// Service Worker Seguro - Pelada Top PWA
-const CACHE_NAME = 'pelada-top-v6.3';
+// Service Worker do Pelada Top PWA
+const CACHE_NAME = 'pelada-top-v6.4';
 
+// Mantenha nesta lista apenas arquivos que existem no projeto.
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './app.js'
+  './manifest.json',
+  './logo-transparent.png',
+  './logo.png',
+  './icon-192.png',
+  './icon-512.png',
+  './pix-qr.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys()
+      .then((cacheNames) => Promise.all(
+        cacheNames
+          .filter((cacheName) => cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      ))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Interceptação segura de requisições (tempo real para API e network-first para HTML)
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/api/')) {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // API, SSE e outros requests dinâmicos nunca devem ser respondidos pelo cache.
+  if (url.pathname.startsWith('/api/') || request.method !== 'GET') {
     return;
   }
 
-  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+  // Para páginas, prioriza a versão mais recente e usa o cache somente offline.
+  if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then((networkResponse) => {
-          const cloned = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+          if (networkResponse.ok) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
           return networkResponse;
         })
         .catch(() => caches.match('./index.html'))
@@ -49,15 +60,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Recursos estáticos: cache first, com fallback para a rede.
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
+
+      return fetch(request).then((networkResponse) => {
+        if (networkResponse.ok && url.origin === self.location.origin) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
         }
+        return networkResponse;
       });
     })
   );
