@@ -68,6 +68,7 @@ const DEFAULT_CONFIRMADOS = [];
 
 // Estado na memória
 let appData = {
+  usuarios: [],
   listaConfirmados: DEFAULT_CONFIRMADOS,
   peladaConfig: DEFAULT_CONFIG,
   escalacaoAtiva: null,
@@ -83,6 +84,7 @@ try {
   if (fs.existsSync(DATA_FILE)) {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
+    if (parsed.usuarios) appData.usuarios = parsed.usuarios;
     if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
     if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
     if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
@@ -97,6 +99,7 @@ try {
     if (fs.existsSync(bundledFile)) {
       const raw = fs.readFileSync(bundledFile, 'utf8');
       const parsed = JSON.parse(raw);
+      if (parsed.usuarios) appData.usuarios = parsed.usuarios;
       if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
       if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
       if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
@@ -441,6 +444,51 @@ const requestHandler = (req, res) => {
     // 6. API: Perfil do jogador
     if (pathname === '/api/perfil' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
+        if (!err && payload) {
+          try {
+            const saved = loadData();
+            if (saved.usuarios) appData.usuarios = saved.usuarios;
+            if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+          } catch (e) {}
+
+          if (!appData.usuarios) appData.usuarios = [];
+          if (!appData.listaConfirmados) appData.listaConfirmados = [];
+
+          const idBusca = payload.id;
+          const nomeAntigo = (payload.nomeAntigo || '').toLowerCase().trim();
+          const nomeNovo = (payload.nome || '').toLowerCase().trim();
+
+          // 1. Atualiza ou adiciona no cadastro de usuários
+          let uIdx = appData.usuarios.findIndex(u => 
+            (idBusca && String(u.id) === String(idBusca)) || 
+            (nomeAntigo && (u.nome || '').toLowerCase().trim() === nomeAntigo) || 
+            (nomeNovo && (u.nome || '').toLowerCase().trim() === nomeNovo)
+          );
+          if (uIdx >= 0) {
+            appData.usuarios[uIdx] = { ...appData.usuarios[uIdx], ...payload };
+          } else {
+            appData.usuarios.push(payload);
+          }
+
+          // 2. Atualiza também na lista de confirmados da pelada se já estiver nela
+          let cIdx = appData.listaConfirmados.findIndex(j => 
+            (idBusca && String(j.id) === String(idBusca)) || 
+            (nomeAntigo && (j.nome || '').toLowerCase().trim() === nomeAntigo) || 
+            (nomeNovo && (j.nome || '').toLowerCase().trim() === nomeNovo)
+          );
+          if (cIdx >= 0) {
+            appData.listaConfirmados[cIdx] = { ...appData.listaConfirmados[cIdx], ...payload };
+          }
+
+          appData.version = Date.now();
+          salvarDadosDisco();
+          broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: true, usuario: payload, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+          return;
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ sucesso: true }));
       });

@@ -1274,6 +1274,7 @@
                 aba = 'login';
             }
             if (targetView) targetView.classList.add('active');
+            const targetLink = document.querySelector(`.nav-link[data-path="${aba}"]`);
             if (targetLink) targetLink.classList.add('active');
 
             const titulos = {
@@ -1297,6 +1298,8 @@
                 if (navBar) navBar.style.display = 'block';
                 if (aba === 'jogadores') {
                     renderizarListaJogadores();
+                } else if (aba === 'perfil') {
+                    sincronizarPerfilCamposUi();
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
                     renderizarListaGestaoAdmin();
