@@ -1,0 +1,367 @@
+/* ESTILOS GERAIS DO PELADA TOP */
+:root {
+    --vermelho-pelada: #B71C1C;
+    --vermelho-escuro: #8E0000;
+    --verde-confirmado: #2E7D32;
+    --verde-claro: #E8F5E9;
+    --cinza-fundo: #F4F6F9;
+    --cinza-card: #FFFFFF;
+    --cinza-borda: #E0E0E0;
+    --cinza-texto: #6C757D;
+    --texto-escuro: #212529;
+    --raio-borda: 14px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--cinza-fundo);
+    color: var(--texto-escuro);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 12px;
+}
+
+/* CONTAINER COM TAMANHO DE CELULAR */
+.app-container {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* CABEÇALHO */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px;
+}
+
+.header-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ball-icon {
+    font-size: 28px;
+}
+
+.app-header h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--vermelho-pelada);
+    letter-spacing: 0.5px;
+}
+
+.app-header .subtitle {
+    font-size: 12px;
+    color: var(--cinza-texto);
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--vermelho-pelada);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* CARDS */
+.card {
+    background-color: var(--cinza-card);
+    border-radius: var(--raio-borda);
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--cinza-borda);
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--texto-escuro);
+    margin-bottom: 4px;
+}
+
+.card-desc {
+    font-size: 13px;
+    color: var(--cinza-texto);
+    margin-bottom: 18px;
+}
+
+/* CÍRCULO DE FOTO COM O BOTÃO + (NOVO) */
+.foto-upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.avatar-upload-box {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background-color: #FFEBEE;
+    border: 2px dashed var(--vermelho-pelada);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.avatar-upload-box:hover {
+    background-color: #FFCDD2;
+    transform: scale(1.03);
+}
+
+.avatar-upload-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.badge-plus {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 28px;
+    height: 28px;
+    background-color: var(--vermelho-pelada);
+    color: #FFFFFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    border: 2.5px solid #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.legenda-foto {
+    font-size: 12px;
+    color: var(--cinza-texto);
+    margin-top: 8px;
+    cursor: pointer;
+}
+
+/* INPUTS E FORMULÁRIOS */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.input-row {
+    display: flex;
+    gap: 12px;
+}
+
+.input-row .input-group {
+    flex: 1;
+}
+
+label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cinza-texto);
+    text-transform: uppercase;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 1.5px solid var(--cinza-borda);
+    border-radius: 10px;
+    background-color: #FAFAFA;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+input:focus, select:focus {
+    border-color: var(--vermelho-pelada);
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(183, 28, 28, 0.1);
+}
+
+/* BOTÕES */
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--vermelho-pelada);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    margin-top: 6px;
+}
+
+.btn-primary:active {
+    background-color: var(--vermelho-escuro);
+}
+
+/* RESUMO DO PERFIL DO JOGADOR */
+.perfil-resumo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.avatar-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background-color: #FFEBEE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    overflow: hidden;
+    border: 1.5px solid var(--cinza-borda);
+}
+
+.avatar-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.divisor {
+    border: none;
+    border-top: 1px solid var(--cinza-borda);
+    margin: 16px 0;
+}
+
+/* INFORMAÇÕES DA PELADA */
+.info-pelada {
+    background-color: #FAFAFA;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.info-pelada h3 {
+    font-size: 14px;
+    color: var(--vermelho-pelada);
+    margin-bottom: 6px;
+}
+
+.info-pelada p {
+    font-size: 13px;
+    color: var(--texto-escuro);
+    line-height: 1.5;
+}
+
+/* CAIXA DE TEMPO (CONTAGEM REGRESSIVA) */
+.tempo-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.tempo-box.bloqueado {
+    background-color: #FFF3E0;
+    border: 1px solid #FFE0B2;
+}
+
+.tempo-box.desbloqueado {
+    background-color: var(--verde-claro);
+    border: 1px solid #C8E6C9;
+}
+
+.tempo-icone {
+    font-size: 24px;
+}
+
+.tempo-box h4 {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.tempo-box.bloqueado h4 {
+    color: #E65100;
+}
+
+.tempo-box.desbloqueado h4 {
+    color: var(--verde-confirmado);
+}
+
+.tempo-box p {
+    font-size: 12px;
+    color: var(--cinza-texto);
+}
+
+/* O GRANDE BOTÃO DE CHECK-IN */
+.btn-acao {
+    width: 100%;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 800;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.btn-acao.desabilitado {
+    background-color: #E0E0E0;
+    color: #9E9E9E;
+    cursor: not-allowed;
+}
+
+.btn-acao.liberado {
+    background-color: var(--verde-confirmado);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(46, 125, 50, 0.4);
+    animation: pulsar 2s infinite;
+}
+
+.btn-acao.confirmado {
+    background-color: var(--vermelho-pelada);
+    color: #FFFFFF;
+    cursor: default;
+}
+
+@keyframes pulsar {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+/* STATUS */
+.status-box {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: center;
+    font-weight: 600;
+    background-color: var(--verde-claro);
+    color: var(--verde-confirmado);
+}

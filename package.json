@@ -1,0 +1,17 @@
+{
+  "name": "pelada-top",
+  "version": "1.0.0",
+  "description": "App de gerenciamento de peladas em tempo real",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "pelada",
+    "futebol",
+    "realtime",
+    "pwa"
+  ],
+  "author": "Beto Fontes",
+  "license": "MIT"
+}
