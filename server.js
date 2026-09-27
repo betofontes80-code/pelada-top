@@ -85,7 +85,10 @@ try {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
     if (parsed.usuarios) appData.usuarios = parsed.usuarios;
+    if (parsed.jogadoresCadastrados && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = parsed.jogadoresCadastrados;
+    if (parsed.jogadoresCadastrados) appData.jogadoresCadastrados = parsed.jogadoresCadastrados;
     if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
+    if (parsed.atletas) appData.atletas = parsed.atletas;
     if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
     if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
     if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
@@ -100,7 +103,10 @@ try {
       const raw = fs.readFileSync(bundledFile, 'utf8');
       const parsed = JSON.parse(raw);
       if (parsed.usuarios) appData.usuarios = parsed.usuarios;
+      if (parsed.jogadoresCadastrados && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = parsed.jogadoresCadastrados;
+      if (parsed.jogadoresCadastrados) appData.jogadoresCadastrados = parsed.jogadoresCadastrados;
       if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
+      if (parsed.atletas) appData.atletas = parsed.atletas;
       if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
       if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
       if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
@@ -278,6 +284,9 @@ const requestHandler = (req, res) => {
         if (saved.escalacaoAtiva !== undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
         if (saved.partidaEstado !== undefined) appData.partidaEstado = saved.partidaEstado;
         if (saved.usuarios) appData.usuarios = saved.usuarios;
+        if (saved.jogadoresCadastrados && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = saved.jogadoresCadastrados;
+        if (saved.jogadoresCadastrados) appData.jogadoresCadastrados = saved.jogadoresCadastrados;
+        if (saved.atletas) appData.atletas = saved.atletas;
         if (saved.version) appData.version = saved.version;
       } catch (e) {}
 

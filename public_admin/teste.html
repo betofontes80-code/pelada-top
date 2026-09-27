@@ -8,61 +8,36 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet"/>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Hanken Grotesk"', 'sans-serif'],
-            display: ['"Anybody"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace']
-          },
-          colors: {
-            brand: '#dd0000',
-            brandDark: '#af0000',
-            surface: '#f9f9f9',
-            cardBg: '#ffffff',
-            borderLine: '#e0e0e0'
-          }
-        }
-      }
-    }
-  </script>
   <style>
     * { font-family: 'Hanken Grotesk', sans-serif; }
     .mono { font-family: 'JetBrains Mono', monospace; }
     .headline { font-family: 'Anybody', sans-serif; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="bg-[#f9f9f9] text-[#1a1c1c] min-h-full pb-12 antialiased select-none">
+<body class="bg-slate-900 text-slate-100 min-h-full pb-12 antialiased select-none">
 
   <!-- CABEÇALHO -->
-  <header class="bg-white/95 backdrop-blur-md border-b border-[#e0e0e0] sticky top-0 z-30 px-4 py-3 shadow-xs">
+  <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/60 sticky top-0 z-30 px-4 py-3">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
           <span class="material-symbols-outlined text-xl">build_circle</span>
         </div>
         <div>
-          <h1 class="headline text-sm md:text-base font-black tracking-tight text-[#1a1c1c] flex items-center gap-2">
+          <h1 class="headline text-sm md:text-base font-black tracking-tight text-white flex items-center gap-2">
             <span>Diagnóstico do Servidor</span>
-            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">v2.0</span>
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">v2.0</span>
           </h1>
-          <p class="text-[11px] text-slate-500">Teste de funções, conectividade celular e banco de dados</p>
+          <p class="text-[11px] text-slate-400">Teste de funções, conectividade celular e banco de dados</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <a href="/" class="px-3 py-1.5 rounded-lg bg-[#dd0000] hover:bg-[#af0000] text-white text-xs font-bold transition-all flex items-center gap-1 shadow-xs">
+        <a href="/" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all flex items-center gap-1">
           <span class="material-symbols-outlined text-sm">sports_soccer</span>
           <span class="hidden sm:inline">Abrir App</span>
         </a>
-        <a href="/painel" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold transition-all flex items-center gap-1 shadow-xs">
-          <span class="material-symbols-outlined text-sm text-[#dd0000]">dashboard</span>
+        <a href="/painel" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-all flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">dashboard</span>
           <span class="hidden sm:inline">Painel Admin</span>
         </a>
       </div>
@@ -72,39 +47,39 @@
   <main class="max-w-4xl mx-auto px-4 pt-4 space-y-4">
 
     <!-- BANNER DE STATUS GERAL DA CONEXÃO -->
-    <section class="bg-white rounded-2xl p-4 border border-[#e0e0e0] shadow-xs">
+    <section class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-md">
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Status Servidor</span>
+        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Status Servidor</span>
           <div class="flex items-center justify-center gap-1.5">
             <span id="badge-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="txt-status-servidor" class="font-bold text-xs text-emerald-700">ONLINE</span>
+            <span id="txt-status-servidor" class="font-bold text-xs text-emerald-400">ONLINE</span>
           </div>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Latência (Ping)</span>
-          <span id="txt-ping" class="mono font-bold text-xs text-[#1a1c1c]">-- ms</span>
+        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Latência (Ping)</span>
+          <span id="txt-ping" class="mono font-bold text-xs text-white">-- ms</span>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Tempo Real (SSE)</span>
-          <span id="txt-sse" class="font-bold text-xs text-amber-700 flex items-center justify-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Conectando...
+        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Tempo Real (SSE)</span>
+          <span id="txt-sse" class="font-bold text-xs text-amber-400 flex items-center justify-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> Conectando...
           </span>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Atletas no Banco</span>
-          <span id="txt-total-atletas" class="mono font-bold text-xs text-emerald-700">--</span>
+        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Atletas no Banco</span>
+          <span id="txt-total-atletas" class="mono font-bold text-xs text-emerald-400">--</span>
         </div>
       </div>
 
       <!-- Links de Conexão Ativos -->
-      <div class="mt-3 pt-3 border-t border-[#e0e0e0] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-        <div class="flex items-center gap-1.5 text-slate-600">
-          <span class="material-symbols-outlined text-emerald-600 text-base">public</span>
+      <div class="mt-3 pt-3 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">public</span>
           <span class="font-bold">Link Online:</span>
-          <a id="link-online-display" href="#" target="_blank" class="mono text-emerald-700 hover:underline truncate max-w-xs sm:max-w-md font-bold">Carregando link...</a>
+          <a id="link-online-display" href="#" target="_blank" class="mono text-emerald-400 hover:underline truncate max-w-xs sm:max-w-md">Carregando link...</a>
         </div>
-        <button onclick="copiarLinkOnline()" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 shrink-0 active:scale-95 shadow-xs">
+        <button onclick="copiarLinkOnline()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 shrink-0 active:scale-95">
           <span class="material-symbols-outlined text-sm">content_copy</span>
           <span>Copiar Link p/ Celular</span>
         </button>
@@ -112,19 +87,19 @@
     </section>
 
     <!-- TESTE 1: PING E COMUNICAÇÃO HTTP -->
-    <section class="bg-white rounded-2xl p-4 border border-[#e0e0e0] space-y-3 shadow-xs">
-      <div class="flex items-center justify-between border-b border-[#e0e0e0] pb-2">
+    <section class="bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-3">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-emerald-600 text-xl">speed</span>
-          <h2 class="font-bold text-sm text-[#1a1c1c]">1. Teste de Conexão e Latência (Ping)</h2>
+          <span class="material-symbols-outlined text-emerald-400 text-xl">speed</span>
+          <h2 class="font-bold text-sm text-white">1. Teste de Conexão e Latência (Ping)</h2>
         </div>
-        <button onclick="executarTestePing()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition-all shadow-xs">
+        <button onclick="executarTestePing()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
           <span class="material-symbols-outlined text-sm">play_arrow</span>
           <span>Testar Ping</span>
         </button>
       </div>
-      <p class="text-xs text-slate-500">Verifica se o aparelho consegue conversar com o servidor local e mede o tempo de resposta em milissegundos.</p>
-      <div id="resultado-ping" class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs mono text-slate-700 space-y-1">
+      <p class="text-xs text-slate-400">Verifica se o aparelho consegue conversar com o servidor local e mede o tempo de resposta em milissegundos.</p>
+      <div id="resultado-ping" class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs mono text-slate-300 space-y-1">
         Toque em "Testar Ping" para iniciar o diagnóstico de conexão.
       </div>
     </section>
@@ -132,18 +107,18 @@
     <!-- ============================================================== -->
     <!-- TESTE 2: ESPAÇO EXCLUSIVO DO JOGADOR (CADASTRO, LOGIN & PERFIL)  -->
     <!-- ============================================================== -->
-    <section class="bg-white rounded-2xl p-4 border border-blue-200 space-y-3 shadow-xs">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-100 pb-2.5">
+    <section class="bg-slate-800 rounded-2xl p-4 border border-blue-500/30 space-y-3 shadow-lg">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-500/20 pb-2.5">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
             <span class="material-symbols-outlined text-lg">sports_soccer</span>
           </div>
           <div>
-            <h2 class="font-extrabold text-sm text-blue-900 flex items-center gap-2">
+            <h2 class="font-extrabold text-sm text-white flex items-center gap-2">
               <span>2. Espaço Exclusivo do Jogador</span>
-              <span class="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase border border-blue-200">Módulo Jogador</span>
+              <span class="text-[9px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold uppercase border border-blue-500/30">Módulo Jogador</span>
             </h2>
-            <p class="text-[11px] text-slate-500">Teste de cadastro de novos atletas e autenticação de jogadores comuns no banco local.</p>
+            <p class="text-[11px] text-slate-400">Teste de cadastro de novos atletas e autenticação de jogadores comuns no banco local.</p>
           </div>
         </div>
       </div>
@@ -151,16 +126,16 @@
       <!-- SELETOR DINÂMICO DE JOGADORES CADASTRADOS -->
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <label class="text-[11px] text-slate-700 font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs text-blue-600">group</span>
+          <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs text-blue-400">group</span>
             <span>Selecione na Lista de Jogadores Cadastrados no Banco:</span>
           </label>
-          <button onclick="carregarJogadoresSelects(true)" class="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 font-bold" title="Recarregar lista do banco local">
+          <button onclick="carregarJogadoresSelects(true)" class="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5" title="Recarregar lista do banco local">
             <span class="material-symbols-outlined text-[11px]">refresh</span>
             <span>Atualizar Lista</span>
           </button>
         </div>
-        <select id="jogador-seletor-banco" onchange="aoSelecionarJogador(this.value)" class="w-full bg-white border-2 border-blue-300 hover:border-blue-400 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs text-[#1a1c1c] font-bold outline-none cursor-pointer shadow-xs">
+        <select id="jogador-seletor-banco" onchange="aoSelecionarJogador(this.value)" class="w-full bg-slate-900 border-2 border-blue-500/60 hover:border-blue-400 focus:border-blue-400 rounded-xl px-3 py-2.5 text-xs text-white font-bold outline-none cursor-pointer">
           <option value="">Carregando jogadores cadastrados no banco local...</option>
         </select>
       </div>
@@ -168,23 +143,23 @@
       <!-- FORMULÁRIO DO JOGADOR -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-500 font-bold">Nome / Apelido do Jogador:</label>
-          <input id="jogador-campo-nome" type="text" placeholder="Nome do Jogador" value="" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs text-[#1a1c1c] outline-none focus:border-blue-500"/>
+          <label class="text-[10px] text-slate-400 font-bold">Nome / Apelido do Jogador:</label>
+          <input id="jogador-campo-nome" type="text" placeholder="Nome do Jogador" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500"/>
         </div>
         <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-500 font-bold">E-mail (Login):</label>
-          <input id="jogador-campo-email" type="email" placeholder="seu@email.com" value="" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs text-[#1a1c1c] outline-none focus:border-blue-500"/>
+          <label class="text-[10px] text-slate-400 font-bold">E-mail (Login):</label>
+          <input id="jogador-campo-email" type="email" placeholder="seu@email.com" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500"/>
         </div>
         <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-500 font-bold">Senha de Acesso:</label>
-          <input id="jogador-campo-senha" type="password" placeholder="Senha do Jogador" value="" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs text-[#1a1c1c] outline-none focus:border-blue-500 font-mono"/>
+          <label class="text-[10px] text-slate-400 font-bold">Senha de Acesso:</label>
+          <input id="jogador-campo-senha" type="password" placeholder="Senha do Jogador" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500 font-mono"/>
         </div>
       </div>
 
       <div class="grid grid-cols-3 gap-2">
         <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-500 font-bold">Posição:</label>
-          <select id="jogador-campo-posicao" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-blue-500">
+          <label class="text-[10px] text-slate-400 font-bold">Posição:</label>
+          <select id="jogador-campo-posicao" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500">
             <option value="ATA">Atacante (ATA)</option>
             <option value="MEI">Meio-Campo (MEI)</option>
             <option value="VOL">Volante (VOL)</option>
@@ -194,28 +169,28 @@
           </select>
         </div>
         <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-500 font-bold">Idade:</label>
-          <input id="jogador-campo-idade" type="number" value="25" min="15" max="70" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-blue-500"/>
+          <label class="text-[10px] text-slate-400 font-bold">Idade:</label>
+          <input id="jogador-campo-idade" type="number" value="25" min="15" max="70" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500"/>
         </div>
         <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-500 font-bold">Peso (kg):</label>
-          <input id="jogador-campo-peso" type="number" value="75" min="40" max="150" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-blue-500"/>
+          <label class="text-[10px] text-slate-400 font-bold">Peso (kg):</label>
+          <input id="jogador-campo-peso" type="number" value="75" min="40" max="150" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500"/>
         </div>
       </div>
 
       <!-- BOTÕES DE AÇÃO DO JOGADOR -->
       <div class="flex flex-col sm:flex-row gap-2 pt-1">
-        <button onclick="executarTesteLoginJogador()" class="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs">
+        <button onclick="executarTesteLoginJogador()" class="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm">
           <span class="material-symbols-outlined text-sm">login</span>
           <span>1. Testar Login como Jogador</span>
         </button>
-        <button onclick="executarTesteCadastroJogador()" class="flex-1 py-2 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs">
-          <span class="material-symbols-outlined text-sm text-blue-600">how_to_reg</span>
+        <button onclick="executarTesteCadastroJogador()" class="flex-1 py-2 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm">
+          <span class="material-symbols-outlined text-sm">how_to_reg</span>
           <span>2. Cadastrar Novo Jogador no Banco Local</span>
         </button>
       </div>
 
-      <div id="resultado-auth-jogador" class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs mono text-slate-700">
+      <div id="resultado-auth-jogador" class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs mono text-slate-300">
         Selecione um jogador acima ou digite dados para testar o login de atleta.
       </div>
     </section>
@@ -223,86 +198,86 @@
     <!-- ============================================================== -->
     <!-- TESTE 3: ESPAÇO EXCLUSIVO DO ADMINISTRADOR (LOGIN, EDIÇÃO & GESTÃO) -->
     <!-- ============================================================== -->
-    <section class="bg-white rounded-2xl p-4 border border-amber-200 space-y-4 shadow-xs">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-2.5">
+    <section class="bg-slate-800 rounded-2xl p-4 border border-amber-500/30 space-y-4 shadow-lg">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-2.5">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 shadow-xs">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 shadow-md">
             <span class="material-symbols-outlined text-lg font-bold">admin_panel_settings</span>
           </div>
           <div>
-            <h2 class="font-extrabold text-sm text-amber-900 flex items-center gap-2">
+            <h2 class="font-extrabold text-sm text-white flex items-center gap-2">
               <span>3. Espaço Exclusivo do Administrador</span>
-              <span class="text-[9px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full font-bold uppercase border border-amber-300">Privilégios Totais</span>
+              <span class="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold uppercase border border-amber-500/30">Privilégios Totais</span>
             </h2>
-            <p class="text-[11px] text-slate-500">Login master do organizador, edição/exclusão direta de atletas no banco e controle geral da pelada.</p>
+            <p class="text-[11px] text-slate-400">Login master do organizador, edição/exclusão direta de atletas no banco e controle geral da pelada.</p>
           </div>
         </div>
       </div>
 
       <!-- BLOCO A: LOGIN MASTER DO ADMINISTRADOR -->
-      <div class="p-3 rounded-xl bg-amber-50/40 border border-amber-200 space-y-2">
+      <div class="p-3 rounded-xl bg-slate-900/80 border border-amber-500/20 space-y-2">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-amber-800 flex items-center gap-1">
+          <span class="text-xs font-bold text-amber-300 flex items-center gap-1">
             <span class="material-symbols-outlined text-sm">key</span>
             <span>Login Master do Organizador:</span>
           </span>
-          <span class="text-[10px] text-slate-500 font-mono">Credenciais Oficiais</span>
+          <span class="text-[10px] text-slate-400 font-mono">Credenciais Oficiais</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label class="text-[10px] text-slate-500 font-bold">E-mail do Administrador:</label>
-            <input id="admin-login-email" type="email" value="" placeholder="Digite o e-mail do admin" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-1.5 text-xs text-[#1a1c1c] font-mono outline-none focus:border-amber-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">E-mail do Administrador:</label>
+            <input id="admin-login-email" type="email" value="" placeholder="Digite o e-mail do admin" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-400"/>
           </div>
           <div>
-            <label class="text-[10px] text-slate-500 font-bold">Senha Mestre:</label>
-            <input id="admin-login-senha" type="password" value="" placeholder="Digite a senha do admin" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-1.5 text-xs text-[#1a1c1c] font-mono font-bold outline-none focus:border-amber-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">Senha Mestre:</label>
+            <input id="admin-login-senha" type="password" value="" placeholder="Digite a senha do admin" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono font-bold outline-none focus:border-amber-400"/>
           </div>
         </div>
-        <button onclick="executarLoginAdmin()" class="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs">
+        <button onclick="executarLoginAdmin()" class="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
           <span class="material-symbols-outlined text-base">verified_user</span>
           <span>Autenticar como Top Admin (Verificar Privilégios Master)</span>
         </button>
-        <div id="resultado-auth-admin" class="p-2.5 rounded-lg bg-white border border-slate-200 text-xs mono text-slate-700">
+        <div id="resultado-auth-admin" class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs mono text-slate-300">
           Clique no botão acima para testar o login com topadmin@gmail.com e senha Admin123.
         </div>
       </div>
 
       <!-- BLOCO B: EDIÇÃO E EXCLUSÃO DE ATLETAS PELO ADMIN -->
-      <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-emerald-800 flex items-center gap-1">
+          <span class="text-xs font-bold text-emerald-400 flex items-center gap-1">
             <span class="material-symbols-outlined text-sm">edit_note</span>
             <span>Edição e Gestão de Atletas no Banco Local (pelada-dados.json):</span>
           </span>
-          <span class="text-[10px] text-slate-500">Admin tem acesso irrestrito</span>
+          <span class="text-[10px] text-slate-400">Admin tem acesso irrestrito</span>
         </div>
 
         <div>
-          <label class="text-[10px] text-slate-600 font-bold block mb-1">Selecione o Atleta que Deseja Editar no Banco:</label>
-          <select id="admin-seletor-atleta" onchange="aoSelecionarAtletaEdicaoAdmin(this.value)" class="w-full bg-white border border-emerald-500 rounded-xl px-3 py-2 text-xs text-[#1a1c1c] font-bold outline-none cursor-pointer focus:border-emerald-600">
+          <label class="text-[10px] text-slate-300 font-bold block mb-1">Selecione o Atleta que Deseja Editar no Banco:</label>
+          <select id="admin-seletor-atleta" onchange="aoSelecionarAtletaEdicaoAdmin(this.value)" class="w-full bg-slate-950 border border-emerald-500/60 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none cursor-pointer focus:border-emerald-400">
             <option value="">Carregando atletas do banco local...</option>
           </select>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">Nome / Apelido:</label>
-            <input id="admin-edit-nome" type="text" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-emerald-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">Nome / Apelido:</label>
+            <input id="admin-edit-nome" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
           </div>
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">E-mail Cadastrado:</label>
-            <input id="admin-edit-email" type="email" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-emerald-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">E-mail Cadastrado:</label>
+            <input id="admin-edit-email" type="email" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
           </div>
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">Senha:</label>
-            <input id="admin-edit-senha" type="text" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 text-xs text-[#1a1c1c] font-mono outline-none focus:border-emerald-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">Senha:</label>
+            <input id="admin-edit-senha" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-emerald-500"/>
           </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">Posição:</label>
-            <select id="admin-edit-posicao" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-emerald-500">
+            <label class="text-[10px] text-slate-400 font-bold">Posição:</label>
+            <select id="admin-edit-posicao" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-500">
               <option value="ATA">Atacante (ATA)</option>
               <option value="MEI">Meio-Campo (MEI)</option>
               <option value="VOL">Volante (VOL)</option>
@@ -312,16 +287,16 @@
             </select>
           </div>
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">Idade:</label>
-            <input id="admin-edit-idade" type="number" value="25" min="15" max="70" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-emerald-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">Idade:</label>
+            <input id="admin-edit-idade" type="number" value="25" min="15" max="70" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
           </div>
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">Peso (kg):</label>
-            <input id="admin-edit-peso" type="number" value="75" min="40" max="150" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2 py-1.5 text-xs text-[#1a1c1c] outline-none focus:border-emerald-500"/>
+            <label class="text-[10px] text-slate-400 font-bold">Peso (kg):</label>
+            <input id="admin-edit-peso" type="number" value="75" min="40" max="150" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
           </div>
           <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-500 font-bold">Permissão / Papel:</label>
-            <select id="admin-edit-role" class="w-full bg-white border border-[#cbd5e1] rounded-xl px-2 py-1.5 text-xs text-[#1a1c1c] font-bold outline-none focus:border-emerald-500">
+            <label class="text-[10px] text-slate-400 font-bold">Permissão / Papel:</label>
+            <select id="admin-edit-role" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white font-bold outline-none focus:border-emerald-500">
               <option value="jogador">Jogador Comum</option>
               <option value="admin">Administrador 🔑</option>
             </select>
@@ -329,33 +304,33 @@
         </div>
 
         <div class="flex flex-col sm:flex-row gap-2 pt-1">
-          <button onclick="salvarEdicaoAdmin()" class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs">
+          <button onclick="salvarEdicaoAdmin()" class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
             <span class="material-symbols-outlined text-sm">save</span>
-            <span>💾 Salvar Alterações no Banco Local</span>
+            <span>💾 Salvar Alterações no Banco Local (pelada-dados.json)</span>
           </button>
-          <button onclick="excluirAtletaAdmin()" class="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs">
+          <button onclick="excluirAtletaAdmin()" class="py-2 px-3 rounded-xl bg-red-900/60 hover:bg-red-700 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all border border-red-700/50 shadow-sm">
             <span class="material-symbols-outlined text-sm">delete</span>
             <span>Excluir Atleta do Banco</span>
           </button>
         </div>
 
-        <div id="resultado-edicao-admin" class="p-2.5 rounded-lg bg-white border border-slate-200 text-xs mono text-slate-700">
+        <div id="resultado-edicao-admin" class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs mono text-slate-300">
           Selecione um atleta acima para carregar suas configurações e editar como administrador.
         </div>
       </div>
 
       <!-- BLOCO C: AÇÕES GLOBAIS DA PELADA -->
-      <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-        <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
-          <span class="material-symbols-outlined text-sm text-amber-600">bolt</span>
+      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2">
+        <span class="text-xs font-bold text-slate-300 flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm text-amber-400">bolt</span>
           <span>Ações de Controle da Partida (Exclusivo Admin):</span>
         </span>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button onclick="alternarTravaListaAdmin()" class="py-2 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 active:scale-95 transition-all shadow-xs">
-            <span class="material-symbols-outlined text-sm text-emerald-600">lock_open</span>
+          <button onclick="alternarTravaListaAdmin()" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-sm text-emerald-400">lock_open</span>
             <span id="txt-btn-trava-admin">Travar / Destravar Lista</span>
           </button>
-          <button onclick="zerarListaAdmin()" class="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-red-200 active:scale-95 transition-all shadow-xs">
+          <button onclick="zerarListaAdmin()" class="py-2 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-red-800/50 active:scale-95 transition-all">
             <span class="material-symbols-outlined text-sm">restart_alt</span>
             <span>Zerar Lista de Confirmados</span>
           </button>
@@ -366,125 +341,125 @@
     <!-- ============================================================== -->
     <!-- TESTE 4: TESTE DE GEOLOCALIZAÇÃO (GPS) & REGRA DOS 500 METROS -->
     <!-- ============================================================== -->
-    <section class="bg-white rounded-2xl p-4 border border-emerald-200 space-y-3 shadow-xs">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100 pb-2.5">
+    <section class="bg-slate-800 rounded-2xl p-4 border border-emerald-500/40 space-y-3 shadow-lg">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-xs">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-md">
             <span class="material-symbols-outlined text-lg">radar</span>
           </div>
           <div>
-            <h2 class="font-extrabold text-sm text-emerald-900 flex items-center gap-2">
+            <h2 class="font-extrabold text-sm text-white flex items-center gap-2">
               <span>4. Teste de Geolocalização (GPS) & Regra dos 500 Metros</span>
-              <span class="text-[9px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-300">2 Confirmações & 3 Cores</span>
+              <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-500/30">2 Confirmações & 3 Cores</span>
             </h2>
-            <p class="text-[11px] text-slate-500">Validação da regra completa: 1ª confirmação &rarr; aproximação com 3 cores &rarr; botão de chegada quando &le; 500m.</p>
+            <p class="text-[11px] text-slate-400">Validação da regra completa: 1ª confirmação (qualquer distância) &rarr; aproximação com 3 cores &rarr; botão de chegada quando &le; 500m.</p>
           </div>
         </div>
       </div>
 
       <!-- VISUALIZADOR DAS 3 CORES CONFORME A REGRA -->
       <div class="grid grid-cols-3 gap-2">
-        <div class="p-2 rounded-xl bg-red-50 border border-red-200 flex flex-col items-center text-center">
+        <div class="p-2 rounded-xl bg-red-950/40 border border-red-700/50 flex flex-col items-center text-center">
           <span class="w-3 h-3 rounded-full bg-red-500 mb-1"></span>
-          <span class="text-[11px] font-black text-red-800 uppercase">🔴 Vermelho</span>
-          <span class="text-[9px] text-red-600 font-bold">Longe (> 1.5 km)</span>
-          <span class="text-[9px] text-slate-500 mt-0.5">Botão Chegada Oculto</span>
+          <span class="text-[11px] font-black text-red-300 uppercase">🔴 Vermelho</span>
+          <span class="text-[9px] text-red-400 font-bold">Longe (> 1.5 km)</span>
+          <span class="text-[9px] text-slate-400 mt-0.5">Botão Chegada Oculto</span>
         </div>
-        <div class="p-2 rounded-xl bg-amber-50 border border-amber-200 flex flex-col items-center text-center">
+        <div class="p-2 rounded-xl bg-amber-950/40 border border-amber-700/50 flex flex-col items-center text-center">
           <span class="w-3 h-3 rounded-full bg-amber-500 mb-1"></span>
-          <span class="text-[11px] font-black text-amber-800 uppercase">🟡 Amarelo</span>
-          <span class="text-[9px] text-amber-700 font-bold">Próximo (501m-1500m)</span>
-          <span class="text-[9px] text-slate-500 mt-0.5">Botão Chegada Oculto</span>
+          <span class="text-[11px] font-black text-amber-300 uppercase">🟡 Amarelo</span>
+          <span class="text-[9px] text-amber-400 font-bold">Próximo (501m-1500m)</span>
+          <span class="text-[9px] text-slate-400 mt-0.5">Botão Chegada Oculto</span>
         </div>
-        <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-300 flex flex-col items-center text-center shadow-xs">
-          <span class="w-3 h-3 rounded-full bg-emerald-500 mb-1 animate-pulse"></span>
-          <span class="text-[11px] font-black text-emerald-800 uppercase">🟢 Verde</span>
-          <span class="text-[9px] text-emerald-700 font-bold">Raio &le; 500m</span>
-          <span class="text-[9px] text-emerald-800 font-bold mt-0.5">Botão Chegada Ativado!</span>
+        <div class="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/50 flex flex-col items-center text-center shadow-xs">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 mb-1 animate-pulse"></span>
+          <span class="text-[11px] font-black text-emerald-300 uppercase">🟢 Verde</span>
+          <span class="text-[9px] text-emerald-400 font-bold">Raio &le; 500m</span>
+          <span class="text-[9px] text-emerald-300 font-bold mt-0.5">Botão Chegada Ativado!</span>
         </div>
       </div>
 
       <!-- DADOS DO ATLETA PARA O TESTE (SOMENTE NOMES) -->
       <div class="space-y-1 pt-1">
         <div class="flex items-center justify-between">
-          <label class="text-[11px] text-slate-700 font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs text-emerald-600">group</span>
+          <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs text-emerald-400">group</span>
             <span>Selecione o Atleta para o Teste de GPS:</span>
           </label>
-          <button onclick="carregarJogadoresSelects(true)" class="text-[10px] text-emerald-600 hover:underline flex items-center gap-0.5 font-bold" title="Recarregar atletas">
+          <button onclick="carregarJogadoresSelects(true)" class="text-[10px] text-emerald-400 hover:underline flex items-center gap-0.5" title="Recarregar atletas">
             <span class="material-symbols-outlined text-[11px]">refresh</span>
             <span>Atualizar</span>
           </button>
         </div>
-        <select id="teste-gps-seletor" onchange="aoSelecionarAtletaGps(this.value)" class="w-full bg-white border-2 border-emerald-400 hover:border-emerald-500 focus:border-emerald-600 rounded-xl px-3 py-2 text-xs text-[#1a1c1c] font-bold outline-none cursor-pointer shadow-xs">
+        <select id="teste-gps-seletor" onchange="aoSelecionarAtletaGps(this.value)" class="w-full bg-slate-900 border-2 border-emerald-500/60 hover:border-emerald-400 focus:border-emerald-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none cursor-pointer">
           <option value="">Carregando jogadores do banco local...</option>
         </select>
         <!-- BADGE DINÂMICO AO VIVO -->
-        <div id="status-atleta-gps-aovivo" class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 flex items-center justify-between">
-          <span class="text-slate-500 flex items-center gap-1"><span class="material-symbols-outlined text-[13px] text-emerald-600">sync_alt</span> Status no Banco:</span>
-          <span id="badge-status-atleta-gps" class="font-bold text-slate-600">Consultando...</span>
+        <div id="status-atleta-gps-aovivo" class="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between">
+          <span class="text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[13px] text-emerald-400">sync_alt</span> Status no Banco:</span>
+          <span id="badge-status-atleta-gps" class="font-bold text-slate-400">Consultando...</span>
         </div>
         <input type="hidden" id="teste-gps-nome" value=""/>
         <input type="hidden" id="teste-gps-posicao" value="MEI"/>
       </div>
 
       <!-- BOTÃO 1ª CONFIRMAÇÃO (ENTRA NA LISTA COM A DISTÂNCIA ATUAL) -->
-      <button onclick="executarPrimeiraConfirmacaoGps()" class="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs">
+      <button onclick="executarPrimeiraConfirmacaoGps()" class="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
         <span class="material-symbols-outlined text-sm">how_to_reg</span>
         <span>1. Executar 1ª Confirmação (Entrar na Lista de Presença)</span>
       </button>
 
       <!-- CONTROLES DE DISTÂNCIA: GPS REAL E SIMULAÇÃO -->
-      <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-700/60 space-y-2">
         <div class="flex items-center justify-between">
-          <label class="text-[11px] text-slate-700 font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs text-[#dd0000]">my_location</span>
+          <label class="text-[11px] text-slate-200 font-bold flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs text-red-400">my_location</span>
             <span>Opções de Teste de Distância até a Pelada:</span>
           </label>
         </div>
 
         <!-- BOTÃO GPS REAL -->
-        <button onclick="executarGpsRealComEnvioServidor()" class="w-full py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs">
-          <span class="material-symbols-outlined text-sm text-[#dd0000]">near_me</span>
+        <button onclick="executarGpsRealComEnvioServidor()" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-slate-600 flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-sm text-red-400">near_me</span>
           <span>📍 Ler Sensor de GPS Real do Aparelho & Enviar ao Servidor</span>
         </button>
 
         <!-- PAINEL UNIFICADO DE SIMULAÇÃO DE GPS (LONGE, PRÓXIMO, CHEGOU, DESFAZER) -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <label class="text-[11px] text-slate-700 font-bold flex items-center gap-1">
-              <span class="material-symbols-outlined text-xs text-emerald-600">tune</span>
+            <label class="text-[11px] text-slate-200 font-bold flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-emerald-400">tune</span>
               <span>Simulação Unificada de Aproximação & Chegada (GPS):</span>
             </label>
-            <span class="text-[10px] text-slate-500 font-mono">POST /api/teste/simular-gps</span>
+            <span class="text-[10px] text-slate-400 font-mono">POST /api/teste/simular-gps</span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <!-- 1. LONGE -->
-            <button id="btn-gps-longe" onclick="simularGpsUnificado('longe')" class="p-2.5 bg-red-50 hover:bg-red-100 text-red-800 border border-red-300 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-xs group">
-              <span class="flex items-center gap-1 font-extrabold text-red-700 group-hover:scale-105 transition-transform">🔴 Longe</span>
-              <span class="text-[10px] text-red-600 font-mono">3.8 km (Ausente)</span>
+            <button id="btn-gps-longe" onclick="simularGpsUnificado('longe')" class="p-2.5 bg-red-950/40 hover:bg-red-900/60 text-red-200 border border-red-700/60 hover:border-red-500 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-sm group">
+              <span class="flex items-center gap-1 font-extrabold text-white group-hover:scale-105 transition-transform">🔴 Longe</span>
+              <span class="text-[10px] text-red-400 font-mono">3.8 km (Ausente)</span>
             </button>
             <!-- 2. PRÓXIMO -->
-            <button id="btn-gps-proximo" onclick="simularGpsUnificado('proximo')" class="p-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-xs group">
-              <span class="flex items-center gap-1 font-extrabold text-amber-800 group-hover:scale-105 transition-transform">🟡 Próximo</span>
-              <span class="text-[10px] text-amber-700 font-mono">850 metros</span>
+            <button id="btn-gps-proximo" onclick="simularGpsUnificado('proximo')" class="p-2.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-200 border border-amber-700/60 hover:border-amber-500 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-sm group">
+              <span class="flex items-center gap-1 font-extrabold text-white group-hover:scale-105 transition-transform">🟡 Próximo</span>
+              <span class="text-[10px] text-amber-400 font-mono">850 metros</span>
             </button>
             <!-- 3. CHEGOU -->
-            <button id="btn-gps-chegou" onclick="simularGpsUnificado('chegou')" class="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-600 rounded-xl text-xs font-black active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-xs group">
+            <button id="btn-gps-chegou" onclick="simularGpsUnificado('chegou')" class="p-2.5 bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-200 border-2 border-emerald-400 rounded-xl text-xs font-black active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-md ring-2 ring-emerald-500/20 group">
               <span class="flex items-center gap-1 font-extrabold text-white group-hover:scale-105 transition-transform">🟢 Chegou ⚽</span>
-              <span class="text-[10px] text-emerald-100 font-mono font-bold">No Campo (Oficial)</span>
+              <span class="text-[10px] text-emerald-300 font-mono font-bold">No Campo (Oficial)</span>
             </button>
             <!-- 4. DESFAZER / RESETAR -->
-            <button id="btn-gps-resetar" onclick="simularGpsUnificado('resetar')" class="p-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-xs group">
-              <span class="flex items-center gap-1 font-bold text-slate-800 group-hover:scale-105 transition-transform">⚪ Desfazer</span>
-              <span class="text-[10px] text-slate-500 font-mono">Resetar Estado</span>
+            <button id="btn-gps-resetar" onclick="simularGpsUnificado('resetar')" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-sm group">
+              <span class="flex items-center gap-1 font-bold text-white group-hover:scale-105 transition-transform">⚪ Desfazer</span>
+              <span class="text-[10px] text-slate-400 font-mono">Resetar Estado</span>
             </button>
           </div>
         </div>
       </div>
 
       <!-- PAINEL DE FEEDBACK E TELEMETRIA DO GPS -->
-      <div id="resultado-gps-completo" class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs mono text-slate-700">
+      <div id="resultado-gps-completo" class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs mono text-slate-300">
         Pronto para o teste. Clique em "1. Executar 1ª Confirmação" ou teste as distâncias pelos botões acima.
       </div>
     </section>
@@ -597,14 +572,14 @@
         document.getElementById('txt-ping').innerText = `${rtt} ms`;
 
         el.innerHTML = `
-          <div class="text-emerald-700 font-bold">✅ SUCESSO: Servidor respondeu normalmente!</div>
-          <div>• Tempo de Resposta (RTT): <strong class="text-slate-900 font-bold">${rtt} ms</strong></div>
-          <div>• Código HTTP: <strong class="text-slate-900 font-bold">${resp.status} ${resp.statusText}</strong></div>
-          <div>• Protocolo Usado: <strong class="text-slate-900 font-bold">${window.location.protocol}</strong></div>
-          <div>• Host Conectado: <strong class="text-slate-900 font-bold">${window.location.host}</strong></div>
+          <div class="text-emerald-400 font-bold">✅ SUCESSO: Servidor respondeu normalmente!</div>
+          <div>• Tempo de Resposta (RTT): <strong class="text-white">${rtt} ms</strong></div>
+          <div>• Código HTTP: <strong class="text-white">${resp.status} ${resp.statusText}</strong></div>
+          <div>• Protocolo Usado: <strong class="text-white">${window.location.protocol}</strong></div>
+          <div>• Host Conectado: <strong class="text-white">${window.location.host}</strong></div>
         `;
       } catch(err) {
-        el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA: Não foi possível obter resposta (${err.message}).</div>`;
+        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA: Não foi possível obter resposta (${err.message}).</div>`;
       }
     }
 
@@ -700,7 +675,7 @@
         if (mostrarAlerta) {
           const el = document.getElementById('resultado-auth-jogador');
           if (el) {
-            el.innerHTML = `<div class="text-blue-700 font-bold">🔄 Lista atualizada do banco local! Total: ${listaJogadoresCadastradosCache.length} atletas cadastrados.</div>`;
+            el.innerHTML = `<div class="text-blue-400 font-bold">🔄 Lista atualizada do banco local! Total: ${listaJogadoresCadastradosCache.length} atletas cadastrados.</div>`;
           }
         }
       } catch (err) {
@@ -750,10 +725,10 @@
 
         if (elRes) {
           elRes.innerHTML = `
-            <div class="text-blue-700 font-bold">👤 Atleta Selecionado do Banco: <span class="text-slate-900 font-bold">${jogador.nome}</span></div>
-            <div>• E-mail: <strong class="text-slate-900 font-bold">${jogador.email || 'Nenhum'}</strong></div>
+            <div class="text-blue-400 font-bold">👤 Atleta Selecionado do Banco: <span class="text-white">${jogador.nome}</span></div>
+            <div>• E-mail: <strong class="text-white">${jogador.email || 'Nenhum'}</strong></div>
             <div>• Senha: <strong class="text-amber-300 font-mono">${jogador.senha || '123456'}</strong></div>
-            <div>• Posição: <strong class="text-slate-900 font-bold">${jogador.posicao || 'ATA'}</strong> | Idade: <strong class="text-slate-900 font-bold">${jogador.idade || 25} anos</strong> | Peso: <strong class="text-slate-900 font-bold">${jogador.peso || 75} kg</strong></div>
+            <div>• Posição: <strong class="text-white">${jogador.posicao || 'ATA'}</strong> | Idade: <strong class="text-white">${jogador.idade || 25} anos</strong> | Peso: <strong class="text-white">${jogador.peso || 75} kg</strong></div>
             <div>• Papel no Banco: <strong class="${jogador.role === 'admin' ? 'text-amber-400' : 'text-blue-300'} font-bold">${(jogador.role || 'jogador').toUpperCase()}</strong></div>
           `;
         }
@@ -793,8 +768,8 @@
 
         if (elRes && !ehRecente) {
           elRes.innerHTML = `
-            <div class="text-emerald-700 font-bold">⚽ Jogador Configurado para o Teste de GPS: <strong class="text-slate-900 font-bold">${jogador.nome}</strong> (${jogador.posicao || 'ATA'})</div>
-            <div>• Idade: <strong class="text-slate-900 font-bold">${jogador.idade || 25} anos</strong> | Condição: <strong class="text-emerald-300">${jogador.condicao || 'excelente'}</strong></div>
+            <div class="text-emerald-400 font-bold">⚽ Jogador Configurado para o Teste de GPS: <strong class="text-white">${jogador.nome}</strong> (${jogador.posicao || 'ATA'})</div>
+            <div>• Idade: <strong class="text-white">${jogador.idade || 25} anos</strong> | Condição: <strong class="text-emerald-300">${jogador.condicao || 'excelente'}</strong></div>
             <div class="text-slate-400 mt-0.5">Use o botão <strong>"1. Executar 1ª Confirmação"</strong> ou teste as distâncias pelos botões de simulação abaixo.</div>
           `;
         }
@@ -819,17 +794,17 @@
         if (res.sucesso) {
           el.innerHTML = `
             <div class="text-emerald-400 font-bold text-sm">✅ LOGIN DE JOGADOR AUTORIZADO COM SUCESSO!</div>
-            <div>• Jogador: <strong class="text-slate-900 font-bold">${res.usuario.nome}</strong></div>
-            <div>• E-mail: <strong class="text-slate-900 font-bold">${res.usuario.email}</strong></div>
-            <div>• Posição: <strong class="text-slate-900 font-bold">${res.usuario.posicao || 'ATA'}</strong></div>
+            <div>• Jogador: <strong class="text-white">${res.usuario.nome}</strong></div>
+            <div>• E-mail: <strong class="text-white">${res.usuario.email}</strong></div>
+            <div>• Posição: <strong class="text-white">${res.usuario.posicao || 'ATA'}</strong></div>
             <div>• Papel: <strong class="text-blue-300 font-bold">${(res.usuario.role || 'jogador').toUpperCase()}</strong></div>
             <div class="text-emerald-300 mt-1">Autenticado pelo banco central no PC (pelada-dados.json).</div>
           `;
         } else {
-          el.innerHTML = `<div class="text-amber-800 font-bold">⚠️ RESPOSTA DO BANCO: ${res.erro}</div>`;
+          el.innerHTML = `<div class="text-amber-400 font-bold">⚠️ RESPOSTA DO BANCO: ${res.erro}</div>`;
         }
       } catch (err) {
-        el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -854,20 +829,20 @@
 
         if (res.sucesso) {
           el.innerHTML = `
-            <div class="text-emerald-700 font-bold">✅ NOVO JOGADOR CADASTRADO NO BANCO LOCAL COM SUCESSO!</div>
-            <div>• Atleta: <strong class="text-slate-900 font-bold">${res.usuario.nome}</strong> (${res.usuario.posicao})</div>
-            <div>• E-mail: <strong class="text-slate-900 font-bold">${res.usuario.email}</strong></div>
-            <div>• ID Gerado: <strong class="text-slate-900 font-mono font-bold">${res.usuario.id}</strong></div>
+            <div class="text-emerald-400 font-bold">✅ NOVO JOGADOR CADASTRADO NO BANCO LOCAL COM SUCESSO!</div>
+            <div>• Atleta: <strong class="text-white">${res.usuario.nome}</strong> (${res.usuario.posicao})</div>
+            <div>• E-mail: <strong class="text-white">${res.usuario.email}</strong></div>
+            <div>• ID Gerado: <strong class="text-white font-mono">${res.usuario.id}</strong></div>
             <div class="text-emerald-300 mt-1">Salvo no arquivo pelada-dados.json e sincronizado via SSE!</div>
           `;
           idJogadorSelecionado = res.usuario.id;
           await carregarJogadoresSelects(false);
           carregarStatusInicial();
         } else {
-          el.innerHTML = `<div class="text-red-700 font-bold">❌ ERRO NO CADASTRO: ${res.erro}</div>`;
+          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO NO CADASTRO: ${res.erro}</div>`;
         }
       } catch (err) {
-        el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -896,8 +871,8 @@
               <span class="material-symbols-outlined text-base">verified</span>
               <span>✅ ADMINISTRADOR MASTER AUTENTICADO COM SUCESSO!</span>
             </div>
-            <div>• Administrador: <strong class="text-slate-900 font-bold">${res.usuario.nome}</strong></div>
-            <div>• E-mail: <strong class="text-slate-900 font-bold">${res.usuario.email}</strong></div>
+            <div>• Administrador: <strong class="text-white">${res.usuario.nome}</strong></div>
+            <div>• E-mail: <strong class="text-white">${res.usuario.email}</strong></div>
             <div>• Papel Oficial: <strong class="text-amber-400 font-black tracking-wider">👑 SUPERADMINISTRADOR</strong></div>
             <div class="mt-1">
               <span class="text-[10px] text-slate-400 block font-bold mb-0.5">Privilégios Verificados no Banco:</span>
@@ -908,10 +883,10 @@
             <div class="text-emerald-300 font-bold mt-1.5">🔑 Acesso total liberado para edição de atletas e controle de partidas!</div>
           `;
         } else {
-          el.innerHTML = `<div class="text-red-700 font-bold">❌ ERRO NO LOGIN ADMIN: ${res.erro || 'Acesso negado'}</div>`;
+          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO NO LOGIN ADMIN: ${res.erro || 'Acesso negado'}</div>`;
         }
       } catch (err) {
-        el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -949,9 +924,9 @@
 
         if (elRes) {
           elRes.innerHTML = `
-            <div class="text-emerald-700 font-bold">🛠️ Modo de Edição Aberto para: <strong class="text-slate-900 font-bold">${jogador.nome}</strong></div>
-            <div>• E-mail: <strong class="text-slate-900 font-bold">${jogador.email || 'Nenhum'}</strong> | Senha: <strong class="text-amber-300 font-mono">${jogador.senha || '123456'}</strong></div>
-            <div>• Posição: <strong class="text-slate-900 font-bold">${jogador.posicao || 'ATA'}</strong> | Permissão Atual: <strong class="text-amber-800 font-bold">${(jogador.role || 'jogador').toUpperCase()}</strong></div>
+            <div class="text-emerald-400 font-bold">🛠️ Modo de Edição Aberto para: <strong class="text-white">${jogador.nome}</strong></div>
+            <div>• E-mail: <strong class="text-white">${jogador.email || 'Nenhum'}</strong> | Senha: <strong class="text-amber-300 font-mono">${jogador.senha || '123456'}</strong></div>
+            <div>• Posição: <strong class="text-white">${jogador.posicao || 'ATA'}</strong> | Permissão Atual: <strong class="text-amber-400 font-bold">${(jogador.role || 'jogador').toUpperCase()}</strong></div>
             <div class="text-slate-400 mt-0.5">Altere qualquer campo e clique em <strong>"💾 Salvar Alterações no Banco Local"</strong>.</div>
           `;
         }
@@ -971,7 +946,7 @@
       const role = document.getElementById('admin-edit-role').value;
 
       if (!nome) {
-        if (el) el.innerHTML = '<div class="text-red-700 font-bold">❌ O Nome do atleta é obrigatório para salvar.</div>';
+        if (el) el.innerHTML = '<div class="text-red-400 font-bold">❌ O Nome do atleta é obrigatório para salvar.</div>';
         return;
       }
 
@@ -989,8 +964,8 @@
           if (el) {
             el.innerHTML = `
               <div class="text-emerald-400 font-bold text-sm">💾 ATLETA SALVO COM SUCESSO PELO ADMINISTRADOR!</div>
-              <div>• Nome: <strong class="text-slate-900 font-bold">${res.atleta.nome}</strong> (${res.atleta.posicao})</div>
-              <div>• E-mail: <strong class="text-slate-900 font-bold">${res.atleta.email}</strong></div>
+              <div>• Nome: <strong class="text-white">${res.atleta.nome}</strong> (${res.atleta.posicao})</div>
+              <div>• E-mail: <strong class="text-white">${res.atleta.email}</strong></div>
               <div>• Senha Gravada: <strong class="text-amber-300 font-mono">${res.atleta.senha}</strong></div>
               <div>• Permissão: <strong class="text-emerald-300 font-bold">${(res.atleta.role || 'jogador').toUpperCase()}</strong></div>
               <div class="text-emerald-300 mt-1">Gravado no disco (pelada-dados.json) e sincronizado em tempo real para todos os celulares!</div>
@@ -999,10 +974,10 @@
           await carregarJogadoresSelects(false);
           carregarStatusInicial();
         } else {
-          if (el) el.innerHTML = `<div class="text-red-700 font-bold">❌ ERRO AO SALVAR: ${res.erro}</div>`;
+          if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO AO SALVAR: ${res.erro}</div>`;
         }
       } catch (err) {
-        if (el) el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -1034,17 +1009,17 @@
         if (res.sucesso) {
           if (el) {
             el.innerHTML = `
-              <div class="text-emerald-700 font-bold">🗑️ ATLETA EXCLUÍDO COM SUCESSO: "${nome}"</div>
-              <div class="text-slate-600">• Removido permanentemente do banco local (pelada-dados.json) e da lista de presença.</div>
+              <div class="text-emerald-400 font-bold">🗑️ ATLETA EXCLUÍDO COM SUCESSO: "${nome}"</div>
+              <div class="text-slate-300">• Removido permanentemente do banco local (pelada-dados.json) e da lista de presença.</div>
             `;
           }
           await carregarJogadoresSelects(false);
           carregarStatusInicial();
         } else {
-          if (el) el.innerHTML = `<div class="text-red-700 font-bold">❌ ERRO AO EXCLUIR: ${res.erro}</div>`;
+          if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO AO EXCLUIR: ${res.erro}</div>`;
         }
       } catch (err) {
-        if (el) el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -1136,18 +1111,18 @@
           const statusDist = chegou ? '🟢 NO RAIO (≤500m)' : (distanciaGpsAtual <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE');
           el.innerHTML = `
             <div class="text-emerald-400 font-bold text-sm">✅ 1ª CONFIRMAÇÃO REGISTRADA COM SUCESSO!</div>
-            <div>• Atleta: <strong class="text-slate-900 font-bold">${atleta.nome}</strong> (${atleta.posicao})</div>
+            <div>• Atleta: <strong class="text-white">${atleta.nome}</strong> (${atleta.posicao})</div>
             <div>• Status na Lista: <strong class="text-blue-300">CONFIRMADO</strong></div>
-            <div>• Distância Inicial: <strong class="text-slate-900 font-bold">${distanciaGpsAtual >= 1000 ? (distanciaGpsAtual/1000).toFixed(1) + ' km' : distanciaGpsAtual + ' metros'}</strong> (${statusDist})</div>
+            <div>• Distância Inicial: <strong class="text-white">${distanciaGpsAtual >= 1000 ? (distanciaGpsAtual/1000).toFixed(1) + ' km' : distanciaGpsAtual + ' metros'}</strong> (${statusDist})</div>
             <div>• Transmissão SSE: <strong class="text-emerald-400">Transmitido em tempo real para todos os celulares</strong></div>
             <div class="mt-1 text-slate-300">Agora use os botões de simulação abaixo (🔴 Longe, 🟡 Próximo ou 🟢 Raio ≤500m) para ver o botão verde surgir!</div>
           `;
           carregarStatusInicial();
         } else {
-          el.innerHTML = `<div class="text-red-700 font-bold">❌ ERRO NA 1ª CONFIRMAÇÃO: ${res.erro}</div>`;
+          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO NA 1ª CONFIRMAÇÃO: ${res.erro}</div>`;
         }
       } catch (err) {
-        el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -1156,7 +1131,7 @@
       const nome = obterNomeAtletaTesteGps();
 
       if (!nome) {
-        el.innerHTML = '<div class="text-amber-800 font-bold">⚠️ Selecione um atleta acima antes de simular o GPS.</div>';
+        el.innerHTML = '<div class="text-amber-400 font-bold">⚠️ Selecione um atleta acima antes de simular o GPS.</div>';
         return;
       }
 
@@ -1172,7 +1147,7 @@
         }
       });
 
-      el.innerHTML = `<div class="text-slate-600">Transmitindo simulação <strong>${status.toUpperCase()}</strong> para <strong>${nome}</strong>...</div>`;
+      el.innerHTML = `<div class="text-slate-300">Transmitindo simulação <strong>${status.toUpperCase()}</strong> para <strong>${nome}</strong>...</div>`;
 
       try {
         const response = await fetch('/api/teste/simular-gps', {
@@ -1223,11 +1198,11 @@
               <span>${titulo}</span>
             </div>
             <div class="space-y-0.5 text-xs">
-              <div>• Atleta: <strong class="text-slate-900 font-bold">${a.nome}</strong> (${a.posicao || 'ATA'})</div>
-              <div>• Distância: <strong class="text-slate-900 font-mono font-bold">${a.distanciaTexto || 'Confirmado'}</strong> ${a.distanciaMetros ? '(' + a.distanciaMetros + 'm)' : ''}</div>
-              <div>• Status Aproximação: <strong class="text-slate-900 font-bold">${a.statusAproximacao || 'longe'}</strong></div>
+              <div>• Atleta: <strong class="text-white">${a.nome}</strong> (${a.posicao || 'ATA'})</div>
+              <div>• Distância: <strong class="text-white font-mono">${a.distanciaTexto || 'Confirmado'}</strong> ${a.distanciaMetros ? '(' + a.distanciaMetros + 'm)' : ''}</div>
+              <div>• Status Aproximação: <strong class="text-white">${a.statusAproximacao || 'longe'}</strong></div>
               <div>• Chegada Confirmada: <strong class="${a.chegadaConfirmada ? 'text-emerald-300' : 'text-slate-400'} font-bold">${a.chegadaConfirmada ? 'SIM (Apto para o sorteio)' : 'NÃO'}</strong></div>
-              <div>• Horário da Chegada: <strong class="text-slate-900 font-bold">${a.horaChegada || 'Nenhum (não chegou)'}</strong></div>
+              <div>• Horário da Chegada: <strong class="text-white">${a.horaChegada || 'Nenhum (não chegou)'}</strong></div>
               <div class="pt-1 text-emerald-400 font-semibold border-t border-slate-800/80 mt-1 flex items-center justify-between">
                 <span>✓ Sincronizado via SSE e gravado (.tmp + renameSync)!</span>
                 <span class="text-[10px] text-slate-300 font-mono animate-pulse">Atualizando...</span>
@@ -1250,10 +1225,10 @@
           }
 
         } else {
-          el.innerHTML = `<div class="text-red-700 font-bold">❌ ERRO: ${res.mensagem || res.erro || 'Falha ao processar GPS.'}</div>`;
+          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO: ${res.mensagem || res.erro || 'Falha ao processar GPS.'}</div>`;
         }
       } catch (err) {
-        el.innerHTML = `<div class="text-red-700 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
+        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
       }
     }
 
@@ -1270,10 +1245,10 @@
     function executarGpsRealComEnvioServidor() {
       const el = document.getElementById('resultado-gps-completo');
       if (!navigator.geolocation) {
-        if (el) el.innerHTML = '<div class="text-red-700 font-bold">❌ Geolocalização não é suportada por este dispositivo.</div>';
+        if (el) el.innerHTML = '<div class="text-red-400 font-bold">❌ Geolocalização não é suportada por este dispositivo.</div>';
         return;
       }
-      if (el) el.innerHTML = '<div class="text-slate-600">Lendo sensor de GPS real do aparelho...</div>';
+      if (el) el.innerHTML = '<div class="text-slate-300">Lendo sensor de GPS real do aparelho...</div>';
       navigator.geolocation.getCurrentPosition(
         pos => {
           const lat = pos.coords.latitude;
@@ -1282,16 +1257,16 @@
           distanciaGpsAtual = dist;
           if (el) {
             el.innerHTML = `
-              <div class="text-emerald-700 font-bold">📍 SENSOR GPS LIDO COM SUCESSO!</div>
-              <div>• Coordenadas: <strong class="text-slate-900 font-bold">${lat.toFixed(5)}, ${lon.toFixed(5)}</strong></div>
-              <div>• Distância até o campo: <strong class="text-slate-900 font-bold">${dist >= 1000 ? (dist/1000).toFixed(1) + ' km' : dist + ' metros'}</strong></div>
+              <div class="text-emerald-400 font-bold">📍 SENSOR GPS LIDO COM SUCESSO!</div>
+              <div>• Coordenadas: <strong class="text-white">${lat.toFixed(5)}, ${lon.toFixed(5)}</strong></div>
+              <div>• Distância até o campo: <strong class="text-white">${dist >= 1000 ? (dist/1000).toFixed(1) + ' km' : dist + ' metros'}</strong></div>
               <div class="text-slate-300 mt-1">Sincronizando com o servidor...</div>
             `;
           }
           simularDistanciaGps(dist);
         },
         err => {
-          if (el) el.innerHTML = `<div class="text-red-700 font-bold">❌ Erro no sensor GPS: ${err.message}. Permita o acesso à localização no navegador.</div>`;
+          if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ Erro no sensor GPS: ${err.message}. Permita o acesso à localização no navegador.</div>`;
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
