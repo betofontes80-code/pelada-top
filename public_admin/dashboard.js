@@ -197,30 +197,30 @@ function renderizarListaAtletas(atletas) {
     if (j.posicao === 'ZAG' || j.posicao === 'VOL') corPos = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
 
     html += `
-      <div class="p-2.5 rounded-xl bg-slate-900/80 border border-borderLine flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all">
+      <div class="p-2.5 rounded-xl bg-white border border-[#e0e0e0] flex items-center justify-between gap-3 text-xs hover:border-slate-300 shadow-xs transition-all">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <span class="w-5 text-center font-black text-slate-500 text-xs shrink-0">${idx + 1}</span>
-          <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-slate-700 shrink-0" alt="${j.nome}">
+          <span class="w-5 text-center font-black text-slate-400 text-xs shrink-0">${idx + 1}</span>
+          <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0" alt="${j.nome}">
           <div class="flex flex-col min-w-0 flex-1">
             <div class="flex items-center gap-1.5 truncate">
-              <span class="font-bold text-slate-100 truncate">${j.nome}</span>
+              <span class="font-bold text-[#1a1c1c] truncate">${j.nome}</span>
               <span class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${corPos}">${j.posicao || 'ATA'}</span>
             </div>
-            <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+            <div class="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
               <span>${j.idade || 25} anos</span>
               <span>&bull;</span>
-              <span class="mono text-emerald-400 font-semibold">${j.fitness || 85}% físico</span>
+              <span class="mono text-emerald-700 font-semibold">${j.fitness || 85}% físico</span>
               <span>&bull;</span>
-              <span class="text-slate-500 mono">${j.hora || '--:--'}</span>
+              <span class="text-slate-400 mono">${j.hora || '--:--'}</span>
             </div>
           </div>
         </div>
 
         <div class="flex items-center gap-1 shrink-0">
-          <button onclick="abrirModalEditarAtleta('${j.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all" title="Editar Atleta">
+          <button onclick="abrirModalEditarAtleta('${j.id}')" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all" title="Editar Atleta">
             <span class="material-symbols-outlined text-sm">edit</span>
           </button>
-          <button onclick="excluirAtleta('${j.id}', '${j.nome.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 transition-all" title="Excluir Atleta">
+          <button onclick="excluirAtleta('${j.id}', '${j.nome.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-all" title="Excluir Atleta">
             <span class="material-symbols-outlined text-sm">delete</span>
           </button>
         </div>
@@ -416,33 +416,33 @@ function renderizarDispositivos(clientes) {
   let html = '';
   clientes.forEach(c => {
     const statusClass = c.online 
-      ? 'bg-emerald-950 text-emerald-300 border-emerald-800' 
-      : 'bg-slate-800 text-slate-400 border-slate-700';
+      ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
+      : 'bg-slate-100 text-slate-600 border-slate-300';
     const statusTexto = c.online ? 'Ao Vivo' : 'Recente';
-    const iconeCor = c.online ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 bg-slate-800';
+    const iconeCor = c.online ? 'text-emerald-700 bg-emerald-50' : 'text-slate-500 bg-slate-100';
 
     html += `
-      <div class="p-3 rounded-xl bg-slate-900/80 border border-borderLine flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all">
+      <div class="p-3 rounded-xl bg-white border border-[#e0e0e0] flex items-center justify-between gap-3 text-xs hover:border-slate-300 shadow-xs transition-all">
         <div class="flex items-center gap-3 min-w-0">
           <div class="p-2 rounded-xl ${iconeCor} flex items-center justify-center shrink-0">
             <span class="material-symbols-outlined text-lg">smartphone</span>
           </div>
           <div class="flex flex-col min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-bold text-slate-100">${c.aparelho || 'Celular / Navegador'}</span>
+              <span class="font-bold text-[#1a1c1c]">${c.aparelho || 'Celular / Navegador'}</span>
               <span class="px-1.5 py-0.2 rounded text-[9px] font-bold border ${statusClass}">${statusTexto}</span>
             </div>
-            <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 mono">
+            <div class="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5 mono">
               <span>IP: ${c.ip}</span>
               <span>&bull;</span>
-              <span class="text-emerald-400/90">${c.tempoRelativo || c.ultimoAcesso}</span>
+              <span class="text-emerald-700 font-semibold">${c.tempoRelativo || c.ultimoAcesso}</span>
               <span>&bull;</span>
               <span>${c.totalRequisicoes || 1} acessos</span>
             </div>
           </div>
         </div>
         <div class="text-right shrink-0">
-          <span class="text-[10px] text-slate-400 mono">${c.ultimoAcesso}</span>
+          <span class="text-[10px] text-slate-500 mono">${c.ultimoAcesso}</span>
         </div>
       </div>
     `;
