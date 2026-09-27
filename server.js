@@ -594,26 +594,21 @@ const requestHandler = (req, res) => {
 
 const server = http.createServer(requestHandler);
 
-// Execução local tradicional (inicia porta apenas quando executado diretamente e fora da Vercel)
-if (require.main === module || !IS_VERCEL) {
-  server.listen(PORT, '0.0.0.0', () => {
-    const localIp = getLocalIp();
-    console.log('====================================================');
-    console.log('    ⚽ PELADA TOP - SERVIDOR REALTIME PWA ATIVO     ');
-    console.log('====================================================');
-    console.log(`Local (neste PC):   http://localhost:${PORT}`);
-    console.log(`Rede Wi-Fi/Celular: http://${localIp}:${PORT}`);
-    console.log('Todos os participantes conectados verão a lista em TEMPO REAL!');
-    console.log('====================================================');
-  });
-}
+// Porta universal para Render, Vercel ou localhost
+const SERVER_PORT = process.env.PORT || PORT;
 
-// Export para Vercel Serverless Function (suporta chamada direta de função e instância de servidor)
-const vercelHandler = (req, res) => {
-  return requestHandler(req, res);
-};
-// Removido para manter Function.prototype.apply funcional
+server.listen(SERVER_PORT, '0.0.0.0', () => {
+  const localIp = getLocalIp();
+  console.log('====================================================');
+  console.log('    ⚽ PELADA TOP - SERVIDOR REALTIME PWA ATIVO     ');
+  console.log('====================================================');
+  console.log(`Porta ativa:        ${SERVER_PORT}`);
+  console.log(`Local (neste PC):   http://localhost:${SERVER_PORT}`);
+  console.log(`Rede Wi-Fi/Celular: http://${localIp}:${SERVER_PORT}`);
+  console.log('====================================================');
+});
 
-module.exports = vercelHandler;
-module.exports.default = vercelHandler;
+// Export para compatibilidade
+module.exports = requestHandler;
+module.exports.default = requestHandler;
 module.exports.server = server;
