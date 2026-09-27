@@ -564,6 +564,199 @@ const requestHandler = (req, res) => {
       return;
     }
 
+
+    // 10. API Admin: Status
+    if (pathname === '/api/admin/status' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        sucesso: true,
+        status: 'online',
+        uptime: process.uptime(),
+        clientesConectados: sseClients.size,
+        totalAtletas: (appData.listaConfirmados || []).length,
+        listaAberta: appData.peladaConfig ? appData.peladaConfig.listaAberta : true,
+        version: appData.version
+      }));
+      return;
+    }
+
+    // 11. API Admin: Configuração
+    if (pathname === '/api/admin/config') {
+      const configFile = path.join(__dirname, 'config.json');
+      let cfgData = {};
+      if (fs.existsSync(configFile)) {
+        try { cfgData = JSON.parse(fs.readFileSync(configFile, 'utf8')); } catch (e) {}
+      }
+
+      if (req.method === 'GET') {
+        if (!cfgData.regrasPelada) cfgData.regrasPelada = {};
+        if (!cfgData.regrasPelada.arena) {
+          cfgData.regrasPelada.arena = {
+            nome: appData.peladaConfig ? appData.peladaConfig.local : '',
+            lat: appData.peladaConfig ? appData.peladaConfig.lat : -7.190405,
+            lng: appData.peladaConfig ? appData.peladaConfig.lng : -34.870103,
+            mapsUrl: appData.peladaConfig ? appData.peladaConfig.mapsUrl : ''
+          };
+        }
+        if (appData.peladaConfig) {
+          cfgData.regrasPelada.raioMaximoMetros = appData.peladaConfig.raioMaximoMetros;
+          cfgData.regrasPelada.exigirGps = appData.peladaConfig.exigirGps;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(cfgData));
+        return;
+      }
+
+      if (req.method === 'POST') {
+        lerCorpoRequisicao(req, (err, payload) => {
+          if (!err && payload) {
+            if (payload.regrasPelada) {
+              const r = payload.regrasPelada;
+              if (r.arena) {
+                if (r.arena.nome) appData.peladaConfig.local = r.arena.nome;
+                if (r.arena.lat) appData.peladaConfig.lat = parseFloat(r.arena.lat);
+                if (r.arena.lng) appData.peladaConfig.lng = parseFloat(r.arena.lng);
+                if (r.arena.mapsUrl) appData.peladaConfig.mapsUrl = r.arena.mapsUrl;
+              }
+              if (r.raioMaximoMetros) appData.peladaConfig.raioMaximoMetros = parseInt(r.raioMaximoMetros);
+              if (r.exigirGps !== undefined) appData.peladaConfig.exigirGps = (r.exigirGps === true || r.exigirGps === 'true');
+            }
+            cfgData = { ...cfgData, ...payload };
+            try { fs.writeFileSync(configFile, JSON.stringify(cfgData, null, 2), 'utf8'); } catch (e) {}
+            appData.version = Date.now();
+            salvarDadosDisco();
+            broadcastSse('SYNC', appData);
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: true, config: cfgData }));
+        });
+        return;
+      }
+    }
+
+    // 12. API Admin: Trava Lista
+    if (pathname === '/api/admin/trava-lista' && req.method === 'POST') {
+      if (!appData.peladaConfig) appData.peladaConfig = { ...DEFAULT_CONFIG };
+      appData.peladaConfig.listaAberta = !appData.peladaConfig.listaAberta;
+      appData.version = Date.now();
+      salvarDadosDisco();
+      broadcastSse('SYNC', appData);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ sucesso: true, listaAberta: appData.peladaConfig.listaAberta }));
+      return;
+    }
+
+    // 13. API Admin: Reset de Partida
+    if (pathname === '/api/admin/reset' && req.method === 'POST') {
+      appData.listaConfirmados = [];
+      appData.escalacaoAtiva = null;
+      appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
+      appData.version = Date.now();
+      salvarDadosDisco();
+      broadcastSse('SYNC', appData);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ sucesso: true }));
+      return;
+    }
+
+    // 14. API Admin: Backup
+    if (pathname === '/api/admin/backup' && req.method === 'POST') {
+      salvarDadosDisco();
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ sucesso: true, mensagem: 'Backup salvo com sucesso!' }));
+      return;
+    }
+
+    // 15. API Admin: Logs
+    if (pathname === '/api/admin/logs' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify([]));
+      return;
+    }
+
+    // 16. API Teste: Simular GPS
+    if (pathname === '/api/teste/simular-gps' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err || !payload) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
+          return;
+        }
+
+        const { atletaId, nomeAtleta, statusDistancia } = payload;
+        const busca = (nomeAtleta || atletaId || '').toString().toLowerCase().trim();
+
+        if (!appData.listaConfirmados) appData.listaConfirmados = [];
+
+        let atleta = appData.listaConfirmados.find(j => 
+          (atletaId && String(j.id) === String(atletaId)) ||
+          (j.nome && j.nome.toLowerCase() === busca) ||
+          (j.email && j.email.toLowerCase() === busca)
+        );
+
+        if (!atleta) {
+          atleta = {
+            id: atletaId || ('jog_' + Date.now()),
+            nome: nomeAtleta || 'Atleta Teste',
+            posicao: 'ATA',
+            condicao: 'excelente',
+            idade: 28,
+            fitness: 90,
+            foto: '',
+            hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            statusPresenca: 'confirmado',
+            chegadaConfirmada: false
+          };
+          appData.listaConfirmados.unshift(atleta);
+        }
+
+        const st = String(statusDistancia || '').toLowerCase().trim();
+        if (st === 'chegou' || st === 'chegar' || st === 'campo' || st === 'no_campo') {
+          atleta.distanciaMetros = 50;
+          atleta.distanciaTexto = 'No Campo';
+          atleta.statusAproximacao = 'chegou';
+          atleta.chegadaConfirmada = true;
+          atleta.statusPresenca = 'chegou';
+          atleta.horaChegada = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } else if (st === 'proximo' || st === 'proxima' || st === '850') {
+          atleta.distanciaMetros = 850;
+          atleta.distanciaTexto = '850m';
+          atleta.statusAproximacao = 'proximo';
+          atleta.chegadaConfirmada = false;
+          atleta.statusPresenca = 'confirmado';
+          atleta.horaChegada = null;
+        } else if (st === 'longe' || st === '3800') {
+          atleta.distanciaMetros = 3800;
+          atleta.distanciaTexto = 'Longe';
+          atleta.statusAproximacao = 'longe';
+          atleta.chegadaConfirmada = false;
+          atleta.statusPresenca = 'confirmado';
+          atleta.horaChegada = null;
+        } else if (st === 'resetar' || st === 'reset' || st === 'desfazer') {
+          atleta.distanciaMetros = null;
+          atleta.distanciaTexto = 'Na Lista';
+          atleta.statusAproximacao = 'longe';
+          atleta.chegadaConfirmada = false;
+          atleta.statusPresenca = 'confirmado';
+          atleta.horaChegada = null;
+        }
+
+        appData.version = Date.now();
+        salvarDadosDisco();
+        broadcastSse('SYNC', appData);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          sucesso: true,
+          statusDistancia: st,
+          atleta: atleta,
+          listaConfirmados: appData.listaConfirmados
+        }));
+      });
+      return;
+    }
+
     // 10. Fallback para rotas de API não reconhecidas
     if (pathname.startsWith('/api')) {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -572,6 +765,35 @@ const requestHandler = (req, res) => {
     }
 
     // 11. Arquivos estáticos
+
+    // Rotas do Painel Master e Painel de Testes
+    if (pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html') {
+      const painelPath = path.join(__dirname, 'public_admin', 'index.html');
+      if (fs.existsSync(painelPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(painelPath));
+        return;
+      }
+    }
+
+    if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
+      const testePath = path.join(__dirname, 'public_admin', 'teste.html');
+      if (fs.existsSync(testePath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(testePath));
+        return;
+      }
+    }
+
+    if (pathname === '/dashboard.js' || pathname === '/painel/dashboard.js') {
+      const dashPath = path.join(__dirname, 'public_admin', 'dashboard.js');
+      if (fs.existsSync(dashPath)) {
+        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+        res.end(fs.readFileSync(dashPath));
+        return;
+      }
+    }
+
     let reqPath = pathname;
     if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
 

@@ -1,0 +1,34 @@
+{
+  "servidor": {
+    "nome": "Pelada Top - Servidor Central",
+    "porta": 8080,
+    "host": "0.0.0.0",
+    "pastaAppWeb": "E:\\PeladaTop",
+    "permitirCORS": true,
+    "autoAbrirNavegador": true,
+    "rotaPainelAdmin": "/painel"
+  },
+  "regrasPelada": {
+    "tempoPartidaMinutos": 10,
+    "raioMaximoMetros": 500,
+    "exigirGps": true,
+    "qtdTimesPadrao": 4,
+    "arena": {
+      "nome": "https://maps.app.goo.gl/wu14yxh9AGfJ93g77",
+      "lat": -7.190405,
+      "lng": -34.870103,
+      "mapsUrl": "https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7"
+    }
+  },
+  "seguranca": {
+    "senhaMestreAdmin": "Admin123",
+    "emailAdmin": "topadmin@gmail.com",
+    "limiteRequisicoesPorMinuto": 300,
+    "permitirEdicaoConfigPelaWeb": true
+  },
+  "logs": {
+    "salvarEmArquivo": true,
+    "caminhoArquivo": "logs/servidor.log",
+    "nivelLog": "info"
+  }
+}
