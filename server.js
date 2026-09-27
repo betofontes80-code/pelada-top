@@ -4,12 +4,10 @@ const path = require('path');
 const os = require('os');
 
 const PORT = process.env.PORT || 8080;
-// Define o diretório de dados correto para a Vercel (/tmp) ou local (__dirname)
 const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_ENV || !!process.env.AWS_REGION || !!process.env.LAMBDA_TASK_ROOT;
 const IS_VERCEL = isVercel;
 const DATA_FILE = path.join(isVercel ? '/tmp' : __dirname, 'pelada-dados.json');
 
-// Função de leitura segura
 function loadData() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -22,21 +20,19 @@ function loadData() {
       }
     }
   } catch (e) {
-    console.error("Erro ao ler dados:", e);
+    console.error('Erro ao ler dados:', e);
   }
   return {};
 }
 
-// Função de escrita segura em /tmp
 function saveData(data) {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
   } catch (e) {
-    console.error("Erro ao salvar dados:", e);
+    console.error('Erro ao salvar dados:', e);
   }
 }
 
-// MIME types suportados
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -48,7 +44,6 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-// Dados padrão iniciais
 const DEFAULT_CONFIG = {
   listaAberta: true,
   local: 'R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB',
@@ -61,7 +56,6 @@ const DEFAULT_CONFIG = {
 
 const DEFAULT_CONFIRMADOS = [];
 
-// Estado na memória
 let appData = {
   listaConfirmados: DEFAULT_CONFIRMADOS,
   peladaConfig: DEFAULT_CONFIG,
@@ -70,11 +64,9 @@ let appData = {
   version: Date.now()
 };
 
-// Carregar dados salvos com proteção e fallback
 try {
   let carregou = false;
 
-  // 1. Tenta ler o arquivo de dados (no /tmp na Vercel ou local)
   if (fs.existsSync(DATA_FILE)) {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
@@ -86,7 +78,6 @@ try {
     carregou = true;
   }
 
-  // 2. Se na Vercel e ainda não existe em /tmp, lê o arquivo empacotado da raiz
   if (!carregou && IS_VERCEL) {
     const bundledFile = path.join(__dirname, 'pelada-dados.json');
     if (fs.existsSync(bundledFile)) {
@@ -101,21 +92,17 @@ try {
     }
   }
 
-  if (carregou) {
-    console.log('[Realtime] Dados da pelada carregados com sucesso.');
-  } else {
+  if (!carregou) {
     salvarDadosDisco();
   }
 } catch (e) {
   console.warn('[Realtime] Aviso ao carregar dados salvos:', e.message);
 }
 
-// Salvar no disco com tratamento seguro para Serverless
 function salvarDadosDisco() {
   saveData(appData);
 }
 
-// Conexões ativas de Server-Sent Events (SSE) para transmissão em tempo real
 const sseClients = new Set();
 
 function broadcastSse(tipo, payload) {
@@ -129,7 +116,6 @@ function broadcastSse(tipo, payload) {
   }
 }
 
-// Obter IP da rede local Wi-Fi / Ethernet
 function getLocalIp() {
   try {
     const interfaces = os.networkInterfaces();
@@ -144,7 +130,6 @@ function getLocalIp() {
   return 'localhost';
 }
 
-// Helper seguro para leitura de corpo de requisição POST (suporta Vercel pre-parsed e stream nativo)
 function lerCorpoRequisicao(req, callback) {
   if (req.body !== undefined && req.body !== null) {
     if (typeof req.body === 'object') {
@@ -158,7 +143,6 @@ function lerCorpoRequisicao(req, callback) {
     }
   }
 
-  // Proteção Serverless: se o stream já foi consumido pelo runtime da Vercel
   if (req.complete || req.readableEnded) {
     return callback(null, {});
   }
@@ -166,7 +150,6 @@ function lerCorpoRequisicao(req, callback) {
   let body = '';
   let finalizado = false;
 
-  // Timeout de segurança interno de 4 segundos para nunca travar a função serverless
   const timerSeguranca = setTimeout(() => {
     if (!finalizado) {
       finalizado = true;
@@ -201,10 +184,8 @@ function lerCorpoRequisicao(req, callback) {
   });
 }
 
-// Manipulador principal de requisições HTTP (usado tanto localmente quanto na Vercel)
 const requestHandler = (req, res) => {
   try {
-    // CORS Headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -219,8 +200,10 @@ const requestHandler = (req, res) => {
     const parsedUrl = new URL(req.url, `http://${hostHeader || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
-    // 1. API principal: /api ou /api/pelada
-    if ((pathname === '/api' || pathname === '/api/pelada') && req.method === 'GET') {
+    const isApiLikeRoute = pathname === '/api' || pathname === '/api/pelada' || pathname === '/api/index.js' || pathname.startsWith('/api/');
+    const isSseRoute = pathname === '/api/stream' || pathname === '/api/realtime';
+
+    if (isApiLikeRoute && !isSseRoute && req.method === 'GET') {
       try {
         const saved = loadData();
         if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
@@ -235,7 +218,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    if ((pathname === '/api' || pathname === '/api/pelada') && req.method === 'POST') {
+    if (isApiLikeRoute && !isSseRoute && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -271,8 +254,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 2. SSE: /api/stream ou /api/realtime
-    if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
+    if (isSseRoute && req.method === 'GET') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
@@ -302,7 +284,6 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 3. Arquivos estáticos
     let reqPath = pathname;
     if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
 
@@ -328,7 +309,6 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // Fallback para SPA
     const indexPath = path.join(__dirname, 'index.html');
     if (fs.existsSync(indexPath)) {
       try {
@@ -355,7 +335,6 @@ const requestHandler = (req, res) => {
 
 const server = http.createServer(requestHandler);
 
-// Execução local tradicional (inicia porta apenas quando executado diretamente e fora da Vercel)
 if (require.main === module && !IS_VERCEL) {
   server.listen(PORT, '0.0.0.0', () => {
     const localIp = getLocalIp();
@@ -369,11 +348,9 @@ if (require.main === module && !IS_VERCEL) {
   });
 }
 
-// Export para Vercel Serverless Function (suporta chamada direta de função e instância de servidor)
 const vercelHandler = (req, res) => {
   return requestHandler(req, res);
 };
-// Removido para manter Function.prototype.apply funcional
 
 module.exports = vercelHandler;
 module.exports.default = vercelHandler;
