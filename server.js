@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 
 const PORT = process.env.PORT || 8080;
-const IS_VERCEL = !!process.env.VERCEL;
+const IS_VERCEL = !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_ENV;
 const DATA_FILE = IS_VERCEL
   ? path.join(os.tmpdir(), 'pelada-dados.json')
   : path.join(__dirname, 'pelada-dados.json');
@@ -135,17 +135,47 @@ function lerCorpoRequisicao(req, callback) {
     }
   }
 
+  // Proteção Serverless: se o stream já foi consumido pelo runtime da Vercel
+  if (req.complete || req.readableEnded) {
+    return callback(null, {});
+  }
+
   let body = '';
+  let finalizado = false;
+
+  // Timeout de segurança interno de 4 segundos para nunca travar a função serverless
+  const timerSeguranca = setTimeout(() => {
+    if (!finalizado) {
+      finalizado = true;
+      try {
+        const payload = JSON.parse(body || '{}');
+        callback(null, payload);
+      } catch (e) {
+        callback(null, {});
+      }
+    }
+  }, 4000);
+
   req.on('data', chunk => { body += chunk; });
   req.on('end', () => {
-    try {
-      const payload = JSON.parse(body || '{}');
-      callback(null, payload);
-    } catch (e) {
-      callback(e);
+    if (!finalizado) {
+      finalizado = true;
+      clearTimeout(timerSeguranca);
+      try {
+        const payload = JSON.parse(body || '{}');
+        callback(null, payload);
+      } catch (e) {
+        callback(e);
+      }
     }
   });
-  req.on('error', err => callback(err));
+  req.on('error', err => {
+    if (!finalizado) {
+      finalizado = true;
+      clearTimeout(timerSeguranca);
+      callback(err);
+    }
+  });
 }
 
 // Manipulador principal de requisições HTTP (usado tanto localmente quanto na Vercel)
@@ -212,7 +242,7 @@ const requestHandler = (req, res) => {
     }
 
     // 3. API: Transmissão em tempo real Server-Sent Events (SSE)
-    if (pathname === '/api/stream' && req.method === 'GET') {
+        if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
@@ -227,6 +257,13 @@ const requestHandler = (req, res) => {
         escalacaoAtiva: appData.escalacaoAtiva,
         partidaEstado: appData.partidaEstado
       })}\n\n`);
+
+      if (IS_VERCEL) {
+        // Encerra imediatamente na Vercel para impedir Timeout 504 de 300 segundos
+        res.end();
+        return;
+      }
+
       sseClients.add(res);
 
       req.on('close', () => {

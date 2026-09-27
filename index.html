@@ -1198,9 +1198,15 @@
                 .catch(() => {});
         }
 
-        function iniciarSse() {
+                function iniciarSse() {
             if (sseInstancia) {
                 try { sseInstancia.close(); } catch(e) {}
+            }
+            // Na Vercel (Serverless), o polling HTTP rápido a cada 3.5s faz a sincronização instantânea
+            // Evita abrir EventSource infinito na Vercel para não gerar timeout de 300s
+            if (window.location.hostname.includes('vercel.app')) {
+                atualizarBadgeConexao(true);
+                return;
             }
             try {
                 sseInstancia = new EventSource('/api/stream');
