@@ -220,14 +220,22 @@ const requestHandler = (req, res) => {
     const pathname = parsedUrl.pathname;
 
     // 1. API: Obter estado atual em tempo real
-    if (pathname === '/api/pelada' && req.method === 'GET') {
+    if ((pathname === '/api/pelada' || pathname === '/api/index.js' || pathname === '/api' || pathname.startsWith('/api/')) && req.method === 'GET' && pathname !== '/api/stream' && pathname !== '/api/realtime') {
+      try {
+        const saved = loadData();
+        if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+        if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
+        if (saved.escalacaoAtiva !== undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
+        if (saved.partidaEstado !== undefined) appData.partidaEstado = saved.partidaEstado;
+        if (saved.version) appData.version = saved.version;
+      } catch (e) {}
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(appData));
       return;
     }
 
     // 2. API: Atualizar estado (Check-in, edição de atleta, exclusão, trava)
-    if (pathname === '/api/pelada' && req.method === 'POST') {
+    if ((pathname === '/api/pelada' || pathname === '/api/index.js' || pathname === '/api' || pathname.startsWith('/api/')) && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });

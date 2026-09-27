@@ -9,15 +9,11 @@
     "raioMaximoMetros": 500,
     "exigirGps": true
   },
-  "escalacaoAtiva": {
-    "ativo": false,
-    "timestamp": 0,
-    "times": []
-  },
+  "escalacaoAtiva": null,
   "partidaEstado": {
     "emAndamento": false,
     "finalizada": false,
     "tempoRestante": 600
   },
-  "version": 1790526052326
+  "version": 0
 }
