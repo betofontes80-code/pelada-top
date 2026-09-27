@@ -649,7 +649,8 @@
         <!-- RENDERIZADO DINAMICAMENTE: JOGADOR (APENAS JOGADORES E PERFIL) OU ADMIN (TODAS AS OPÇÕES) -->
         <div id="nav-buttons-container" class="flex justify-around items-center h-14 max-w-xl mx-auto">
         </div>
-    </nav>
+    <!-- CONTAINER FLUTUANTE DE TOAST DE JOGADOR ONLINE (ALTA PRIORIDADE Z-INDEX) -->
+    <div id="toast-container" class="fixed top-3 left-1/2 -translate-x-1/2 z-[200] w-full max-w-sm px-3 pointer-events-none flex flex-col gap-2 transition-all"></div>
 
     <!-- MODAL INFORMATIVO OFICIAL DO STITCH (APOIE O PROJETO / PIX) -->
     <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" id="infoModal">
@@ -1017,6 +1018,135 @@
         let overlayTimeMinimizado = false;
 
         // ==============================================================
+        // SISTEMA DE TOAST E NOTIFICAÇÃO DE JOGADOR ONLINE NA PELADA
+        // ==============================================================
+        const atletasConhecidosIds = new Set();
+        let appSincronizacaoInicializada = false;
+
+        function tocarSomOnline() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now); // D5
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } catch(e) {}
+        }
+
+        function exibirToastJogadorOnline(atleta, mensagemCustomizada) {
+            if (!atleta || !atleta.nome) return;
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            // Toca som suave e vibra
+            tocarSomOnline();
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate([40, 60, 40]); } catch(e) {}
+            }
+
+            const toastId = 'toast-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            const foto = atleta.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+            const pos = atleta.posicao || 'MEI';
+            const nome = atleta.nome;
+            const hora = atleta.horaOnline || atleta.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const subtexto = mensagemCustomizada || 'Acabou de entrar na lista da pelada!';
+
+            const toastEl = document.createElement('div');
+            toastEl.id = toastId;
+            toastEl.className = 'pointer-events-auto bg-surface-container-lowest/95 backdrop-blur-md border border-emerald-500/40 shadow-xl rounded-2xl p-2.5 flex items-center gap-2.5 transition-all duration-300 transform -translate-y-4 opacity-0 ring-2 ring-emerald-500/25';
+            toastEl.innerHTML = `
+                <div class="relative shrink-0">
+                    <img src="${foto}" class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500 shadow-sm" alt="${nome}">
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-400 animate-ping"></span>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 flex items-center gap-1 font-label-md">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
+                        </span>
+                        <span class="text-[8px] font-mono text-on-surface-variant">${hora}</span>
+                    </div>
+                    <h4 class="font-headline-md text-xs font-black text-on-surface truncate mt-0.5">${nome} <span class="text-[9px] font-bold text-primary font-mono">(${pos})</span></h4>
+                    <p class="text-[10px] text-emerald-700 font-semibold truncate flex items-center gap-1">
+                        <span>⚽ ${subtexto}</span>
+                        <span class="text-[8px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded uppercase">1ª Posição</span>
+                    </p>
+                </div>
+                <button onclick="removerToast('${toastId}')" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg hover:bg-surface-container active:scale-95 shrink-0" title="Fechar">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            `;
+
+            container.appendChild(toastEl);
+
+            requestAnimationFrame(() => {
+                toastEl.classList.remove('-translate-y-4', 'opacity-0');
+                toastEl.classList.add('translate-y-0', 'opacity-100');
+            });
+
+            setTimeout(() => {
+                removerToast(toastId);
+            }, 4500);
+        }
+
+        function removerToast(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('-translate-y-2', 'opacity-0');
+                setTimeout(() => { if (el && el.parentElement) el.remove(); }, 300);
+            }
+        }
+
+        function verificarNovosJogadoresOnline(novaLista) {
+            if (!Array.isArray(novaLista) || novaLista.length === 0) return;
+
+            // Na primeira carga, memoriza os existentes sem disparar toasts acumulados
+            if (!appSincronizacaoInicializada) {
+                novaLista.forEach(j => {
+                    if (j.id) atletasConhecidosIds.add(String(j.id));
+                    if (j.nome) atletasConhecidosIds.add(j.nome.toLowerCase().trim());
+                });
+                appSincronizacaoInicializada = true;
+                return;
+            }
+
+            // O novo jogador entra na 1ª POSIÇÃO (índice 0)
+            const primeiro = novaLista[0];
+            if (primeiro) {
+                const idKey = primeiro.id ? String(primeiro.id) : null;
+                const nomeKey = primeiro.nome ? primeiro.nome.toLowerCase().trim() : null;
+                const ehConhecido = (idKey && atletasConhecidosIds.has(idKey)) && (nomeKey && atletasConhecidosIds.has(nomeKey));
+                const entrouAgora = primeiro.entrouEm && (Date.now() - primeiro.entrouEm < 20000);
+
+                if (!ehConhecido || (entrouAgora && !primeiro._notificadoToast)) {
+                    primeiro._notificadoToast = true;
+                    if (idKey) atletasConhecidosIds.add(idKey);
+                    if (nomeKey) atletasConhecidosIds.add(nomeKey);
+
+                    exibirToastJogadorOnline(primeiro, `${primeiro.nome} acabou de entrar na lista da pelada!`);
+                }
+            }
+        }
+
+        // ==============================================================
         // SINCRONIZAÇÃO EM TEMPO REAL PARA TODOS OS PARTICIPANTES
         // (BroadcastChannel + SSE Server-Sent Events + Polling Contínuo)
         // ==============================================================
@@ -1024,8 +1154,15 @@
 
         if (realtimeChannel) {
             realtimeChannel.onmessage = (event) => {
-                if (event.data && event.data.type === 'SYNC') {
-                    aplicarSincronizacaoRemota(event.data);
+                if (event.data) {
+                    if (event.data.type === 'SYNC') {
+                        aplicarSincronizacaoRemota(event.data);
+                    } else if (event.data.type === 'JOGADOR_ONLINE' && event.data.atleta) {
+                        exibirToastJogadorOnline(event.data.atleta, `${event.data.atleta.nome} acabou de entrar na lista da pelada!`);
+                        if (event.data.listaConfirmados) {
+                            aplicarSincronizacaoRemota(event.data);
+                        }
+                    }
                 }
             };
         }
@@ -1034,6 +1171,7 @@
             if (e.key === 'pelada_confirmados' && e.newValue) {
                 try {
                     listaConfirmados = JSON.parse(e.newValue);
+                    verificarNovosJogadoresOnline(listaConfirmados);
                     aplicarDadosAtualizados();
                 } catch(err) {}
             }
@@ -1068,6 +1206,7 @@
             }
 
             if (data.listaConfirmados !== undefined) {
+                verificarNovosJogadoresOnline(data.listaConfirmados);
                 listaConfirmados = data.listaConfirmados;
                 // Garante que o atleta logado mantenha sua foto caso exista localmente ou no servidor
                 const eu = listaConfirmados.find(j => 
@@ -1222,7 +1361,12 @@
                 sseInstancia.onmessage = (event) => {
                     try {
                         const msg = JSON.parse(event.data);
-                        if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
+                        if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
+                            exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada!`);
+                            if (msg.listaConfirmados) {
+                                aplicarSincronizacaoRemota(msg);
+                            }
+                        } else if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
                             aplicarSincronizacaoRemota(msg);
                         }
                     } catch(err) {}
@@ -2109,27 +2253,47 @@
             const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : 3500;
             const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            const jaExiste = listaConfirmados.some(j => 
-                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
-                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            // Remove do local anterior caso já estivesse na lista para reposicionar na 1ª POSIÇÃO
+            listaConfirmados = listaConfirmados.filter(j => 
+                (j.nome || '').trim().toLowerCase() !== (usuarioAtual.nome || '').trim().toLowerCase() &&
+                (!usuarioAtual.id || String(j.id) !== String(usuarioAtual.id))
             );
 
-            if (!jaExiste) {
-                const novo = {
-                    id: usuarioAtual.id || String(Date.now()),
-                    nome: usuarioAtual.nome,
-                    posicao: usuarioAtual.posicao || 'ATA',
-                    condicao: usuarioAtual.condicao || 'excelente',
-                    idade: usuarioAtual.idade || 28,
-                    fitness: 95,
-                    foto: usuarioAtual.foto || '',
-                    hora: hora,
-                    statusPresenca: 'confirmado',
-                    chegadaConfirmada: false,
-                    distanciaMetros: dist,
-                    statusAproximacao: dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe')
-                };
-                listaConfirmados.unshift(novo);
+            const novo = {
+                id: usuarioAtual.id || String(Date.now()),
+                nome: usuarioAtual.nome,
+                posicao: usuarioAtual.posicao || 'ATA',
+                condicao: usuarioAtual.condicao || 'excelente',
+                idade: usuarioAtual.idade || 28,
+                fitness: 95,
+                foto: usuarioAtual.foto || '',
+                hora: hora,
+                horaOnline: hora,
+                online: true,
+                statusPresenca: 'confirmado',
+                chegadaConfirmada: false,
+                distanciaMetros: dist,
+                statusAproximacao: dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe'),
+                entrouEm: Date.now(),
+                _notificadoToast: true
+            };
+
+            // Coloca SEMPRE na 1ª POSIÇÃO (índice 0)
+            listaConfirmados.unshift(novo);
+            if (novo.id) atletasConhecidosIds.add(String(novo.id));
+            if (novo.nome) atletasConhecidosIds.add(novo.nome.toLowerCase().trim());
+
+            // Dispara Toast de Online imediatamente
+            exibirToastJogadorOnline(novo, 'Você acabou de entrar na lista da pelada!');
+
+            // Notifica BroadcastChannel para outras abas locais
+            if (realtimeChannel) {
+                try {
+                    realtimeChannel.postMessage({
+                        type: 'JOGADOR_ONLINE',
+                        atleta: novo
+                    });
+                } catch(e) {}
             }
 
             renderizarListaJogadores();
@@ -2164,8 +2328,6 @@
             } else {
                 sincronizarServidor();
             }
-
-            alert(`⚽ 1ª Confirmação Realizada!\n\n${usuarioAtual.nome}, você está confirmado na Lista Oficial de Presença!\n\nRegra dos 500m:\nAo se aproximar do local da pelada (${peladaConfig.local}), surgirá o botão para você confirmar sua chegada no campo!`);
         }
 
         // 2ª CONFIRMAÇÃO: CONFIRMAR CHEGADA FÍSICA NO LOCAL (AO SE APROXIMAR <= 500 METROS)
@@ -2539,9 +2701,18 @@
                     distTexto = `<span class="text-red-500 font-bold">${km}</span>`;
                 }
 
+                const ehPrimeiraPosicao = (idx === 0);
+                const badgePrimeiraPosicao = ehPrimeiraPosicao
+                    ? `<span class="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase flex items-center gap-0.5 shadow-xs ring-1 ring-emerald-400 animate-pulse"><span class="w-1 h-1 rounded-full bg-white"></span> 1ª POSIÇÃO</span>`
+                    : '';
+
+                const destaquePrimeiro = ehPrimeiraPosicao
+                    ? 'ring-2 ring-emerald-500/50 bg-emerald-50/20'
+                    : '';
+
                 const cardClasses = ehUsuarioLogado
-                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${corBorda}`
-                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${corBorda}`;
+                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${corBorda} ${destaquePrimeiro}`
+                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${corBorda} ${destaquePrimeiro}`;
 
                 const badgeVoce = ehUsuarioLogado
                     ? `<span class="bg-primary text-white text-[8px] font-black px-1.5 py-0.2 rounded uppercase">VOCÊ</span>`
@@ -2550,14 +2721,15 @@
                 html += `
                     <article class="${cardClasses}">
                         <div class="w-5 flex justify-center">
-                            <span class="font-stat-lg ${ehUsuarioLogado ? 'text-primary font-black text-base' : 'text-secondary text-sm font-bold'}">${idx + 1}</span>
+                            <span class="font-stat-lg ${ehPrimeiraPosicao ? 'text-emerald-600 font-black text-base' : (ehUsuarioLogado ? 'text-primary font-black text-base' : 'text-secondary text-sm font-bold')}">${idx + 1}</span>
                         </div>
-                        <img class="w-9 h-9 rounded-full object-cover shadow-sm bg-surface-container ${ehUsuarioLogado ? 'border-2 border-primary ring-1 ring-primary/40' : 'border border-primary/15'} shrink-0" 
+                        <img class="w-9 h-9 rounded-full object-cover shadow-sm bg-surface-container ${ehPrimeiraPosicao ? 'border-2 border-emerald-500 ring-1 ring-emerald-400' : (ehUsuarioLogado ? 'border-2 border-primary ring-1 ring-primary/40' : 'border border-primary/15')} shrink-0" 
                              src="${fotoSrc}" alt="${j.nome}">
                         <div class="flex flex-col flex-1 min-w-0">
                             <div class="flex items-center gap-1 truncate">
-                                <h4 class="font-headline-md text-xs ${ehUsuarioLogado ? 'font-black text-on-surface' : 'font-bold text-on-surface'} truncate">${j.nome}</h4>
+                                <h4 class="font-headline-md text-xs ${ehPrimeiraPosicao || ehUsuarioLogado ? 'font-black text-on-surface' : 'font-bold text-on-surface'} truncate">${j.nome}</h4>
                                 ${badgeVoce}
+                                ${badgePrimeiraPosicao}
                                 <span class="${corBadge} text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider flex items-center gap-0.5 shrink-0">
                                     <span class="material-symbols-outlined text-[10px]">${iconeStatus}</span>${statusTexto}
                                 </span>
@@ -3316,14 +3488,21 @@
                        </button>`
                     : `<span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">✅ No Campo</span>`;
 
+                const ehPrimeiro = (idx === 0);
+                const badgePrimeiroAdmin = ehPrimeiro
+                    ? `<span class="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase flex items-center gap-0.5 shadow-xs ring-1 ring-emerald-400 animate-pulse"><span class="w-1 h-1 rounded-full bg-white"></span> 1ª POSIÇÃO</span>`
+                    : '';
+                const bgAdminCard = ehPrimeiro ? 'bg-emerald-50/50 ring-2 ring-emerald-500/40' : 'bg-surface';
+
                 html += `
-                    <div class="flex items-center justify-between p-2 rounded-xl bg-surface border border-surface-container-highest gap-2 ${borderLeft}">
+                    <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} ${bgAdminCard}">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
-                            <span class="w-4 text-center font-bold text-secondary text-xs shrink-0">${idx + 1}</span>
-                            <img src="${fotoSrc}" class="w-8 h-8 rounded-full object-cover border border-primary/20 shrink-0" alt="${j.nome}">
+                            <span class="w-4 text-center font-bold ${ehPrimeiro ? 'text-emerald-600 font-black text-sm' : 'text-secondary text-xs'} shrink-0">${idx + 1}</span>
+                            <img src="${fotoSrc}" class="w-8 h-8 rounded-full object-cover ${ehPrimeiro ? 'border-2 border-emerald-500 ring-1 ring-emerald-400' : 'border border-primary/20'} shrink-0" alt="${j.nome}">
                             <div class="flex flex-col min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5 truncate">
-                                    <span class="font-bold text-xs text-on-surface truncate">${j.nome}</span>
+                                    <span class="font-bold text-xs ${ehPrimeiro ? 'text-emerald-950 font-black' : 'text-on-surface'} truncate">${j.nome}</span>
+                                    ${badgePrimeiroAdmin}
                                     <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${corBadge} shrink-0">${labelStatus}</span>
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant flex items-center gap-1">

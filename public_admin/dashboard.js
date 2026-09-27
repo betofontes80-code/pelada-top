@@ -3,9 +3,155 @@ let peladaData = null;
 let configData = null;
 
 // ==============================================================
+// SISTEMA DE TOAST E NOTIFICAÇÃO ONLINE (ADMIN MASTER)
+// ==============================================================
+const atletasConhecidosAdmin = new Set();
+let adminInicializado = false;
+
+function tocarSomOnlineAdmin() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  } catch(e) {}
+}
+
+function exibirToastJogadorOnline(atleta, mensagem) {
+  if (!atleta || !atleta.nome) return;
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  tocarSomOnlineAdmin();
+  if ('vibrate' in navigator) {
+    try { navigator.vibrate([40, 60, 40]); } catch(e) {}
+  }
+
+  const toastId = 'toast-admin-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+  const foto = atleta.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+  const pos = atleta.posicao || 'ATA';
+  const nome = atleta.nome;
+  const hora = atleta.horaOnline || atleta.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const subtexto = mensagem || 'Acabou de entrar na lista da pelada!';
+
+  const toastEl = document.createElement('div');
+  toastEl.id = toastId;
+  toastEl.className = 'pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 shadow-2xl rounded-2xl p-3 flex items-center gap-3 transition-all duration-300 transform -translate-y-4 opacity-0 ring-2 ring-emerald-500/30 text-slate-100';
+  toastEl.innerHTML = `
+    <div class="relative shrink-0">
+      <img src="${foto}" class="w-11 h-11 rounded-full object-cover border-2 border-emerald-500 shadow-md" alt="${nome}">
+      <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 ring-1 ring-emerald-400 animate-ping"></span>
+      <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-1.5">
+        <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE AGORA
+        </span>
+        <span class="text-[9px] font-mono text-slate-400">${hora}</span>
+      </div>
+      <h4 class="font-bold text-xs text-white truncate mt-0.5">${nome} <span class="text-[10px] text-brand mono font-black">(${pos})</span></h4>
+      <p class="text-[11px] text-emerald-400 font-semibold truncate flex items-center gap-1">
+        <span>⚽ ${subtexto}</span>
+        <span class="text-[9px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded uppercase">1ª Posição</span>
+      </p>
+    </div>
+    <button onclick="removerToastAdmin('${toastId}')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 active:scale-95 shrink-0" title="Fechar">
+      <span class="material-symbols-outlined text-sm">close</span>
+    </button>
+  `;
+
+  container.appendChild(toastEl);
+
+  requestAnimationFrame(() => {
+    toastEl.classList.remove('-translate-y-4', 'opacity-0');
+    toastEl.classList.add('translate-y-0', 'opacity-100');
+  });
+
+  setTimeout(() => {
+    removerToastAdmin(toastId);
+  }, 4500);
+}
+
+function removerToastAdmin(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('-translate-y-2', 'opacity-0');
+    setTimeout(() => { if (el && el.parentElement) el.remove(); }, 300);
+  }
+}
+
+function verificarNovosJogadoresAdmin(atletas) {
+  if (!Array.isArray(atletas) || atletas.length === 0) return;
+
+  if (!adminInicializado) {
+    atletas.forEach(j => {
+      if (j.id) atletasConhecidosAdmin.add(String(j.id));
+      if (j.nome) atletasConhecidosAdmin.add(j.nome.toLowerCase().trim());
+    });
+    adminInicializado = true;
+    return;
+  }
+
+  // O jogador recém-chegado fica na 1ª POSIÇÃO (índice 0)
+  const primeiro = atletas[0];
+  if (primeiro) {
+    const idKey = primeiro.id ? String(primeiro.id) : null;
+    const nomeKey = primeiro.nome ? primeiro.nome.toLowerCase().trim() : null;
+    const ehConhecido = (idKey && atletasConhecidosAdmin.has(idKey)) && (nomeKey && atletasConhecidosAdmin.has(nomeKey));
+    const entrouAgora = primeiro.entrouEm && (Date.now() - primeiro.entrouEm < 20000);
+
+    if (!ehConhecido || (entrouAgora && !primeiro._notificadoAdminToast)) {
+      primeiro._notificadoAdminToast = true;
+      if (idKey) atletasConhecidosAdmin.add(idKey);
+      if (nomeKey) atletasConhecidosAdmin.add(nomeKey);
+
+      exibirToastJogadorOnline(primeiro, `${primeiro.nome} acabou de entrar na lista da pelada! (1ª Posição)`);
+    }
+  }
+}
+
+// Conecta SSE no painel master para resposta instantânea
+function conectarSseAdmin() {
+  try {
+    const sse = new EventSource('/api/stream');
+    sse.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
+          exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada! (1ª Posição)`);
+          carregarDadosPelada();
+        } else if (msg.type === 'SYNC') {
+          carregarDadosPelada();
+        }
+      } catch(err) {}
+    };
+  } catch(e) {}
+}
+
+// ==============================================================
 // 1. CARREGAMENTO INICIAL E SONDAGEM
 // ==============================================================
 async function carregarTudo() {
+  conectarSseAdmin();
   await Promise.all([
     carregarTelemetria(),
     carregarDadosPelada(),
@@ -62,6 +208,8 @@ async function carregarDadosPelada() {
 
     // Contadores
     const atletas = peladaData.listaConfirmados || [];
+    verificarNovosJogadoresAdmin(atletas);
+
     const kpiAtletas = document.getElementById('kpi-atletas-count');
     if (kpiAtletas) kpiAtletas.innerText = atletas.length;
 
@@ -190,6 +338,15 @@ function renderizarListaAtletas(atletas) {
   atletas.forEach((j, idx) => {
     const foto = j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
     
+    const ehPrimeiraPosicao = (idx === 0);
+    const badgePrimeiraPosicao = ehPrimeiraPosicao
+      ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded border bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-1 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 1ª POSIÇÃO • ONLINE AGORA</span>`
+      : '';
+
+    const cardBorda = ehPrimeiraPosicao
+      ? 'border-emerald-500/60 ring-2 ring-emerald-500/30 bg-emerald-950/20'
+      : 'border-borderLine bg-slate-900/80';
+
     // Cor da posição
     let corPos = 'bg-brand/10 text-brand border-brand/20';
     if (j.posicao === 'GOL') corPos = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
@@ -197,13 +354,14 @@ function renderizarListaAtletas(atletas) {
     if (j.posicao === 'ZAG' || j.posicao === 'VOL') corPos = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
 
     html += `
-      <div class="p-2.5 rounded-xl bg-slate-900/80 border border-borderLine flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all">
+      <div class="p-2.5 rounded-xl ${cardBorda} border flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <span class="w-5 text-center font-black text-slate-500 text-xs shrink-0">${idx + 1}</span>
-          <img src="${foto}" class="w-9 h-9 rounded-full object-cover border border-slate-700 shrink-0" alt="${j.nome}">
+          <span class="w-5 text-center font-black ${ehPrimeiraPosicao ? 'text-emerald-400 text-sm' : 'text-slate-500 text-xs'} shrink-0">${idx + 1}</span>
+          <img src="${foto}" class="w-9 h-9 rounded-full object-cover ${ehPrimeiraPosicao ? 'border-2 border-emerald-500 ring-1 ring-emerald-400' : 'border border-slate-700'} shrink-0" alt="${j.nome}">
           <div class="flex flex-col min-w-0 flex-1">
             <div class="flex items-center gap-1.5 truncate">
               <span class="font-bold text-slate-100 truncate">${j.nome}</span>
+              ${badgePrimeiraPosicao}
               <span class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${corPos}">${j.posicao || 'ATA'}</span>
             </div>
             <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">

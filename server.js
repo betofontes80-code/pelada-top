@@ -84,11 +84,12 @@ try {
   if (fs.existsSync(DATA_FILE)) {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    if (parsed.usuarios) appData.usuarios = parsed.usuarios;
-    if (parsed.jogadoresCadastrados && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = parsed.jogadoresCadastrados;
-    if (parsed.jogadoresCadastrados) appData.jogadoresCadastrados = parsed.jogadoresCadastrados;
-    if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
-    if (parsed.atletas) appData.atletas = parsed.atletas;
+    if (parsed.usuarios && parsed.usuarios.length) appData.usuarios = parsed.usuarios;
+    else if (parsed.jogadoresCadastrados) appData.usuarios = parsed.jogadoresCadastrados;
+    
+    if (parsed.listaConfirmados && parsed.listaConfirmados.length) appData.listaConfirmados = parsed.listaConfirmados;
+    else if (parsed.atletas) appData.listaConfirmados = parsed.atletas;
+
     if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
     if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
     if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
@@ -102,11 +103,12 @@ try {
     if (fs.existsSync(bundledFile)) {
       const raw = fs.readFileSync(bundledFile, 'utf8');
       const parsed = JSON.parse(raw);
-      if (parsed.usuarios) appData.usuarios = parsed.usuarios;
-      if (parsed.jogadoresCadastrados && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = parsed.jogadoresCadastrados;
-      if (parsed.jogadoresCadastrados) appData.jogadoresCadastrados = parsed.jogadoresCadastrados;
-      if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
-      if (parsed.atletas) appData.atletas = parsed.atletas;
+      if (parsed.usuarios && parsed.usuarios.length) appData.usuarios = parsed.usuarios;
+      else if (parsed.jogadoresCadastrados) appData.usuarios = parsed.jogadoresCadastrados;
+
+      if (parsed.listaConfirmados && parsed.listaConfirmados.length) appData.listaConfirmados = parsed.listaConfirmados;
+      else if (parsed.atletas) appData.listaConfirmados = parsed.atletas;
+
       if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
       if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
       if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
@@ -124,9 +126,19 @@ try {
   console.warn('[Realtime] Aviso ao carregar dados salvos:', e.message);
 }
 
-// Salvar no disco com tratamento seguro para Serverless
+// Salvar no disco com tratamento seguro para Serverless e preservação de todas as chaves
 function salvarDadosDisco() {
-  saveData(appData);
+  const dadosCompletos = {
+    usuarios: appData.usuarios || [],
+    jogadoresCadastrados: appData.usuarios || [],
+    listaConfirmados: appData.listaConfirmados || [],
+    atletas: appData.listaConfirmados || [],
+    peladaConfig: appData.peladaConfig,
+    escalacaoAtiva: appData.escalacaoAtiva,
+    partidaEstado: appData.partidaEstado,
+    version: appData.version
+  };
+  saveData(dadosCompletos);
 }
 
 // Conexões ativas de Server-Sent Events (SSE) para transmissão em tempo real
@@ -284,9 +296,6 @@ const requestHandler = (req, res) => {
         if (saved.escalacaoAtiva !== undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
         if (saved.partidaEstado !== undefined) appData.partidaEstado = saved.partidaEstado;
         if (saved.usuarios) appData.usuarios = saved.usuarios;
-        if (saved.jogadoresCadastrados && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = saved.jogadoresCadastrados;
-        if (saved.jogadoresCadastrados) appData.jogadoresCadastrados = saved.jogadoresCadastrados;
-        if (saved.atletas) appData.atletas = saved.atletas;
         if (saved.version) appData.version = saved.version;
       } catch (e) {}
 
@@ -511,20 +520,59 @@ const requestHandler = (req, res) => {
           try {
             const saved = loadData();
             if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+            if (saved.usuarios) appData.usuarios = saved.usuarios;
           } catch (e) {}
           if (!appData.listaConfirmados) appData.listaConfirmados = [];
-          const idx = appData.listaConfirmados.findIndex(j => String(j.id) === String(payload.id));
+
+          const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const idx = appData.listaConfirmados.findIndex(j => 
+            (payload.id && String(j.id) === String(payload.id)) ||
+            (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+          );
+
+          let atletaSalvo;
           if (idx >= 0) {
-            appData.listaConfirmados[idx] = { ...appData.listaConfirmados[idx], ...payload };
+            const [antigo] = appData.listaConfirmados.splice(idx, 1);
+            atletaSalvo = {
+              ...antigo,
+              ...payload,
+              online: true,
+              horaOnline: horaAgora,
+              entrouEm: Date.now()
+            };
           } else {
-            appData.listaConfirmados.push(payload);
+            atletaSalvo = {
+              id: payload.id || ('jog_' + Date.now()),
+              nome: payload.nome || 'Novo Atleta',
+              posicao: payload.posicao || 'ATA',
+              condicao: payload.condicao || 'excelente',
+              idade: payload.idade || 28,
+              fitness: payload.fitness || 90,
+              foto: payload.foto || '',
+              online: true,
+              hora: horaAgora,
+              horaOnline: horaAgora,
+              statusPresenca: 'confirmado',
+              chegadaConfirmada: false,
+              entrouEm: Date.now()
+            };
           }
+
+          // Coloca sempre na 1ª POSIÇÃO para os donos do app
+          appData.listaConfirmados.unshift(atletaSalvo);
           appData.version = Date.now();
           salvarDadosDisco();
+
+          broadcastSse('JOGADOR_ONLINE', {
+            atleta: atletaSalvo,
+            mensagem: `${atletaSalvo.nome} acabou de entrar na lista da pelada!`,
+            listaConfirmados: appData.listaConfirmados,
+            version: appData.version
+          });
           broadcastSse('SYNC', appData);
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: true }));
+        res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados, version: appData.version }));
       });
       return;
     }
@@ -555,14 +603,84 @@ const requestHandler = (req, res) => {
           try {
             const saved = loadData();
             if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+            if (saved.usuarios) appData.usuarios = saved.usuarios;
           } catch (e) {}
           if (!appData.listaConfirmados) appData.listaConfirmados = [];
-          const idx = appData.listaConfirmados.findIndex(j => String(j.id) === String(payload.id));
-          if (idx >= 0) {
-            appData.listaConfirmados[idx] = { ...appData.listaConfirmados[idx], ...payload };
+
+          const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+          if (pathname === '/api/pelada/confirmar-chegada') {
+            // Confirmação de chegada no local (<= 500m)
+            const idx = appData.listaConfirmados.findIndex(j => 
+              (payload.id && String(j.id) === String(payload.id)) ||
+              (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+            );
+            if (idx >= 0) {
+              appData.listaConfirmados[idx] = {
+                ...appData.listaConfirmados[idx],
+                ...payload,
+                chegadaConfirmada: true,
+                statusPresenca: 'chegou',
+                statusAproximacao: 'chegou',
+                horaChegada: horaAgora
+              };
+            }
           } else {
-            appData.listaConfirmados.push(payload);
+            // 1ª Confirmação: Entrar na Lista da Pelada (coloca na 1ª POSIÇÃO)
+            const usuarioBase = (appData.usuarios || []).find(u => 
+              (payload.id && String(u.id) === String(payload.id)) ||
+              (payload.nome && (u.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+            );
+
+            const idx = appData.listaConfirmados.findIndex(j => 
+              (payload.id && String(j.id) === String(payload.id)) ||
+              (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+            );
+
+            let atletaFinal;
+            if (idx >= 0) {
+              const [antigo] = appData.listaConfirmados.splice(idx, 1);
+              atletaFinal = {
+                ...antigo,
+                ...(usuarioBase || {}),
+                ...payload,
+                online: true,
+                statusPresenca: 'confirmado',
+                hora: antigo.hora || horaAgora,
+                horaOnline: horaAgora,
+                entrouEm: Date.now()
+              };
+            } else {
+              atletaFinal = {
+                id: payload.id || (usuarioBase ? usuarioBase.id : ('jog_' + Date.now())),
+                nome: payload.nome || (usuarioBase ? usuarioBase.nome : 'Jogador'),
+                posicao: payload.posicao || (usuarioBase ? usuarioBase.posicao : 'MEI'),
+                condicao: payload.condicao || (usuarioBase ? usuarioBase.condicao : 'excelente'),
+                idade: payload.idade || (usuarioBase ? usuarioBase.idade : 28),
+                fitness: payload.fitness || (usuarioBase ? usuarioBase.fitness : 90),
+                foto: payload.foto || (usuarioBase ? usuarioBase.foto : ''),
+                online: true,
+                statusPresenca: 'confirmado',
+                chegadaConfirmada: false,
+                distanciaMetros: payload.distanciaMetros !== undefined ? payload.distanciaMetros : null,
+                hora: horaAgora,
+                horaOnline: horaAgora,
+                entrouEm: Date.now()
+              };
+            }
+
+            // Coloca o atleta na 1ª POSIÇÃO (índice 0)
+            appData.listaConfirmados.unshift(atletaFinal);
+
+            // Transmite evento específico de jogador online para todos os donos e participantes
+            broadcastSse('JOGADOR_ONLINE', {
+              atleta: atletaFinal,
+              mensagem: `${atletaFinal.nome} acabou de entrar na lista da pelada!`,
+              listaConfirmados: appData.listaConfirmados,
+              version: appData.version
+            });
           }
+
           appData.version = Date.now();
           salvarDadosDisco();
           broadcastSse('SYNC', appData);

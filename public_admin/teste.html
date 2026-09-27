@@ -16,6 +16,9 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-full pb-12 antialiased select-none">
 
+  <!-- CONTAINER FLUTUANTE DE TOAST DE JOGADOR ONLINE (PÁGINA DE TESTES) -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
   <!-- CABEÇALHO -->
   <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/60 sticky top-0 z-30 px-4 py-3">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
@@ -1336,9 +1339,104 @@
       });
     }
 
+    // ==============================================================
+    // SISTEMA DE TOAST E NOTIFICAÇÃO ONLINE NA PÁGINA DE TESTES
+    // ==============================================================
+    function tocarSomOnlineTeste() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch(e) {}
+    }
+
+    function exibirToastJogadorOnline(atleta, mensagem) {
+      if (!atleta || !atleta.nome) return;
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      tocarSomOnlineTeste();
+      if ('vibrate' in navigator) {
+        try { navigator.vibrate([40, 60, 40]); } catch(e) {}
+      }
+
+      const toastId = 'toast-teste-' + Date.now();
+      const foto = atleta.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
+      const pos = atleta.posicao || 'ATA';
+      const nome = atleta.nome;
+      const hora = atleta.horaOnline || atleta.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const subtexto = mensagem || 'Acabou de entrar na lista da pelada!';
+
+      const toastEl = document.createElement('div');
+      toastEl.id = toastId;
+      toastEl.className = 'pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 shadow-2xl rounded-2xl p-3 flex items-center gap-3 transition-all duration-300 transform -translate-y-4 opacity-0 ring-2 ring-emerald-500/30 text-slate-100';
+      toastEl.innerHTML = `
+        <div class="relative shrink-0">
+          <img src="${foto}" class="w-11 h-11 rounded-full object-cover border-2 border-emerald-500 shadow-md" alt="${nome}">
+          <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 ring-1 ring-emerald-400 animate-ping"></span>
+          <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE AGORA
+            </span>
+            <span class="text-[9px] font-mono text-slate-400">${hora}</span>
+          </div>
+          <h4 class="font-bold text-xs text-white truncate mt-0.5">${nome} <span class="text-[10px] text-red-400 mono font-black">(${pos})</span></h4>
+          <p class="text-[11px] text-emerald-400 font-semibold truncate flex items-center gap-1">
+            <span>⚽ ${subtexto}</span>
+            <span class="text-[9px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded uppercase">1ª Posição</span>
+          </p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 active:scale-95 shrink-0" title="Fechar">
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      `;
+
+      container.appendChild(toastEl);
+      requestAnimationFrame(() => {
+        toastEl.classList.remove('-translate-y-4', 'opacity-0');
+        toastEl.classList.add('translate-y-0', 'opacity-100');
+      });
+      setTimeout(() => {
+        toastEl.classList.add('-translate-y-2', 'opacity-0');
+        setTimeout(() => { if (toastEl.parentElement) toastEl.remove(); }, 300);
+      }, 4500);
+    }
+
+    function conectarSseTeste() {
+      try {
+        const sse = new EventSource('/api/stream');
+        sse.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
+              exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada! (1ª Posição)`);
+              carregarStatusInicial();
+            }
+          } catch(err) {}
+        };
+      } catch(e) {}
+    }
+
     // Inicialização automática
     carregarStatusInicial();
     executarTestePing();
+    conectarSseTeste();
   </script>
 </body>
 </html>
