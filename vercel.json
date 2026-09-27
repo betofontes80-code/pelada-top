@@ -2,8 +2,24 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/server.js"
+      "source": "/api/stream",
+      "destination": "/api/stream.js"
+    },
+    {
+      "source": "/api/realtime",
+      "destination": "/api/realtime.js"
+    },
+    {
+      "source": "/api/pelada",
+      "destination": "/api/pelada.js"
+    },
+    {
+      "source": "/api",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
     }
   ]
 }
