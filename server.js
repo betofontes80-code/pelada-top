@@ -219,8 +219,8 @@ const requestHandler = (req, res) => {
     const parsedUrl = new URL(req.url, `http://${hostHeader || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
-    // 1. API: Obter estado atual em tempo real
-    if ((pathname === '/api/pelada' || pathname === '/api/index.js' || pathname === '/api' || pathname.startsWith('/api/')) && req.method === 'GET' && pathname !== '/api/stream' && pathname !== '/api/realtime') {
+    // 1. API principal: /api ou /api/pelada
+    if ((pathname === '/api' || pathname === '/api/pelada') && req.method === 'GET') {
       try {
         const saved = loadData();
         if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
@@ -229,13 +229,13 @@ const requestHandler = (req, res) => {
         if (saved.partidaEstado !== undefined) appData.partidaEstado = saved.partidaEstado;
         if (saved.version) appData.version = saved.version;
       } catch (e) {}
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(appData));
       return;
     }
 
-    // 2. API: Atualizar estado (Check-in, edição de atleta, exclusão, trava)
-    if ((pathname === '/api/pelada' || pathname === '/api/index.js' || pathname === '/api' || pathname.startsWith('/api/')) && req.method === 'POST') {
+    if ((pathname === '/api' || pathname === '/api/pelada') && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -256,10 +256,9 @@ const requestHandler = (req, res) => {
           if (payload.partidaEstado !== undefined) {
             appData.partidaEstado = payload.partidaEstado;
           }
+
           appData.version = Date.now();
           salvarDadosDisco();
-
-          // Notifica participantes conectados instantaneamente via SSE
           broadcastSse('SYNC', appData);
 
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -272,7 +271,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 3. API: Transmissão em tempo real Server-Sent Events (SSE)
+    // 2. SSE: /api/stream ou /api/realtime
     if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -280,17 +279,17 @@ const requestHandler = (req, res) => {
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*'
       });
-      res.write(`data: ${JSON.stringify({ 
-        type: 'CONNECTED', 
-        version: appData.version, 
-        listaConfirmados: appData.listaConfirmados, 
+
+      res.write(`data: ${JSON.stringify({
+        type: 'CONNECTED',
+        version: appData.version,
+        listaConfirmados: appData.listaConfirmados,
         peladaConfig: appData.peladaConfig,
         escalacaoAtiva: appData.escalacaoAtiva,
         partidaEstado: appData.partidaEstado
       })}\n\n`);
 
       if (IS_VERCEL) {
-        // Encerra imediatamente na Vercel para impedir Timeout 504 de 300 segundos
         res.end();
         return;
       }
@@ -303,7 +302,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 4. Arquivos Estáticos (HTML, JS, CSS, Ícones, Imagens)
+    // 3. Arquivos estáticos
     let reqPath = pathname;
     if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
 
@@ -316,6 +315,7 @@ const requestHandler = (req, res) => {
           const ext = path.extname(filePath).toLowerCase();
           const contentType = MIME_TYPES[ext] || 'application/octet-stream';
           const fileData = fs.readFileSync(filePath);
+
           res.writeHead(200, {
             'Content-Type': contentType,
             'Service-Worker-Allowed': '/'
@@ -328,7 +328,7 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // Fallback: se for navegação e não encontrou, tenta index.html
+    // Fallback para SPA
     const indexPath = path.join(__dirname, 'index.html');
     if (fs.existsSync(indexPath)) {
       try {
