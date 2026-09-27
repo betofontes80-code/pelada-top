@@ -4,9 +4,8 @@ const path = require('path');
 const os = require('os');
 
 const PORT = process.env.PORT || 8080;
-
 // Define o diretório de dados correto para a Vercel (/tmp) ou local (__dirname)
-const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_ENV;
+const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_ENV || !!process.env.AWS_REGION || !!process.env.LAMBDA_TASK_ROOT;
 const IS_VERCEL = isVercel;
 const DATA_FILE = path.join(isVercel ? '/tmp' : __dirname, 'pelada-dados.json');
 
@@ -16,7 +15,6 @@ function loadData() {
     if (fs.existsSync(DATA_FILE)) {
       return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     }
-    // Fallback: se estiver na Vercel e ainda não existir no /tmp, lê o arquivo empacotado da raiz
     if (isVercel) {
       const bundledFile = path.join(__dirname, 'pelada-dados.json');
       if (fs.existsSync(bundledFile)) {
@@ -26,7 +24,7 @@ function loadData() {
   } catch (e) {
     console.error("Erro ao ler dados:", e);
   }
-  return {}; // Retorna estrutura padrão vazia se não existir
+  return {};
 }
 
 // Função de escrita segura em /tmp
@@ -72,22 +70,47 @@ let appData = {
   version: Date.now()
 };
 
-function carregarDadosSalvos() {
-  try {
-    const saved = loadData();
-    if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
-    if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
-    if (saved.escalacaoAtiva !== undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
-    if (saved.partidaEstado !== undefined) appData.partidaEstado = saved.partidaEstado;
-    if (saved.version) appData.version = saved.version;
-  } catch (e) {
-    console.warn('[Realtime] Aviso ao carregar dados salvos:', e.message);
+// Carregar dados salvos com proteção e fallback
+try {
+  let carregou = false;
+
+  // 1. Tenta ler o arquivo de dados (no /tmp na Vercel ou local)
+  if (fs.existsSync(DATA_FILE)) {
+    const raw = fs.readFileSync(DATA_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
+    if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
+    if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
+    if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
+    if (parsed.version) appData.version = parsed.version;
+    carregou = true;
   }
+
+  // 2. Se na Vercel e ainda não existe em /tmp, lê o arquivo empacotado da raiz
+  if (!carregou && IS_VERCEL) {
+    const bundledFile = path.join(__dirname, 'pelada-dados.json');
+    if (fs.existsSync(bundledFile)) {
+      const raw = fs.readFileSync(bundledFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
+      if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
+      if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
+      if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
+      if (parsed.version) appData.version = parsed.version;
+      carregou = true;
+    }
+  }
+
+  if (carregou) {
+    console.log('[Realtime] Dados da pelada carregados com sucesso.');
+  } else {
+    salvarDadosDisco();
+  }
+} catch (e) {
+  console.warn('[Realtime] Aviso ao carregar dados salvos:', e.message);
 }
 
-// Carga inicial
-carregarDadosSalvos();
-
+// Salvar no disco com tratamento seguro para Serverless
 function salvarDadosDisco() {
   saveData(appData);
 }
@@ -198,7 +221,6 @@ const requestHandler = (req, res) => {
 
     // 1. API: Obter estado atual em tempo real
     if (pathname === '/api/pelada' && req.method === 'GET') {
-      carregarDadosSalvos();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(appData));
       return;
@@ -227,7 +249,7 @@ const requestHandler = (req, res) => {
             appData.partidaEstado = payload.partidaEstado;
           }
           appData.version = Date.now();
-          saveData(appData);
+          salvarDadosDisco();
 
           // Notifica participantes conectados instantaneamente via SSE
           broadcastSse('SYNC', appData);
@@ -243,7 +265,7 @@ const requestHandler = (req, res) => {
     }
 
     // 3. API: Transmissão em tempo real Server-Sent Events (SSE)
-    if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
+        if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
@@ -259,7 +281,7 @@ const requestHandler = (req, res) => {
         partidaEstado: appData.partidaEstado
       })}\n\n`);
 
-      if (isVercel) {
+      if (IS_VERCEL) {
         // Encerra imediatamente na Vercel para impedir Timeout 504 de 300 segundos
         res.end();
         return;
@@ -326,7 +348,7 @@ const requestHandler = (req, res) => {
 const server = http.createServer(requestHandler);
 
 // Execução local tradicional (inicia porta apenas quando executado diretamente e fora da Vercel)
-if (require.main === module && !isVercel) {
+if (require.main === module && !IS_VERCEL) {
   server.listen(PORT, '0.0.0.0', () => {
     const localIp = getLocalIp();
     console.log('====================================================');
@@ -343,6 +365,7 @@ if (require.main === module && !isVercel) {
 const vercelHandler = (req, res) => {
   return requestHandler(req, res);
 };
+// Removido para manter Function.prototype.apply funcional
 
 module.exports = vercelHandler;
 module.exports.default = vercelHandler;
