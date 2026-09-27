@@ -1,6 +1,7 @@
+const serverHandler = require('../server.js');
+
+// Mantém o endpoint SSE no mesmo handler usado localmente e evita
+// responder com JSON antes que a lógica de realtime seja executada.
 module.exports = (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.writeHead(200);
-  res.end(JSON.stringify({ status: 'ok' }));
+  return serverHandler(req, res);
 };
