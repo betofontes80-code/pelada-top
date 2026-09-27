@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full">
+<html lang="pt-BR" class="dark h-full">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" name="viewport"/>
@@ -7,9 +7,9 @@
 
     <!-- PWA & MOBILE CONFIGURATION (ANDROID, IOS, WINDOWS) -->
     <link rel="manifest" href="./manifest.json"/>
-    <meta name="theme-color" content="#dd0000"/>
+    <meta name="theme-color" content="#131313"/>
     <meta name="mobile-web-app-capable" content="yes"/>
-    <meta name="color-scheme" content="light"/>
+    <meta name="color-scheme" content="dark"/>
 
 
 
@@ -41,29 +41,33 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#af0000",
+                        "primary": "#dd0000",
                         "primary-container": "#dd0000",
                         "primary-fixed": "#ffdad4",
                         "on-primary": "#ffffff",
-                        "surface": "#f9f9f9",
-                        "background": "#f9f9f9",
-                        "on-background": "#1a1c1c",
-                        "on-surface": "#1a1c1c",
-                        "on-surface-variant": "#5e3f3a",
-                        "surface-container-lowest": "#ffffff",
-                        "surface-container-low": "#f3f3f4",
-                        "surface-container": "#eeeeee",
-                        "surface-container-high": "#e8e8e8",
-                        "surface-container-highest": "#e2e2e2",
-                        "surface-variant": "#e2e2e2",
-                        "surface-faint": "#f8f8f8",
-                        "surface-tint": "#c00000",
-                        "success-green": "#008542",
+                        "surface": "#131313",
+                        "surface-dim": "#131313",
+                        "surface-bright": "#393939",
+                        "background": "#131313",
+                        "on-background": "#e5e2e1",
+                        "on-surface": "#e5e2e1",
+                        "on-surface-variant": "#b3b3b3",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container": "#201f1f",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-container-highest": "#353534",
+                        "surface-variant": "#2a2a2a",
+                        "surface-faint": "#1a1a1a",
+                        "surface-tint": "#dd0000",
+                        "success-green": "#10b981",
                         "warning-amber": "#ffbf00",
-                        "secondary": "#5f5e5e",
-                        "tertiary": "#555555",
-                        "tertiary-container": "#6d6d6d",
-                        "outline-variant": "#e9bcb5"
+                        "secondary": "#c6c6c6",
+                        "tertiary": "#c6c6c7",
+                        "tertiary-container": "#6c6e6e",
+                        "outline": "#454545",
+                        "outline-variant": "#2e2d2d",
+                        "pitch-line": "#2e2d2d"
                     },
                     borderRadius: {
                         "DEFAULT": "0.25rem",
@@ -94,8 +98,8 @@
             overflow: hidden;
             overscroll-behavior: none;
             -webkit-tap-highlight-color: transparent;
-            background-color: #f9f9f9;
-            color: #1a1c1c;
+            background-color: #131313;
+            color: #e5e2e1;
         }
         .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px); }
         .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 6px); }
@@ -105,11 +109,11 @@
         /* Barra de rolagem elegante e funcional para Windows, macOS e Linux */
         * {
             scrollbar-width: thin;
-            scrollbar-color: #d1d5db transparent;
+            scrollbar-color: #353534 transparent;
         }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #454545; }
         ::-webkit-scrollbar-track { background: transparent; }
 
         button, a, input, select {
@@ -118,7 +122,7 @@
         .tab-view { display: none; }
         .tab-view.active { display: flex; }
         body:not(:has(.tab-view.active)) #view-login { display: flex !important; }
-        .nav-link.active { color: #af0000; font-weight: bold; }
+        .nav-link.active { color: #dd0000; font-weight: bold; }
         .nav-link.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
         @keyframes fade-in-up {
             0% { opacity: 0; transform: translateY(8px); }
