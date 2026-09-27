@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pelada Top - Painel Master Administrativo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Anybody"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            surface: {
+              base: '#131313',
+              card: '#1c1b1b',
+              elevated: '#252424',
+              highlight: '#2f2e2e',
+            },
+            brand: {
+              red: '#dd0000',
+              redHover: '#bb0000',
+              emerald: '#10b981',
+              emeraldDark: '#0d1f16',
+              purple: '#a855f7',
+              blue: '#3b82f6',
+              amber: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.15); }
+    }
+    .animate-pulse-dot {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #131313;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2f2e2e;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #dd0000;
+    }
+  </style>
+</head>
+<body class="bg-[#131313] text-gray-200 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
+
+  <!-- 1. STICKY HEADER BAR -->
+  <header class="sticky top-0 z-50 bg-[#171616]/95 backdrop-blur border-b border-[#2a2929] px-6 py-3.5 flex items-center justify-between">
+    <!-- Left: Brand, Admin Badge & Live Status -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="relative w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-[#990000] p-1 flex items-center justify-center shadow-lg shadow-red-900/40 border border-red-500/40">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1Vth7U0s_B4RxGgSAW8YArOhxnHSUkwF_HHWE2BbR992Fo80eCH_f-DB9WKZdRSKcUznq7Sy_ECb2ViS0SEAnvyBCClIBhWWUutHXpGL30Y7olE4bU4rTYYoAkSl6XmE0H_Y1lHG48qdqA0AY1CGxVXMgPJcTisAer7jGJYOtHZmTu4AJssd9l6K3zeBjtUfy3mc4GTR00MKvVoU3011Mt6Xz7gW_2UGvFRkRASbGBCGohOzlYnuv5PHf6wZNoHxmmiof-zG1xVqw" alt="Pelada Top" class="w-full h-full object-contain rounded-lg">
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display font-extrabold text-xl tracking-tight text-white uppercase">Pelada Top</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider rounded border border-red-600/80 text-red-500 bg-red-950/40 uppercase">ADMIN MASTER</span>
+          </div>
+          <div class="text-[11px] text-gray-400 flex items-center gap-2">
+            <span>Sistema Central de Gestão & Sorteio Society</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Server IP Chip -->
+      <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#201f1f] border border-[#2e2d2d]">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        <span class="text-xs text-gray-400 font-mono">IP:</span>
+        <span class="text-xs font-mono font-semibold text-emerald-400">192.168.1.100:8080</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 font-mono font-semibold ml-1">SSE ATIVO</span>
+      </div>
+    </div>
+
+    <!-- Right: Quick Action Buttons -->
+    <div class="flex items-center gap-2.5">
+      <!-- Página de Teste (Emerald) -->
+      <button onclick="alert('Redirecionando para o Console de Testes e Ping de Diagnóstico...')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold font-sans tracking-wide transition-all active:scale-95">
+        <span class="material-icons text-base">build_circle</span>
+        <span>Página de Teste</span>
+      </button>
+
+      <!-- Master Lock Toggle (Lista Aberta) -->
+      <button id="btnLockToggle" onclick="toggleLockState()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-sans tracking-wide transition-all active:scale-95 shadow-md shadow-emerald-950/40">
+        <span class="material-icons text-base" id="lockIcon">lock_open</span>
+        <span id="lockText">LISTA ABERTA</span>
+      </button>
+
+      <!-- Ver App (Slate) -->
+      <button onclick="alert('Abrindo visualização mobile da Lista de Jogadores...')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#282727] hover:bg-[#323131] text-gray-300 border border-[#3b3a3a] text-xs font-bold font-sans tracking-wide transition-all active:scale-95">
+        <span class="material-icons text-base">open_in_new</span>
+        <span class="hidden sm:inline">Ver App</span>
+      </button>
+
+      <!-- Refresh Icon Button -->
+      <button onclick="refreshDashboard()" title="Atualizar Métricas" class="p-2 rounded-lg bg-[#201f1f] hover:bg-[#2c2b2b] text-gray-400 hover:text-white border border-[#2e2d2d] transition-all active:rotate-180">
+        <span class="material-icons text-base block">refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <main class="flex-1 max-w-[1560px] w-full mx-auto p-6 space-y-6">
+
+    <!-- 2. HERO SHARING BANNER -->
+    <section class="rounded-xl bg-[#0d1f16] border border-emerald-500/30 shadow-xl shadow-emerald-950/20 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-display font-bold text-base text-white tracking-wide">Link Online Para Qualquer Celular (4G / 5G / Qualquer Wi-Fi)</span>
+          <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">HTTPS SEGURO</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-gray-400">
+          <span>Distribua para os jogadores realizarem o check-in geolocalizado a até 500m da arena:</span>
+        </div>
+        <div class="pt-1">
+          <span id="publicUrl" class="font-mono text-sm md:text-base font-semibold text-emerald-300 bg-black/40 px-3 py-1.5 rounded-lg border border-emerald-900/60 inline-block tracking-tight select-all">
+            https://peladatop.app/live/society-ouro-994
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 w-full md:w-auto">
+        <button onclick="copyShareLink()" class="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider transition-all shadow-lg shadow-emerald-950/40 active:scale-95">
+          <span class="material-icons text-base">content_copy</span>
+          <span>Copiar Link WhatsApp</span>
+        </button>
+        <button onclick="toggleQrModal()" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#14281e] hover:bg-[#1a3528] text-emerald-300 border border-emerald-500/40 font-bold text-xs tracking-wider transition-all active:scale-95">
+          <span class="material-icons text-base">qr_code_2</span>
+          <span>QR Code</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. ROW OF 4 KPI TELEMETRY CARDS -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Card 1: Vestiário / Check-in -->
+      <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-4 flex flex-col justify-between hover:border-[#383737] transition-all group">
+        <div class="flex items-center justify-between text-gray-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Vestiário / Check-in</span>
+          <span class="material-icons text-xl text-emerald-400 bg-emerald-950/40 p-1.5 rounded-lg border border-emerald-800/40">meeting_room</span>
+        </div>
+        <div>
+          <div class="font-display font-black text-3xl text-emerald-400 tracking-tight flex items-baseline gap-2">
+            <span>ABERTO</span>
+            <span class="text-xs font-sans font-medium text-gray-400">GPS 500m</span>
+          </div>
+          <p class="text-[11px] text-gray-500 mt-1">Jogadores confirmando presença</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Atletas Confirmados -->
+      <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-4 flex flex-col justify-between hover:border-[#383737] transition-all group">
+        <div class="flex items-center justify-between text-gray-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Atletas Confirmados</span>
+          <span class="material-icons text-xl text-purple-400 bg-purple-950/40 p-1.5 rounded-lg border border-purple-800/40">groups</span>
+        </div>
+        <div>
+          <div class="font-display font-black text-3xl text-purple-400 tracking-tight flex items-baseline gap-2">
+            <span>16 / 24</span>
+            <span class="text-xs font-mono font-medium text-gray-400">(66% da cota)</span>
+          </div>
+          <div class="w-full bg-[#2a2929] rounded-full h-1.5 mt-2 overflow-hidden">
+            <div class="bg-purple-500 h-1.5 rounded-full" style="width: 66.6%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Celulares Conectados -->
+      <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-4 flex flex-col justify-between hover:border-[#383737] transition-all group">
+        <div class="flex items-center justify-between text-gray-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Celulares Conectados</span>
+          <span class="material-icons text-xl text-blue-400 bg-blue-950/40 p-1.5 rounded-lg border border-blue-800/40">cell_tower</span>
+        </div>
+        <div>
+          <div class="font-display font-black text-3xl text-blue-400 tracking-tight flex items-baseline gap-2">
+            <span>8 Ativos</span>
+            <span class="text-xs font-mono text-gray-400">SSE Feed</span>
+          </div>
+          <p class="text-[11px] text-gray-500 mt-1">Conexões simultâneas no cluster</p>
+        </div>
+      </div>
+
+      <!-- Card 4: Saúde do Servidor -->
+      <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-4 flex flex-col justify-between hover:border-[#383737] transition-all group">
+        <div class="flex items-center justify-between text-gray-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saúde do Servidor</span>
+          <span class="material-icons text-xl text-emerald-400 bg-emerald-950/40 p-1.5 rounded-lg border border-emerald-800/40">memory</span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between font-mono text-sm">
+            <span class="text-gray-400 text-xs">Memória RAM:</span>
+            <span class="text-emerald-400 font-bold">42 MB / 512 MB</span>
+          </div>
+          <div class="flex items-center justify-between font-mono text-sm">
+            <span class="text-gray-400 text-xs">Tempo Ativo:</span>
+            <span class="text-white font-bold">2h 45m</span>
+          </div>
+          <div class="text-[10px] text-gray-500 pt-0.5">Daemon Node/Go com resposta instantânea</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MAIN 2-COLUMN GRID (12 COLUMNS) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN (7 COLS) - ATHLETE MANAGEMENT -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Card: Gerenciar Atletas Confirmados -->
+        <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] overflow-hidden shadow-lg">
+          <!-- Card Header -->
+          <div class="p-4 sm:p-5 border-b border-[#2b2a2a] flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3">
+              <span class="font-display font-bold text-lg text-white">Gerenciar Atletas Confirmados</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#282727] text-gray-300 border border-[#383737]">
+                16 atletas
+              </span>
+            </div>
+            <button onclick="openAddAthleteModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold tracking-wide transition-all shadow-md shadow-red-950/40 active:scale-95">
+              <span class="material-icons text-base">person_add</span>
+              <span>+ Adicionar Atleta</span>
+            </button>
+          </div>
+
+          <!-- Quick Filters Bar -->
+          <div class="px-4 py-2.5 bg-[#171616] border-b border-[#262525] flex items-center justify-between text-xs text-gray-400 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold text-gray-400 uppercase">Filtrar:</span>
+              <button class="px-2 py-0.5 rounded bg-red-600/20 text-red-400 border border-red-600/40 font-bold">Todos (16)</button>
+              <button class="px-2 py-0.5 rounded bg-[#201f1f] hover:bg-[#282727] text-gray-400 border border-[#302f2f]">No Campo (12)</button>
+              <button class="px-2 py-0.5 rounded bg-[#201f1f] hover:bg-[#282727] text-gray-400 border border-[#302f2f]">A Caminho (4)</button>
+            </div>
+            <div class="flex items-center gap-1 text-[11px] text-gray-400 font-mono">
+              <span class="material-icons text-xs text-emerald-400">gps_fixed</span>
+              <span>Regra de Geofence: 500m</span>
+            </div>
+          </div>
+
+          <!-- Athletes Table / Rows -->
+          <div class="divide-y divide-[#262525] max-h-[480px] overflow-y-auto" id="athletesList">
+            
+            <!-- Row 1: Lucas Silva -->
+            <div class="p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-[#222121] transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1VrhEFk-HO99F12v8qm3CRuI2rDgyBJbHrm06XRxdkHWcs0fNDSpiEZmuLosUgazOlDprObHI7ix8WsskLP5GshWKgh53U9WUgdbXCHDsI3tcWP8hi0KCMrU8XrYp-KoWKzmf6OzI06q4119X5zflahpgB--Dwcz7Deh45h26Czv5zHxEXOscRhiiy0LnYkpNdjbUAeH0Mfzu_TPrs4AkbdZuuq11DEW3MJFZPcxUKM_uaHnsdIN8b7aQ" alt="Lucas Silva" class="w-10 h-10 rounded-full object-cover border border-emerald-500/60 ring-2 ring-emerald-500/20">
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#1c1b1b]" title="Presente"></span>
+                </div>
+                <div class="truncate">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-white font-sans tracking-tight truncate">Lucas Silva (Capitão)</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950/60 text-blue-400 border border-blue-800/40">MEI</span>
+                    <span class="text-[11px] text-emerald-400 font-mono font-semibold">★ 98% Fit</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                    <span>Check-in: 19:12:04</span>
+                    <span>•</span>
+                    <span class="text-gray-400">Ordem #1</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  No Campo (&le;500m)
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="editAthlete('Lucas Silva')" title="Editar Atleta" class="p-1.5 rounded bg-[#282727] hover:bg-[#333232] text-gray-300 hover:text-white transition-all">
+                    <span class="material-icons text-sm block">edit</span>
+                  </button>
+                  <button onclick="removeAthlete('Lucas Silva')" title="Remover da Pelada" class="p-1.5 rounded bg-[#282727] hover:bg-red-950 text-gray-400 hover:text-red-400 transition-all">
+                    <span class="material-icons text-sm block">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Marcos Vinicius (Goleiro) -->
+            <div class="p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-[#222121] transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-amber-700 to-amber-900 flex items-center justify-center font-bold text-white text-xs border border-amber-500/40">
+                  MV
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#1c1b1b]"></span>
+                </div>
+                <div class="truncate">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-white font-sans tracking-tight truncate">Marcos Vinicius</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/60 text-amber-400 border border-amber-800/40">GOL 🧤</span>
+                    <span class="text-[11px] text-gray-400 font-mono">92% Fit</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                    <span>Check-in: 19:14:20</span>
+                    <span>•</span>
+                    <span class="text-gray-400">Ordem #2</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  No Campo (&le;500m)
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="editAthlete('Marcos Vinicius')" class="p-1.5 rounded bg-[#282727] hover:bg-[#333232] text-gray-300">
+                    <span class="material-icons text-sm block">edit</span>
+                  </button>
+                  <button onclick="removeAthlete('Marcos Vinicius')" class="p-1.5 rounded bg-[#282727] hover:bg-red-950 text-gray-400 hover:text-red-400">
+                    <span class="material-icons text-sm block">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: Diego Costa (Atacante) -->
+            <div class="p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-[#222121] transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center font-bold text-white text-xs border border-red-500/40">
+                  DC
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#1c1b1b]"></span>
+                </div>
+                <div class="truncate">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-white font-sans tracking-tight truncate">Diego Costa</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-950/60 text-red-400 border border-red-800/40">ATA</span>
+                    <span class="text-[11px] text-gray-400 font-mono">100% Fit</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                    <span>Check-in: 19:15:55</span>
+                    <span>•</span>
+                    <span class="text-gray-400">Ordem #3</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  No Campo (&le;500m)
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="editAthlete('Diego Costa')" class="p-1.5 rounded bg-[#282727] hover:bg-[#333232] text-gray-300">
+                    <span class="material-icons text-sm block">edit</span>
+                  </button>
+                  <button onclick="removeAthlete('Diego Costa')" class="p-1.5 rounded bg-[#282727] hover:bg-red-950 text-gray-400 hover:text-red-400">
+                    <span class="material-icons text-sm block">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 4: Rodrigo Pires (Volante) - Próximo (850m) -->
+            <div class="p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-[#222121] transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-yellow-700 to-yellow-900 flex items-center justify-center font-bold text-white text-xs border border-yellow-500/40">
+                  RP
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-yellow-500 border-2 border-[#1c1b1b]"></span>
+                </div>
+                <div class="truncate">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-white font-sans tracking-tight truncate">Rodrigo Pires</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950/60 text-purple-400 border border-purple-800/40">VOL</span>
+                    <span class="text-[11px] text-gray-400 font-mono">88% Fit</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                    <span>Check-in: 19:22:11</span>
+                    <span>•</span>
+                    <span class="text-yellow-400">A caminho da arena</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-yellow-950/50 text-yellow-400 border border-yellow-800/40 flex items-center gap-1">
+                  <span class="material-icons text-xs">directions_run</span>
+                  850m Próximo
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="editAthlete('Rodrigo Pires')" class="p-1.5 rounded bg-[#282727] hover:bg-[#333232] text-gray-300">
+                    <span class="material-icons text-sm block">edit</span>
+                  </button>
+                  <button onclick="removeAthlete('Rodrigo Pires')" class="p-1.5 rounded bg-[#282727] hover:bg-red-950 text-gray-400 hover:text-red-400">
+                    <span class="material-icons text-sm block">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 5: Gabriel Santos (Zagueiro) - Longe (3.8km) -->
+            <div class="p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-[#222121] transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-stone-700 to-stone-900 flex items-center justify-center font-bold text-gray-300 text-xs border border-stone-600">
+                  GS
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border-2 border-[#1c1b1b]"></span>
+                </div>
+                <div class="truncate">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-white font-sans tracking-tight truncate">Gabriel Santos</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-800 text-gray-300 border border-gray-700">ZAG</span>
+                    <span class="text-[11px] text-gray-400 font-mono">80% Fit</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                    <span>Check-in: 19:30:45</span>
+                    <span>•</span>
+                    <span class="text-red-400">Fora do raio de 500m</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-red-950/50 text-red-400 border border-red-800/40 flex items-center gap-1">
+                  <span class="material-icons text-xs">location_off</span>
+                  3.8km Longe
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="editAthlete('Gabriel Santos')" class="p-1.5 rounded bg-[#282727] hover:bg-[#333232] text-gray-300">
+                    <span class="material-icons text-sm block">edit</span>
+                  </button>
+                  <button onclick="removeAthlete('Gabriel Santos')" class="p-1.5 rounded bg-[#282727] hover:bg-red-950 text-gray-400 hover:text-red-400">
+                    <span class="material-icons text-sm block">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 6: Felipe Melo (Volante) -->
+            <div class="p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-[#222121] transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-indigo-700 to-indigo-900 flex items-center justify-center font-bold text-white text-xs border border-indigo-500/40">
+                  FM
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#1c1b1b]"></span>
+                </div>
+                <div class="truncate">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-white font-sans tracking-tight truncate">Felipe Melo</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950/60 text-purple-400 border border-purple-800/40">VOL</span>
+                    <span class="text-[11px] text-gray-400 font-mono">95% Fit</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                    <span>Check-in: 19:35:10</span>
+                    <span>•</span>
+                    <span class="text-gray-400">Ordem #6</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  No Campo (&le;500m)
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="editAthlete('Felipe Melo')" class="p-1.5 rounded bg-[#282727] hover:bg-[#333232] text-gray-300">
+                    <span class="material-icons text-sm block">edit</span>
+                  </button>
+                  <button onclick="removeAthlete('Felipe Melo')" class="p-1.5 rounded bg-[#282727] hover:bg-red-950 text-gray-400 hover:text-red-400">
+                    <span class="material-icons text-sm block">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Table Footer Info -->
+          <div class="p-3 bg-[#171616] border-t border-[#262525] flex items-center justify-between text-xs text-gray-400 px-4">
+            <span>Mostrando 6 de 16 atletas confirmados</span>
+            <button onclick="alert('Carregando todos os 16 atletas no painel...')" class="text-red-400 hover:text-red-300 font-semibold font-mono text-[11px]">
+              Ver Todos os Atletas &darr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Secondary Card Below: Celulares & Telas Conectadas no Wi-Fi -->
+        <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-5 shadow-lg">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <span class="material-icons text-blue-400">devices</span>
+              <span class="font-display font-bold text-base text-white">Celulares & Telas Conectadas no Wi-Fi</span>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-blue-950/60 text-blue-300 border border-blue-800/40">Rede Society-5G</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+            <!-- Device 1 -->
+            <div class="p-3 rounded-lg bg-[#222121] border border-[#2e2d2d] flex items-center justify-between">
+              <div>
+                <div class="text-white font-semibold">Samsung Galaxy S23 (Admin)</div>
+                <div class="text-gray-400 text-[11px]">IP: 192.168.1.105</div>
+              </div>
+              <div class="text-right">
+                <span class="text-emerald-400 font-bold">4 ms</span>
+                <div class="text-[10px] text-gray-400">Ping Ativo</div>
+              </div>
+            </div>
+
+            <!-- Device 2 -->
+            <div class="p-3 rounded-lg bg-[#222121] border border-[#2e2d2d] flex items-center justify-between">
+              <div>
+                <div class="text-white font-semibold">iPhone 14 Pro (Capitão Time A)</div>
+                <div class="text-gray-400 text-[11px]">IP: 192.168.1.112</div>
+              </div>
+              <div class="text-right">
+                <span class="text-emerald-400 font-bold">11 ms</span>
+                <div class="text-[10px] text-gray-400">Ping Ativo</div>
+              </div>
+            </div>
+
+            <!-- Device 3 -->
+            <div class="p-3 rounded-lg bg-[#222121] border border-[#2e2d2d] flex items-center justify-between">
+              <div>
+                <div class="text-white font-semibold">Smart TV Samsung 65" (Placar Campo)</div>
+                <div class="text-gray-400 text-[11px]">IP: 192.168.1.180</div>
+              </div>
+              <div class="text-right">
+                <span class="text-emerald-400 font-bold">2 ms</span>
+                <div class="text-[10px] text-emerald-300">Live Mirror</div>
+              </div>
+            </div>
+
+            <!-- Device 4 -->
+            <div class="p-3 rounded-lg bg-[#222121] border border-[#2e2d2d] flex items-center justify-between">
+              <div>
+                <div class="text-white font-semibold">Xiaomi Redmi Note 12 (Jogador #4)</div>
+                <div class="text-gray-400 text-[11px]">IP: 192.168.1.144</div>
+              </div>
+              <div class="text-right">
+                <span class="text-emerald-400 font-bold">18 ms</span>
+                <div class="text-[10px] text-gray-400">Ping Ativo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN (5 COLS) - ARENA CONFIGURATION & ACTIONS -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Card: Configuração da Pelada -->
+        <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-5 shadow-lg space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-[#2b2a2a]">
+            <div class="flex items-center gap-2">
+              <span class="material-icons text-red-500">sports_soccer</span>
+              <span class="font-display font-bold text-base text-white">Configuração da Pelada</span>
+            </div>
+            <span class="text-[11px] font-mono text-gray-400">ID: #PEL-882</span>
+          </div>
+
+          <!-- Arena Address -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-semibold text-gray-300">Endereço Oficial da Arena</label>
+              <a href="https://maps.google.com" target="_blank" class="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-mono">
+                <span class="material-icons text-xs">map</span>
+                <span>Abrir Maps</span>
+              </a>
+            </div>
+            <input type="text" value="Arena Bola de Ouro Society - Av. das Américas, 4500" class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs text-white focus:outline-none focus:border-red-500 transition-colors font-sans">
+          </div>
+
+          <!-- Two-column GPS coordinates inputs -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-gray-400 uppercase font-mono">Latitude</label>
+              <input type="text" value="-23.550520" class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs font-mono text-emerald-400 font-semibold focus:outline-none focus:border-red-500">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-gray-400 uppercase font-mono">Longitude</label>
+              <input type="text" value="-46.633308" class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs font-mono text-emerald-400 font-semibold focus:outline-none focus:border-red-500">
+            </div>
+          </div>
+
+          <!-- Raio Máximo GPS & Exigir GPS Real -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-gray-400">Raio Máximo GPS</label>
+              <div class="relative">
+                <input type="text" value="500 metros" class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs text-white font-mono font-semibold focus:outline-none focus:border-red-500">
+                <span class="absolute right-2.5 top-2.5 text-xs text-gray-500 material-icons">near_me</span>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-gray-400">Exigir GPS Real</label>
+              <select class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs text-white focus:outline-none focus:border-red-500">
+                <option selected>Sim (Bloquear fora do raio)</option>
+                <option>Apenas Alerta (Permitir)</option>
+                <option>Desativado (Livre)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Match Parameters -->
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-gray-400">Tempo de Jogo</label>
+              <select class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs text-white font-semibold">
+                <option>8 Minutos (Rápido)</option>
+                <option selected>10 Minutos (Padrão)</option>
+                <option>12 Minutos</option>
+                <option>15 Minutos</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold text-gray-400">Qtd. Equipes Sorteio</label>
+              <select class="w-full px-3 py-2 rounded-lg bg-[#222121] border border-[#333232] text-xs text-white font-semibold">
+                <option>2 Equipes (Ida e Volta)</option>
+                <option>3 Equipes (Rei da Mesa)</option>
+                <option selected>4 Equipes (Torneio)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Red primary button: Salvar Configurações -->
+          <div class="pt-2">
+            <button onclick="saveArenaConfig()" class="w-full py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-500 text-white font-display font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-950/40 active:scale-95">
+              <span class="material-icons text-base">save</span>
+              <span>Salvar Configurações da Pelada</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Card: Ações de Partida & Dados -->
+        <div class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] p-5 shadow-lg space-y-3">
+          <div class="flex items-center gap-2 pb-2 border-b border-[#2b2a2a]">
+            <span class="material-icons text-amber-400">flash_on</span>
+            <span class="font-display font-bold text-base text-white">Ações de Partida & Dados</span>
+          </div>
+
+          <!-- Red danger card button: Zerar Lista -->
+          <button onclick="confirmResetList()" class="w-full text-left p-3.5 rounded-lg bg-red-950/30 hover:bg-red-950/50 border border-red-800/40 transition-all flex items-start gap-3 group active:scale-98">
+            <div class="p-2 rounded-lg bg-red-600/20 text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors">
+              <span class="material-icons text-lg block">delete_sweep</span>
+            </div>
+            <div>
+              <div class="font-display font-bold text-xs text-red-300 uppercase tracking-wide group-hover:text-red-200">
+                Zerar Lista (Nova Pelada)
+              </div>
+              <p class="text-[11px] text-gray-400 mt-0.5">
+                Limpa atletas confirmados para o próximo jogo e reinicia a ordem de chegada.
+              </p>
+            </div>
+          </button>
+
+          <!-- Slate card button: Criar Backup dos Dados -->
+          <button onclick="exportBackupData()" class="w-full text-left p-3.5 rounded-lg bg-[#222121] hover:bg-[#282727] border border-[#333232] transition-all flex items-start gap-3 group active:scale-98">
+            <div class="p-2 rounded-lg bg-[#2c2b2b] text-gray-300 group-hover:bg-gray-700 group-hover:text-white transition-colors">
+              <span class="material-icons text-lg block">download</span>
+            </div>
+            <div>
+              <div class="font-display font-bold text-xs text-white uppercase tracking-wide">
+                Criar Backup dos Dados
+              </div>
+              <p class="text-[11px] text-gray-400 mt-0.5">
+                Exporta o cadastro de atletas, histórico de partidas e estatísticas em formato JSON/CSV.
+              </p>
+            </div>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 5. BOTTOM AUDIT LOG TERMINAL -->
+    <section class="rounded-xl bg-[#1c1b1b] border border-[#2b2a2a] overflow-hidden shadow-xl">
+      <!-- Terminal Header -->
+      <div class="px-5 py-3 bg-[#171616] border-b border-[#2b2a2a] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-red-600/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+          </div>
+          <span class="font-display font-bold text-sm text-gray-200 tracking-wide">Logs e Auditoria da Pelada em Tempo Real</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono text-emerald-400 flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            STREAMING SSE
+          </span>
+          <button onclick="clearTerminal()" class="text-xs font-mono text-gray-400 hover:text-white px-2 py-0.5 rounded bg-[#242323] hover:bg-[#302f2f] transition-all">
+            Limpar Console
+          </button>
+        </div>
+      </div>
+
+      <!-- Terminal Body -->
+      <div id="terminalWindow" class="p-4 bg-[#0a0a0a] font-mono text-xs text-gray-300 space-y-1.5 h-44 overflow-y-auto border-t border-[#1a1919]">
+        <div class="text-gray-500">[19:10:02] [SYSTEM] Pelada Top Daemon v2.0 inicializado com sucesso em Linux society-node-master.</div>
+        <div class="text-emerald-400">[19:10:03] [GEOFENCE] Coordenadas da Arena registradas: Lat -23.550520, Lng -46.633308 (Raio 500m ativo).</div>
+        <div class="text-blue-400">[19:12:04] [CHECK-IN] Atleta Lucas Silva (MEI) confirmou presenca. Distancia: 120m do campo (&lt;=500m APROVADO).</div>
+        <div class="text-blue-400">[19:14:20] [CHECK-IN] Atleta Marcos Vinicius (GOL) confirmou presenca. Distancia: 45m do campo (&lt;=500m APROVADO).</div>
+        <div class="text-blue-400">[19:15:55] [CHECK-IN] Atleta Diego Costa (ATA) confirmou presenca. Distancia: 210m do campo (&lt;=500m APROVADO).</div>
+        <div class="text-amber-400">[19:22:11] [TELEMETRY] Atleta Rodrigo Pires (VOL) detectado a 850m da arena. Status: 'Em Trânsito / Próximo'.</div>
+        <div class="text-red-400">[19:30:45] [WARNING] Atleta Gabriel Santos (ZAG) tentou check-in a 3.8km de distancia. Bloqueado pelo Geofence.</div>
+        <div class="text-emerald-400">[19:35:10] [CHECK-IN] Atleta Felipe Melo (VOL) confirmou presenca. Distancia: 310m do campo (&lt;=500m APROVADO).</div>
+        <div class="text-purple-400">[19:40:00] [AUDIT] Total de atletas confirmados atingiu 16 de 24. Modulo de Sorteio liberado para 4 equipes.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#141313] border-t border-[#242323] px-6 py-4 mt-6 text-center text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <span class="font-display font-bold text-gray-400">Pelada Top</span>
+      <span>•</span>
+      <span>Painel Master do Organizador</span>
+    </div>
+    <div class="font-mono text-[11px] text-gray-400">
+      Node/Go Microservice • SSE Latency 12ms • PostgreSQL Synced
+    </div>
+  </footer>
+
+  <!-- MODAL: QR CODE (Hidden by default) -->
+  <div id="qrModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#1c1b1b] border border-[#333232] rounded-xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display font-bold text-lg text-white">QR Code de Check-in</h3>
+        <button onclick="toggleQrModal()" class="text-gray-400 hover:text-white">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <p class="text-xs text-gray-400">Aponte a câmera do celular para abrir o link de check-in na Arena Bola de Ouro.</p>
+      <div class="bg-white p-4 rounded-xl inline-block shadow-inner">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1VF6JPHKPwXXT9nTds-38AZStJRSiNyWjR-oMPPFuBtrBmVqFhhqYuyZ4JxqSwVJgBjleM4IkA03mR3HV07HIuIV93g5Wck3RhImAR2yprQJMdInr4k4_z4yUS0gc4CaGw1qKLCEfkrBJmybJX_41pDxJRj5nutQHNhU-1gq5XPdnA2MUgqPzhUVj7EGbHluhcSHXog4JCpA7fgPuH6AbIJONf2aFJDpMdp4NgwNvp3H9Z3SODoPQZwmis" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
+      </div>
+      <div class="font-mono text-xs text-emerald-400 bg-emerald-950/40 p-2 rounded border border-emerald-900/60">
+        https://peladatop.app/live/society-ouro-994
+      </div>
+      <button onclick="toggleQrModal()" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-xs tracking-wider uppercase">
+        Fechar Janela
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let isLocked = false;
+
+    function toggleLockState() {
+      const btn = document.getElementById('btnLockToggle');
+      const icon = document.getElementById('lockIcon');
+      const text = document.getElementById('lockText');
+      isLocked = !isLocked;
+
+      if (isLocked) {
+        btn.className = "inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-sans tracking-wide transition-all active:scale-95 shadow-md shadow-red-950/40";
+        icon.innerText = "lock";
+        text.innerText = "LISTA BLOQUEADA";
+        addLog("[LOCK] Lista de confirmados foi BLOQUEADA pelo Administrador Master.", "text-red-400");
+      } else {
+        btn.className = "inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-sans tracking-wide transition-all active:scale-95 shadow-md shadow-emerald-950/40";
+        icon.innerText = "lock_open";
+        text.innerText = "LISTA ABERTA";
+        addLog("[LOCK] Lista de confirmados ABERTA novamente para novos atletas.", "text-emerald-400");
+      }
+    }
+
+    function copyShareLink() {
+      const url = document.getElementById('publicUrl').innerText.trim();
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Link copiado para a área de transferência:\n" + url);
+        addLog("[SHARE] Link de check-in copiado para distribuição WhatsApp.", "text-emerald-300");
+      }).catch(() => {
+        alert("Link: " + url);
+      });
+    }
+
+    function toggleQrModal() {
+      const modal = document.getElementById('qrModal');
+      modal.classList.toggle('hidden');
+      modal.classList.toggle('flex');
+    }
+
+    function addLog(msg, colorClass = "text-gray-300") {
+      const terminal = document.getElementById('terminalWindow');
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.className = colorClass;
+      div.innerText = `[${timeStr}] ${msg}`;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function clearTerminal() {
+      document.getElementById('terminalWindow').innerHTML = '<div class="text-gray-500">[CONSOLE LIMPO] Monitoramento SSE ativo aguardando novos eventos...</div>';
+    }
+
+    function refreshDashboard() {
+      addLog("[SYNC] Atualizando métricas de latência e conferência de atletas...", "text-blue-400");
+      setTimeout(() => {
+        addLog("[SUCCESS] Dashboard sincronizado com sucesso. 16 atletas confirmados.", "text-emerald-400");
+      }, 500);
+    }
+
+    function openAddAthleteModal() {
+      const nome = prompt("Nome do Atleta para Adicionar Manualmente:");
+      if (nome) {
+        addLog(`[MANUAL_ENTRY] Atleta '${nome}' adicionado diretamente pelo ADM Master.`, "text-emerald-400");
+        alert(`Atleta '${nome}' inserido com sucesso na lista de confirmados!`);
+      }
+    }
+
+    function editAthlete(nome) {
+      alert(`Abrindo ficha cadastral de ${nome} para edição técnica e alteração de posição.`);
+    }
+
+    function removeAthlete(nome) {
+      if (confirm(`Tem certeza que deseja remover ${nome} da lista da pelada de hoje?`)) {
+        addLog(`[REMOVED] Atleta ${nome} foi removido da lista pelo ADM.`, "text-amber-400");
+        alert(`${nome} removido da lista.`);
+      }
+    }
+
+    function saveArenaConfig() {
+      addLog("[CONFIG] Coordenadas e regras de Geofence atualizadas com sucesso.", "text-emerald-400");
+      alert("Configurações da Arena salvas com sucesso!");
+    }
+
+    function confirmResetList() {
+      if (confirm("ATENÇÃO: Deseja zerar todos os atletas confirmados para iniciar uma nova pelada?")) {
+        addLog("[RESET] A lista de atletas confirmados foi ZERADA para uma nova pelada.", "text-red-400");
+        alert("Lista zerada com sucesso para a próxima partida!");
+      }
+    }
+
+    function exportBackupData() {
+      addLog("[BACKUP] Arquivo de backup compactado exportado em formato JSON.", "text-blue-400");
+      alert("Backup gerado e baixado com sucesso!");
+    }
+  </script>
+</body>
+</html>
