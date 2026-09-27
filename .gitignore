@@ -20,3 +20,7 @@ screen_capture.png
 
 # Subpasta aninhada
 pelada-top/
+
+# Vercel
+.vercel/
+vercel.json
