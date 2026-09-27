@@ -117,6 +117,7 @@
         }
         .tab-view { display: none; }
         .tab-view.active { display: flex; }
+        body:not(:has(.tab-view.active)) #view-login { display: flex !important; }
         .nav-link.active { color: #af0000; font-weight: bold; }
         .nav-link.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
         @keyframes fade-in-up {
@@ -1261,9 +1262,11 @@
             document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
-            const targetView = document.getElementById(`view-${aba}`);
-            const targetLink = document.querySelector(`.nav-link[data-path="${aba}"]`);
-
+            let targetView = document.getElementById(`view-${aba}`);
+            if (!targetView) {
+                targetView = document.getElementById('view-login') || document.querySelector('.tab-view');
+                aba = 'login';
+            }
             if (targetView) targetView.classList.add('active');
             if (targetLink) targetLink.classList.add('active');
 
@@ -2609,7 +2612,7 @@
                                 <span class="material-symbols-outlined text-xs">radar</span> Aguardando Chegada no Local (${totalAguardando}):
                             </span>
                             <div class="flex flex-wrap gap-1">
-                                ${atletasAusentes.map(a => `<span class="bg-surface-container px-1.5 py-0.5 rounded text-[9px] text-on-surface font-medium">${a.nome.split(' ')[0]} <strong class="text-secondary font-mono text-[8px]">(${a.posicao})</strong></span>`).join('')}
+                                ${atletasAusentes.map(a => `<span class="bg-surface-container px-1.5 py-0.5 rounded text-[9px] text-on-surface font-medium">${(a.nome || 'Atleta').split(' ')[0]} <strong class="text-secondary font-mono text-[8px]">(${a.posicao})</strong></span>`).join('')}
                             </div>
                         </div>
                     `;
@@ -3486,75 +3489,118 @@
         }
 
         // ==============================================================
-        // INICIALIZAÇÃO
+        // INICIALIZAÇÃO SEGURA DO APP (GARANTE CARREGAMENTO DAS TELAS)
         // ==============================================================
-        conectarRealtime();
-        renderizarListaJogadores();
-        renderizarListaGestaoAdmin();
-        renderizarStatusCheckin();
-        realizarSorteioStitch(true);
+        function inicializarApp() {
+            try {
+                conectarRealtime();
+            } catch (e) {
+                console.warn('[Init] Aviso ao conectar realtime:', e);
+            }
 
-        const inputAtletaNome = document.getElementById('atleta-nome');
-        if (inputAtletaNome) inputAtletaNome.value = usuarioAtual.nome;
-        const inputAtletaPosicao = document.getElementById('atleta-posicao');
-        if (inputAtletaPosicao) inputAtletaPosicao.value = usuarioAtual.posicao;
-        const inputAtletaCondicao = document.getElementById('atleta-condicao');
-        if (inputAtletaCondicao) {
-            const cVal = String(usuarioAtual.condicao || usuarioAtual.condicaoFisica || usuarioAtual.fitness || '').toLowerCase();
-            if (cVal.includes('100') || cVal.includes('excelente') || cVal.includes('top')) inputAtletaCondicao.value = '100% (Top)';
-            else if (cVal.includes('80') || cVal.includes('boa')) inputAtletaCondicao.value = '80% (Boa)';
-            else if (cVal.includes('60') || cVal.includes('regular') || cVal.includes('ok')) inputAtletaCondicao.value = '60% (Ok)';
-            else if (cVal.includes('recupera') || cVal.includes('40')) inputAtletaCondicao.value = 'Recuperação';
-            else if (usuarioAtual.condicao) inputAtletaCondicao.value = usuarioAtual.condicao;
-        }
-        const inputAtletaIdade = document.getElementById('atleta-idade');
-        if (inputAtletaIdade) inputAtletaIdade.value = usuarioAtual.idade;
-        const inputAtletaPeso = document.getElementById('atleta-peso');
-        if (inputAtletaPeso) inputAtletaPeso.value = usuarioAtual.peso;
-        if (usuarioAtual.foto) {
-            const preview = document.getElementById('perfil-foto-preview');
-            const avatarHeader = document.getElementById('header-profile-avatar');
-            if (preview) preview.src = usuarioAtual.foto;
-            if (avatarHeader) avatarHeader.src = usuarioAtual.foto;
+            try {
+                renderizarListaJogadores();
+            } catch (e) {
+                console.warn('[Init] Aviso ao renderizar jogadores:', e);
+            }
+
+            try {
+                renderizarListaGestaoAdmin();
+            } catch (e) {
+                console.warn('[Init] Aviso ao renderizar gestao admin:', e);
+            }
+
+            try {
+                renderizarStatusCheckin();
+            } catch (e) {
+                console.warn('[Init] Aviso ao renderizar checkin:', e);
+            }
+
+            try {
+                realizarSorteioStitch(true);
+            } catch (e) {
+                console.warn('[Init] Aviso ao realizar sorteio:', e);
+            }
+
+            try {
+                const inputAtletaNome = document.getElementById('atleta-nome');
+                if (inputAtletaNome && usuarioAtual) inputAtletaNome.value = usuarioAtual.nome || '';
+                const inputAtletaPosicao = document.getElementById('atleta-posicao');
+                if (inputAtletaPosicao && usuarioAtual) inputAtletaPosicao.value = usuarioAtual.posicao || 'ATA';
+                const inputAtletaCondicao = document.getElementById('atleta-condicao');
+                if (inputAtletaCondicao && usuarioAtual) {
+                    const cVal = String(usuarioAtual.condicao || usuarioAtual.condicaoFisica || usuarioAtual.fitness || '').toLowerCase();
+                    if (cVal.includes('100') || cVal.includes('excelente') || cVal.includes('top')) inputAtletaCondicao.value = '100% (Top)';
+                    else if (cVal.includes('80') || cVal.includes('boa')) inputAtletaCondicao.value = '80% (Boa)';
+                    else if (cVal.includes('60') || cVal.includes('regular') || cVal.includes('ok')) inputAtletaCondicao.value = '60% (Ok)';
+                    else if (cVal.includes('recupera') || cVal.includes('40')) inputAtletaCondicao.value = 'Recuperação';
+                    else if (usuarioAtual.condicao) inputAtletaCondicao.value = usuarioAtual.condicao;
+                }
+                const inputAtletaIdade = document.getElementById('atleta-idade');
+                if (inputAtletaIdade && usuarioAtual) inputAtletaIdade.value = usuarioAtual.idade || '';
+                const inputAtletaPeso = document.getElementById('atleta-peso');
+                if (inputAtletaPeso && usuarioAtual) inputAtletaPeso.value = usuarioAtual.peso || '';
+                if (usuarioAtual && usuarioAtual.foto) {
+                    const preview = document.getElementById('perfil-foto-preview');
+                    const avatarHeader = document.getElementById('header-profile-avatar');
+                    if (preview) preview.src = usuarioAtual.foto;
+                    if (avatarHeader) avatarHeader.src = usuarioAtual.foto;
+                }
+            } catch (e) {
+                console.warn('[Init] Aviso ao preencher perfil:', e);
+            }
+
+            try {
+                atualizarNavbarPorRole();
+            } catch (e) {
+                console.warn('[Init] Aviso ao atualizar navbar:', e);
+            }
+
+            try {
+                const sessaoSalva = localStorage.getItem('pelada_usuario');
+                const estaAutenticado = sessaoSalva && usuarioAtual && (usuarioAtual.id || usuarioAtual.email || (usuarioAtual.role === 'admin' && usuarioAtual.autenticado));
+
+                if (estaAutenticado) {
+                    sincronizarPerfilCamposUi();
+                    if (usuarioAtual.role === 'admin') {
+                        trocarAba('admin');
+                    } else {
+                        trocarAba('jogadores');
+                    }
+                } else {
+                    trocarAba('login');
+                    const emailInp = document.getElementById('login-email');
+                    const pwdInp = document.getElementById('login-password');
+                    if (emailInp) emailInp.value = '';
+                    if (pwdInp) pwdInp.value = '';
+                }
+            } catch (e) {
+                console.warn('[Init] Aviso ao direcionar tela inicial:', e);
+                trocarAba('login');
+            }
+
+            try {
+                verificarEExibirNumeralTimeJogador();
+                atualizarEstadoBotaoPlayTimer();
+            } catch (e) {}
         }
 
-        // ==============================================================
-        // INICIALIZAÇÃO PADRÃO DO APP E SERVICE WORKER (V6.2)
-        // ==============================================================
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', inicializarApp);
+        } else {
+            inicializarApp();
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=6.2')
+                navigator.serviceWorker.register('./sw.js?v=6.4')
                     .then(reg => {
-                        console.log('PWA ServiceWorker v6.2 ativo com sucesso! Escopo:', reg.scope);
+                        console.log('PWA ServiceWorker v6.4 ativo com sucesso! Escopo:', reg.scope);
                         reg.update();
                     })
                     .catch(err => console.log('Falha ao registrar ServiceWorker:', err));
             });
         }
-
-        atualizarNavbarPorRole();
-
-        // Verifica se o usuário já possui sessão autenticada no app
-        const sessaoSalva = localStorage.getItem('pelada_usuario');
-        const estaAutenticado = sessaoSalva && usuarioAtual && (usuarioAtual.id || usuarioAtual.email || (usuarioAtual.role === 'admin' && usuarioAtual.autenticado));
-
-        if (estaAutenticado) {
-            sincronizarPerfilCamposUi();
-            if (usuarioAtual.role === 'admin') {
-                trocarAba('admin');
-            } else {
-                trocarAba('jogadores');
-            }
-        } else {
-            trocarAba('login');
-            const emailInp = document.getElementById('login-email');
-            const pwdInp = document.getElementById('login-password');
-            if (emailInp) emailInp.value = '';
-            if (pwdInp) pwdInp.value = '';
-        }
-
-        verificarEExibirNumeralTimeJogador();
-        atualizarEstadoBotaoPlayTimer();
-    </script>
+        </script>
 </body>
 </html>
