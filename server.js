@@ -273,7 +273,7 @@ const requestHandler = (req, res) => {
     }
 
     // 3. API: Transmissão em tempo real Server-Sent Events (SSE)
-        if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
+    if ((pathname === '/api/stream' || pathname === '/api/realtime') && req.method === 'GET') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
