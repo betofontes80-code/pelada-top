@@ -342,7 +342,7 @@ if (require.main === module && !IS_VERCEL) {
 const vercelHandler = (req, res) => {
   return requestHandler(req, res);
 };
-Object.setPrototypeOf(vercelHandler, server);
+// Removido para manter Function.prototype.apply funcional
 
 module.exports = vercelHandler;
 module.exports.default = vercelHandler;

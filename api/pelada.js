@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 
 const TMP_FILE = path.join(os.tmpdir(), 'pelada-dados.json');
+const ROOT_SEED_FILE = path.join(__dirname, '..', 'pelada-dados.json');
 
 const DEFAULT_CONFIG = {
   listaAberta: true,
@@ -32,14 +33,28 @@ function carregarDados() {
       if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
       if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
       if (parsed.version) appData.version = parsed.version;
+      return;
     }
-  } catch (e) {}
+    if (fs.existsSync(ROOT_SEED_FILE)) {
+      const raw = fs.readFileSync(ROOT_SEED_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
+      if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
+      if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
+      if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
+      if (parsed.version) appData.version = parsed.version;
+    }
+  } catch (e) {
+    console.warn('[Vercel API] Aviso ao carregar dados:', e.message);
+  }
 }
 
 function salvarDados() {
   try {
     fs.writeFileSync(TMP_FILE, JSON.stringify(appData, null, 2), 'utf8');
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Vercel API] Aviso ao salvar dados:', e.message);
+  }
 }
 
 carregarDados();
