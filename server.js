@@ -197,13 +197,18 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  const localIp = getLocalIp();
-  console.log('====================================================');
-  console.log('    ⚽ PELADA TOP - SERVIDOR REALTIME PWA ATIVO     ');
-  console.log('====================================================');
-  console.log(`Local (neste PC):   http://localhost:${PORT}`);
-  console.log(`Rede Wi-Fi/Celular: http://${localIp}:${PORT}`);
-  console.log('Todos os participantes conectados verão a lista em TEMPO REAL!');
-  console.log('====================================================');
-});
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  server.listen(PORT, '0.0.0.0', () => {
+    const localIp = getLocalIp();
+    console.log('====================================================');
+    console.log('    ⚽ PELADA TOP - SERVIDOR REALTIME PWA ATIVO     ');
+    console.log('====================================================');
+    console.log(`Local (neste PC):   http://localhost:${PORT}`);
+    console.log(`Rede Wi-Fi/Celular: http://${localIp}:${PORT}`);
+    console.log('Todos os participantes conectados verão a lista em TEMPO REAL!');
+    console.log('====================================================');
+  });
+}
+
+module.exports = server;
+
