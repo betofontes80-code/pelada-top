@@ -4518,12 +4518,12 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=6.7', { scope: '/' })
+                navigator.serviceWorker.register('/sw.js?v=6.8', { scope: '/' })
                     .then(reg => {
-                        console.log('PWA ServiceWorker v6.7 ativo com sucesso! Escopo:', reg.scope);
+                        console.log('PWA ServiceWorker v6.8 ativo com sucesso! Escopo:', reg.scope);
                         reg.update();
                     })
-                    .catch(err => { navigator.serviceWorker.register('./sw.js?v=6.7').then(r => console.log('PWA SW relativo ativo:', r.scope)).catch(e => console.warn('Falha SW:', e)); });
+                    .catch(err => { navigator.serviceWorker.register('./sw.js?v=6.8').then(r => console.log('PWA SW relativo ativo:', r.scope)).catch(e => console.warn('Falha SW:', e)); });
             });
         }
         </script>
