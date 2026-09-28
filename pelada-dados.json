@@ -679,6 +679,22 @@
   ],
   "listaConfirmados": [
     {
+      "id": "jog_1790559444604",
+      "nome": "Lucas Silva",
+      "posicao": "ATA",
+      "condicao": "excelente",
+      "idade": 28,
+      "fitness": 90,
+      "foto": "",
+      "hora": "22:37",
+      "statusPresenca": "chegou",
+      "chegadaConfirmada": true,
+      "distanciaMetros": 50,
+      "distanciaTexto": "No Campo",
+      "statusAproximacao": "chegou",
+      "horaChegada": "22:37"
+    },
+    {
       "id": "1",
       "nome": "Lucas",
       "posicao": "ATA",
@@ -1061,6 +1077,22 @@
     }
   ],
   "atletas": [
+    {
+      "id": "jog_1790559444604",
+      "nome": "Lucas Silva",
+      "posicao": "ATA",
+      "condicao": "excelente",
+      "idade": 28,
+      "fitness": 90,
+      "foto": "",
+      "hora": "22:37",
+      "statusPresenca": "chegou",
+      "chegadaConfirmada": true,
+      "distanciaMetros": 50,
+      "distanciaTexto": "No Campo",
+      "statusAproximacao": "chegou",
+      "horaChegada": "22:37"
+    },
     {
       "id": "1",
       "nome": "Lucas",
@@ -1462,5 +1494,5 @@
     "finalizada": false,
     "tempoRestante": 600
   },
-  "version": 1790557630169
+  "version": 1790559444646
 }

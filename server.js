@@ -879,7 +879,7 @@ const requestHandler = (req, res) => {
     }
 
     // 16. API Teste: Simular GPS
-    if (pathname === '/api/teste/simular-gps' && req.method === 'POST') {
+    if ((pathname === '/api/teste/simular-gps' || pathname === '/api/admin/simular-gps') && req.method === 'POST') {
       if (!isLocalDevRequest(req)) {
         res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ sucesso: false, erro: 'Acesso restrito ao ambiente de desenvolvimento local.' }));
@@ -964,6 +964,27 @@ const requestHandler = (req, res) => {
       });
       return;
     }
+
+    // 17. API Admin: Salvar Sorteio de Times Oficial
+    if (pathname === '/api/admin/sorteio/salvar' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (!err && payload) {
+          appData.timesSorteados = payload.times || [];
+          appData.dataSorteio = new Date().toISOString();
+          appData.version = Date.now();
+          salvarDadosDisco();
+          broadcastSse('SORTEIO_REALIZADO', { times: appData.timesSorteados, version: appData.version });
+          broadcastSse('SYNC', appData);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: true, times: appData.timesSorteados }));
+          return;
+        }
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
+      });
+      return;
+    }
+
 
     // 10. Fallback para rotas de API não reconhecidas
     if (pathname.startsWith('/api')) {
