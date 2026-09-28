@@ -470,9 +470,7 @@ const requestHandler = (req, res) => {
       try {
         verificarResetMeiaNoite();
         const saved = loadData();
-        if (saved.listaConfirmados && (!appData.listaConfirmados || appData.listaConfirmados.length === 0)) {
-          appData.listaConfirmados = saved.listaConfirmados;
-        }
+        const listaSalva = (Array.isArray(saved.atletas) && saved.atletas.length > 0) ? saved.atletas : (Array.isArray(saved.listaConfirmados) && saved.listaConfirmados.length > 0 ? saved.listaConfirmados : []); if (listaSalva.length > 0) { appData.listaConfirmados = listaSalva; appData.atletas = listaSalva; }
         if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
         if (saved.escalacaoAtiva !== undefined && appData.escalacaoAtiva === undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
         if (saved.partidaEstado !== undefined && appData.partidaEstado === undefined) appData.partidaEstado = saved.partidaEstado;

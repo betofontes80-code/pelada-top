@@ -126,8 +126,23 @@ if (typeof document !== 'undefined') {
         // ===============================================
         // 3. LISTA DE CONFIRMADOS
         // ===============================================
-        function carregarListaConfirmados() {
+        async function carregarListaConfirmados() {
             if (!listaJogadoresAdmin || !contadorConfirmados) return;
+
+            // Consome a rota GET /api/atletas
+            try {
+                if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+                    const resp = await fetch('/api/atletas?t=' + Date.now());
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        const atletas = Array.isArray(data) ? data : (data.atletas || data.listaConfirmados || []);
+                        if (Array.isArray(atletas) && atletas.length > 0) {
+                            localStorage.setItem('pelada_confirmados', JSON.stringify(atletas));
+                        }
+                    }
+                }
+            } catch(e) {}
+
             let confirmados = (typeof localStorage !== 'undefined' && JSON.parse(localStorage.getItem('pelada_confirmados'))) || [];
             contadorConfirmados.innerText = `${confirmados.length} confirmados`;
 
