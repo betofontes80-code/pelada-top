@@ -1414,10 +1414,11 @@
                 localStorage.setItem('pelada_version', String(data.version));
             }
 
-            if (data.listaConfirmados !== undefined) {
-                verificarNovosJogadoresOnline(data.listaConfirmados);
-                if (Array.isArray(data.listaConfirmados) && data.listaConfirmados.length > 0) {
-                    listaConfirmados = data.listaConfirmados;
+            const listaRecebida = (data.listaConfirmados !== undefined) ? data.listaConfirmados : data.atletas;
+            if (listaRecebida !== undefined) {
+                verificarNovosJogadoresOnline(listaRecebida);
+                if (Array.isArray(listaRecebida) && listaRecebida.length > 0) {
+                    listaConfirmados = listaRecebida;
                 } else if (data.forcarLimpeza === true) {
                     listaConfirmados = [];
                 }
@@ -1454,7 +1455,7 @@
         }
 
         async function sincronizarServidor() {
-            // 1. Salva localmente
+            // 1. Salva localmente com garantia
             localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
             localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
             localStorage.setItem('pelada_escalacao', JSON.stringify(escalacaoAtiva));
@@ -1470,6 +1471,7 @@
                     realtimeChannel.postMessage({
                         type: 'SYNC',
                         listaConfirmados,
+                        atletas: listaConfirmados,
                         peladaConfig,
                         escalacaoAtiva,
                         partidaEstado,
@@ -1478,31 +1480,35 @@
                 } catch(e) {}
             }
 
-            // 3. Propaga para todos os outros aparelhos conectados via HTTP POST
+            // 3. Propaga para todos os outros aparelhos conectados via HTTP POST (/api/pelada e /api/atletas)
             if (window.location.protocol.startsWith('http')) {
                 try {
-                    const resp = await fetch('/api/pelada', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                        body: JSON.stringify({
-                            listaConfirmados,
-                            peladaConfig,
-                            escalacaoAtiva,
-                            partidaEstado,
-                            version: novaVersao
-                        })
-                    });
-                    if (resp.ok) {
-                        const json = await resp.json();
-                        if (json && json.version) {
-                            ultimaVersaoSincronizada = json.version;
-                            localStorage.setItem('pelada_version', String(json.version));
-                        }
-                    }
+                    await Promise.all([
+                        fetch('/api/pelada', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                            body: JSON.stringify({
+                                listaConfirmados,
+                                atletas: listaConfirmados,
+                                peladaConfig,
+                                escalacaoAtiva,
+                                partidaEstado,
+                                version: novaVersao
+                            })
+                        }).then(r => r.json()).catch(() => {}),
+                        fetch('/api/atletas', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                            body: JSON.stringify(listaConfirmados)
+                        }).then(r => r.json()).catch(() => {})
+                    ]);
                 } catch(err) {
-                    console.warn('[Realtime] Falha no sync servidor:', err.message);
+                    console.warn('[Sync] Erro ao sincronizar com servidor:', err);
                 }
             }
+
+            // 4. Renderiza instantaneamente ambas as abas (jogadores e admin) com os dados idênticos
+            aplicarDadosAtualizados();
         }
 
         let sseConectado = false;
@@ -4190,6 +4196,22 @@
                 j.fitness = fitnessNovo;
             }
 
+            // Atualiza também o usuário logado caso seja ele próprio sendo editado
+            const uId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
+            const uNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
+            if (uId === String(id) || (j && (j.nome || '').trim().toLowerCase() === uNome)) {
+                usuarioAtual.nome = nomeNovo;
+                usuarioAtual.posicao = posicaoNova;
+                usuarioAtual.idade = idadeNova;
+                usuarioAtual.fitness = fitnessNovo;
+                localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                try { sincronizarPerfilCamposUi(); } catch(err) {}
+            }
+
+            fecharModalEditarAtleta();
+            aplicarDadosAtualizados();
+
+            // Salva no servidor via endpoint dedicado de admin e depois no sincronizador global
             if (window.location.protocol.startsWith('http')) {
                 try {
                     await fetch('/api/admin/atleta/salvar', {
@@ -4208,20 +4230,20 @@
                 }
             }
 
+            // Sincroniza estado global e atualiza ambas as abas (jogadores e admin)
             await sincronizarServidor();
-            renderizarListaJogadores();
-            renderizarListaGestaoAdmin();
-            realizarSorteioStitch(true);
-            fecharModalEditarAtleta();
-            alert(`Dados do atleta "${nomeNovo}" atualizados e salvos com sucesso no banco de dados local!`);
+            alert(`Dados do atleta "${nomeNovo}" atualizados e sincronizados em tempo real!`);
         }
 
         async function excluirJogadorAdmin(id) {
             const j = listaConfirmados.find(x => String(x.id) === String(id));
             const nomeAtleta = j ? j.nome : 'Atleta';
 
-            if (confirm(`Deseja realmente excluir o atleta "${nomeAtleta}" do banco de dados local?`)) {
+            if (confirm(`Deseja realmente excluir o atleta "${nomeAtleta}" da pelada e do banco de dados?`)) {
                 listaConfirmados = listaConfirmados.filter(x => String(x.id) !== String(id));
+                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                aplicarDadosAtualizados();
+
                 if (window.location.protocol.startsWith('http')) {
                     try {
                         await fetch('/api/admin/atleta/excluir', {
@@ -4234,11 +4256,7 @@
                     }
                 }
                 await sincronizarServidor();
-                renderizarListaJogadores();
-                renderizarListaGestaoAdmin();
-                renderizarStatusCheckin();
-                realizarSorteioStitch(true);
-                alert(`Atleta "${nomeAtleta}" removido com sucesso do banco de dados local.`);
+                alert(`Atleta "${nomeAtleta}" removido com sucesso de todas as abas e do banco de dados.`);
             }
         }
 
@@ -4261,17 +4279,24 @@
             if (!nome) return;
 
             const novo = {
-                id: String(Date.now()),
+                id: 'jog_' + Date.now(),
                 nome: nome,
-                posicao: document.getElementById('novo-atleta-posicao').value,
+                posicao: document.getElementById('novo-atleta-posicao').value || 'ATA',
                 idade: parseInt(document.getElementById('novo-atleta-idade').value) || 28,
                 condicao: 'excelente',
                 hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                horaOnline: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                 fitness: 90,
-                foto: ''
+                foto: '',
+                online: true,
+                statusPresenca: 'confirmado',
+                chegadaConfirmada: false
             };
 
             listaConfirmados.push(novo);
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            fecharModalAdicionarAtleta();
+            aplicarDadosAtualizados();
 
             if (window.location.protocol.startsWith('http')) {
                 try {
@@ -4286,12 +4311,7 @@
             }
 
             await sincronizarServidor();
-            renderizarListaJogadores();
-            renderizarListaGestaoAdmin();
-            renderizarStatusCheckin();
-            realizarSorteioStitch(true);
-            fecharModalAdicionarAtleta();
-            alert(`Atleta "${nome}" cadastrado e adicionado com sucesso!`);
+            alert(`Atleta "${nome}" cadastrado e adicionado com sucesso em todas as abas!`);
         }
 
         // ==============================================================

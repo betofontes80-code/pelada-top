@@ -42,19 +42,12 @@ function salvarDados(dados) {
   try {
     if (!dados || typeof dados !== 'object') return false;
 
-    // Sincroniza atletas e listaConfirmados
-    if (Array.isArray(dados.atletas) && (!dados.listaConfirmados || dados.listaConfirmados.length === 0)) {
-      dados.listaConfirmados = dados.atletas;
-    } else if (Array.isArray(dados.listaConfirmados) && (!dados.atletas || dados.atletas.length === 0)) {
-      dados.atletas = dados.listaConfirmados;
-    }
-
-    // Sincroniza usuarios e jogadoresCadastrados
-    if (Array.isArray(dados.usuarios) && (!dados.jogadoresCadastrados || dados.jogadoresCadastrados.length === 0)) {
-      dados.jogadoresCadastrados = dados.usuarios;
-    } else if (Array.isArray(dados.jogadoresCadastrados) && (!dados.usuarios || dados.usuarios.length === 0)) {
-      dados.usuarios = dados.jogadoresCadastrados;
-    }
+    // Sincroniza atletas e listaConfirmados de forma bidirecional unificada
+    const listaAtletas = (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0)
+      ? dados.listaConfirmados
+      : ((Array.isArray(dados.atletas) && dados.atletas.length > 0) ? dados.atletas : (dados.listaConfirmados || dados.atletas || []));
+    dados.listaConfirmados = listaAtletas;
+    dados.atletas = listaAtletas;
 
     const dir = path.dirname(DATABASE_FILE);
     if (!fs.existsSync(dir)) {
@@ -210,7 +203,12 @@ try {
 
 // Salvar no disco com tratamento seguro para Serverless e preservação de todas as chaves
 function salvarDadosDisco() {
-  const lista = appData.listaConfirmados || appData.atletas || [];
+  const lista = (Array.isArray(appData.listaConfirmados) && appData.listaConfirmados.length > 0)
+    ? appData.listaConfirmados
+    : ((Array.isArray(appData.atletas) && appData.atletas.length > 0) ? appData.atletas : []);
+  appData.listaConfirmados = lista;
+  appData.atletas = lista;
+
   const dadosCompletos = {
     usuarios: appData.usuarios || [],
     jogadoresCadastrados: appData.usuarios || [],
@@ -492,10 +490,12 @@ const requestHandler = (req, res) => {
         }
 
         try {
-          if (payload.listaConfirmados !== undefined) {
-            if (Array.isArray(payload.listaConfirmados)) {
-              if (payload.listaConfirmados.length > 0 || payload.forcarLimpeza === true || !appData.listaConfirmados || appData.listaConfirmados.length === 0) {
-                appData.listaConfirmados = payload.listaConfirmados;
+          if (payload.listaConfirmados !== undefined || payload.atletas !== undefined) {
+            const novaLista = payload.listaConfirmados !== undefined ? payload.listaConfirmados : payload.atletas;
+            if (Array.isArray(novaLista)) {
+              if (novaLista.length > 0 || payload.forcarLimpeza === true || !appData.listaConfirmados || appData.listaConfirmados.length === 0) {
+                appData.listaConfirmados = novaLista;
+                appData.atletas = novaLista;
               }
             }
           }
@@ -835,6 +835,17 @@ const requestHandler = (req, res) => {
               fitness: calcularFitnessAtleta({ ...antigo, ...payload })
             };
             appData.listaConfirmados[idx] = atletaSalvo;
+            appData.atletas = appData.listaConfirmados;
+            if (appData.usuarios) {
+              const uIdx = appData.usuarios.findIndex(u => 
+                (idBusca && String(u.id) === idBusca) ||
+                (nomeOriginal && (u.nome || '').trim().toLowerCase() === nomeOriginal) ||
+                (nomeNovo && (u.nome || '').trim().toLowerCase() === nomeNovo)
+              );
+              if (uIdx >= 0) {
+                appData.usuarios[uIdx] = { ...appData.usuarios[uIdx], ...atletaSalvo };
+              }
+            }
           } else {
             // Novo atleta adicionado
             atletaSalvo = {
@@ -857,6 +868,7 @@ const requestHandler = (req, res) => {
               entrouEm: Date.now()
             };
             appData.listaConfirmados.unshift(atletaSalvo);
+            appData.atletas = appData.listaConfirmados;
 
             broadcastSse('JOGADOR_ONLINE', {
               atleta: atletaSalvo,
@@ -908,6 +920,7 @@ const requestHandler = (req, res) => {
               });
             }
 
+            appData.atletas = appData.listaConfirmados;
             appData.version = Date.now();
             salvarDadosDisco();
             broadcastSse('SYNC', appData);
