@@ -188,6 +188,68 @@ function broadcastSse(tipo, payload) {
   }
 }
 
+// Heartbeat SSE para manter conexões abertas no Render e celulares
+setInterval(() => {
+  if (sseClients.size > 0) {
+    broadcastSse('PING', { time: Date.now() });
+  }
+}, 25000);
+
+// Função de Reset Automático após a meia-noite do dia da pelada
+function verificarResetMeiaNoite() {
+  try {
+    if (!appData.peladaConfig || !appData.peladaConfig.dataPelada) return;
+
+    // Obtém data de hoje no fuso horário de Brasília (UTC-3)
+    const hojeStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    const dataPeladaStr = String(appData.peladaConfig.dataPelada).trim();
+
+    // Se hoje é posterior à data da pelada (após a meia-noite do dia do jogo)
+    if (hojeStr > dataPeladaStr) {
+      if (appData.listaConfirmados && appData.listaConfirmados.length > 0) {
+        console.log(`[Auto-Reset Meia-Noite] Dia da pelada (${dataPeladaStr}) finalizou. Data atual: ${hojeStr}.`);
+        console.log(`[Auto-Reset Meia-Noite] Zerando a lista de presença da aba jogadores e mantendo configurações.`);
+        
+        appData.listaConfirmados = [];
+        appData.escalacaoAtiva = null;
+        appData.timesSorteados = [];
+        appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
+        appData.peladaConfig.ultimaDataZerada = dataPeladaStr;
+
+        // Avança automaticamente para o próximo dia correspondente da semana (+7 dias)
+        try {
+          const parts = dataPeladaStr.split('-');
+          if (parts.length === 3) {
+            const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            dt.setDate(dt.getDate() + 7);
+            const ano = dt.getFullYear();
+            const mes = String(dt.getMonth() + 1).padStart(2, '0');
+            const dia = String(dt.getDate()).padStart(2, '0');
+            appData.peladaConfig.dataPelada = `${ano}-${mes}-${dia}`;
+            console.log(`[Auto-Reset Meia-Noite] Nova pelada definida para: ${appData.peladaConfig.dataPelada}`);
+          }
+        } catch (eDt) {}
+
+        appData.version = Date.now();
+        salvarDadosDisco();
+        broadcastSse('LISTA_ZERADA_AUTO', {
+          mensagem: 'Nova pelada iniciada! Lista de presença zerada após a meia-noite.',
+          peladaConfig: appData.peladaConfig,
+          listaConfirmados: [],
+          version: appData.version
+        });
+        broadcastSse('SYNC', appData);
+      }
+    }
+  } catch (err) {
+    console.error('[Auto-Reset Meia-Noite] Erro na verificação:', err);
+  }
+}
+
+// Checagem periódica a cada 30 segundos
+setInterval(verificarResetMeiaNoite, 30000);
+verificarResetMeiaNoite();
+
 // Obter IP da rede local Wi-Fi / Ethernet
 function getLocalIp() {
   try {
@@ -286,6 +348,7 @@ const requestHandler = (req, res) => {
                           pathname === '/api/realtime.js';
 
     if (isStreamRoute && req.method === 'GET') {
+      verificarResetMeiaNoite();
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
@@ -320,12 +383,15 @@ const requestHandler = (req, res) => {
 
     if (isPeladaRoute && req.method === 'GET') {
       try {
+        verificarResetMeiaNoite();
         const saved = loadData();
-        if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+        if (saved.listaConfirmados && (!appData.listaConfirmados || appData.listaConfirmados.length === 0)) {
+          appData.listaConfirmados = saved.listaConfirmados;
+        }
         if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
-        if (saved.escalacaoAtiva !== undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
-        if (saved.partidaEstado !== undefined) appData.partidaEstado = saved.partidaEstado;
-        if (saved.usuarios) appData.usuarios = saved.usuarios;
+        if (saved.escalacaoAtiva !== undefined && appData.escalacaoAtiva === undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
+        if (saved.partidaEstado !== undefined && appData.partidaEstado === undefined) appData.partidaEstado = saved.partidaEstado;
+        if (saved.usuarios && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = saved.usuarios;
         if (saved.version) appData.version = saved.version;
       } catch (e) {}
 
@@ -344,7 +410,11 @@ const requestHandler = (req, res) => {
 
         try {
           if (payload.listaConfirmados !== undefined) {
-            appData.listaConfirmados = payload.listaConfirmados;
+            if (Array.isArray(payload.listaConfirmados)) {
+              if (payload.listaConfirmados.length > 0 || payload.forcarLimpeza === true || !appData.listaConfirmados || appData.listaConfirmados.length === 0) {
+                appData.listaConfirmados = payload.listaConfirmados;
+              }
+            }
           }
           if (payload.peladaConfig !== undefined) {
             appData.peladaConfig = payload.peladaConfig;

@@ -435,19 +435,13 @@
                         <p class="text-[10px] text-on-surface-variant font-medium">Gestão central da pelada, atletas e configurações</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <button onclick="abrirModalQrCodeOnline()" class="px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700 transition-all shadow-xs active:scale-95" title="Gerar e Abrir QR Code Oficial">
-                        <span class="material-symbols-outlined text-xs">qr_code_2</span>
-                        <span>Gerar QR Code</span>
-                    </button>
-                </div>
             </div>
 
-            <!-- 2. CARD DO LINK & BOTÃO PARA GERAR QR CODE (NÃO APARECE SOLTO NA TELA) -->
+            <!-- 2. CARD DO LINK OFICIAL ONLINE (SERVIDOR RENDER) -->
             <div class="bg-surface-container-lowest rounded-xl p-3 sm:p-4 border border-surface-container-highest shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 w-full shrink-0">
                 <div class="flex items-center gap-3 w-full sm:w-auto">
                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-2xl">qr_code_2</span>
+                        <span class="material-symbols-outlined text-2xl">cloud_done</span>
                     </div>
                     <div class="min-w-0">
                         <div class="flex items-center gap-1.5">
@@ -459,11 +453,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <button onclick="abrirModalQrCodeOnline()" class="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all">
-                        <span class="material-symbols-outlined text-sm">qr_code_2</span>
-                        <span>Gerar QR Code</span>
-                    </button>
-                    <button onclick="copiarLinkQrCodeOnline()" id="btn-copiar-banner-qr" class="px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface border border-surface-container-highest font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all" title="Copiar link do servidor">
+                    <button onclick="copiarLinkQrCodeOnline()" id="btn-copiar-banner-qr" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs" title="Copiar link do servidor">
                         <span class="material-symbols-outlined text-sm" id="icon-copy-qr-banner">content_copy</span>
                         <span id="label-copy-qr-banner">Copiar Link</span>
                     </button>
@@ -549,17 +539,6 @@
                             <span id="icone-admin-trava" class="material-symbols-outlined text-base">lock_open</span>
                             <span id="texto-admin-trava">LISTA ABERTA (CLIQUE P/ TRAVAR)</span>
                         </button>
-                        
-                        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-surface-container-highest">
-                            <button onclick="zerarListaConfirmados()" class="w-full py-2 bg-red-50 hover:bg-red-100 text-primary rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-red-200 active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-sm">restart_alt</span>
-                                <span>Zerar Lista</span>
-                            </button>
-                            <button onclick="fazerBackupDadosAdmin()" class="w-full py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-surface-container-highest active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-sm">download</span>
-                                <span>Backup JSON</span>
-                            </button>
-                        </div>
                     </div>
 
                 </div>
@@ -1127,16 +1106,31 @@
         // ==============================================================
         // SOM DE APITO OFICIAL DO ÁRBITRO (EXECUTA QUANDO ALGUÉM ENTRA NA LISTA)
         // ==============================================================
+        
+        // Desbloqueia contexto de áudio em qualquer interação do usuário
+        function desbloquearAudioGlobal() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    if (!window._audioCtx) window._audioCtx = new AudioCtx();
+                    if (window._audioCtx.state === 'suspended') window._audioCtx.resume().catch(() => {});
+                }
+            } catch(e) {}
+        }
+        ['click', 'touchstart', 'touchend', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, desbloquearAudioGlobal, { passive: true });
+        });
+
         function tocarSomApito() {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (!AudioCtx) return;
-                const ctx = new AudioCtx();
+                if (!window._audioCtx) window._audioCtx = new AudioCtx();
+                const ctx = window._audioCtx;
                 if (ctx.state === 'suspended') {
                     ctx.resume().catch(() => {});
                 }
 
-                // Disparo de sopro do apito com modulação acústica Fox 40
                 const dispararSopro = (tInicio, duracao, volume) => {
                     const osc1 = ctx.createOscillator();
                     const osc2 = ctx.createOscillator();
@@ -1285,28 +1279,29 @@
             // Na primeira carga, memoriza os existentes sem disparar toasts acumulados
             if (!appSincronizacaoInicializada) {
                 novaLista.forEach(j => {
-                    if (j.id) atletasConhecidosIds.add(String(j.id));
-                    if (j.nome) atletasConhecidosIds.add(j.nome.toLowerCase().trim());
+                    if (j && j.id) atletasConhecidosIds.add(String(j.id));
+                    if (j && j.nome) atletasConhecidosIds.add(j.nome.toLowerCase().trim());
                 });
                 appSincronizacaoInicializada = true;
                 return;
             }
 
-            // O novo jogador entra na 1ª POSIÇÃO (índice 0)
-            const primeiro = novaLista[0];
-            if (primeiro) {
-                const idKey = primeiro.id ? String(primeiro.id) : null;
-                const nomeKey = primeiro.nome ? primeiro.nome.toLowerCase().trim() : null;
-                const ehConhecido = (idKey && atletasConhecidosIds.has(idKey)) && (nomeKey && atletasConhecidosIds.has(nomeKey));
-                const entrouAgora = primeiro.entrouEm && (Date.now() - primeiro.entrouEm < 20000);
+            // Detecta qualquer atleta novo que se escalou na pelada
+            const novos = novaLista.filter(j => {
+                if (!j) return false;
+                const idKey = j.id ? String(j.id) : null;
+                const nomeKey = j.nome ? j.nome.toLowerCase().trim() : null;
+                const conhecido = (idKey && atletasConhecidosIds.has(idKey)) || (nomeKey && atletasConhecidosIds.has(nomeKey));
+                return !conhecido;
+            });
 
-                if (!ehConhecido || (entrouAgora && !primeiro._notificadoToast)) {
-                    primeiro._notificadoToast = true;
-                    if (idKey) atletasConhecidosIds.add(idKey);
-                    if (nomeKey) atletasConhecidosIds.add(nomeKey);
-
-                    exibirToastJogadorOnline(primeiro, `${primeiro.nome} acabou de entrar na lista da pelada!`);
-                }
+            if (novos.length > 0) {
+                novos.forEach(novo => {
+                    if (novo.id) atletasConhecidosIds.add(String(novo.id));
+                    if (novo.nome) atletasConhecidosIds.add(novo.nome.toLowerCase().trim());
+                    tocarSomApito();
+                    exibirToastJogadorOnline(novo, `${novo.nome} acabou de se escalar na pelada! ⚽`);
+                });
             }
         }
 
@@ -1510,12 +1505,7 @@
             if (sseInstancia) {
                 try { sseInstancia.close(); } catch(e) {}
             }
-            // Na Render (Serverless), o polling HTTP rápido a cada 3.5s faz a sincronização instantânea
-            // Evita abrir EventSource infinito na Render para não gerar timeout de 300s
-            if (window.location.hostname.includes('onrender.com')) {
-                atualizarBadgeConexao(true);
-                return;
-            }
+            // SSE ativo em todas as hospedagens com heartbeat automático
             try {
                 sseInstancia = new EventSource('/api/stream');
                 sseInstancia.onopen = () => {
@@ -1530,6 +1520,12 @@
                             if (msg.listaConfirmados) {
                                 aplicarSincronizacaoRemota(msg);
                             }
+                        } else if (msg.type === 'LISTA_ZERADA_AUTO') {
+                            listaConfirmados = [];
+                            localStorage.setItem('pelada_confirmados', JSON.stringify([]));
+                            atletasConhecidosIds.clear();
+                            aplicarDadosAtualizados();
+                            exibirToastJogadorOnline({ nome: 'Pelada Top', posicao: 'SYS' }, 'Lista zerada após a meia-noite! Nova presença liberada.');
                         } else if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
                             aplicarSincronizacaoRemota(msg);
                         }
@@ -1561,12 +1557,12 @@
         }
 
         function aplicarDadosAtualizados() {
-            renderizarListaJogadores();
-            renderizarListaGestaoAdmin();
-            renderizarStatusCheckin();
-            realizarSorteioStitch(true);
-            verificarEExibirNumeralTimeJogador();
-            atualizarEstadoBotaoPlayTimer();
+            try { renderizarListaJogadores(); } catch(e) { console.warn('Erro renderizarListaJogadores:', e); }
+            try { renderizarListaGestaoAdmin(); } catch(e) { console.warn('Erro renderizarListaGestaoAdmin:', e); }
+            try { renderizarStatusCheckin(); } catch(e) { console.warn('Erro renderizarStatusCheckin:', e); }
+            try { realizarSorteioStitch(true); } catch(e) { console.warn('Erro realizarSorteioStitch:', e); }
+            try { verificarEExibirNumeralTimeJogador(); } catch(e) {}
+            try { atualizarEstadoBotaoPlayTimer(); } catch(e) {}
         }
 
         // ==============================================================
@@ -1616,6 +1612,7 @@
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
                     renderizarListaGestaoAdmin();
+                    buscarDadosServidor();
                     atualizarLocalizacaoGps(false);
                 } else if (aba === 'equipes') {
                     realizarSorteioStitch(true);
@@ -3915,11 +3912,26 @@
             if (!container) return;
 
             if (listaConfirmados.length === 0) {
+                // Tenta puxar do servidor imediatamente se ainda não populou localmente
+                if (window.location.protocol.startsWith('http')) {
+                    fetch('/api/pelada?t=' + Date.now())
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data && Array.isArray(data.listaConfirmados) && data.listaConfirmados.length > 0) {
+                                listaConfirmados = data.listaConfirmados;
+                                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                                renderizarListaGestaoAdmin();
+                                renderizarListaJogadores();
+                            }
+                        })
+                        .catch(() => {});
+                }
+
                 container.innerHTML = `
                     <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-secondary text-2xl">person_off</span>
                         <p class="font-bold text-on-surface">Nenhum jogador confirmado</p>
-                        <p class="text-[10px]">Toque em "+ Atleta" para cadastrar ou aguarde o check-in dos jogadores.</p>
+                        <p class="text-[10px]">Aguardando check-in dos atletas ou toque em "+ Atleta" para adicionar.</p>
                     </div>
                 `;
                 return;
@@ -3932,7 +3944,7 @@
                 if (ehEu && usuarioAtual.foto && !j.foto) {
                     j.foto = usuarioAtual.foto;
                 }
-                const fotoSrc = (ehEu && usuarioAtual.foto) ? usuarioAtual.foto : (j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_');
+                const fotoSrc = obterFotoJogador(j, ehEu);
 
                 // Cores de status no admin
                 const chegou = j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
