@@ -104,11 +104,6 @@
 </div>
 <!-- Right: Quick Action Buttons -->
 <div class="flex items-center gap-2.5">
-<!-- Página de Teste (Emerald) -->
-<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold font-sans tracking-wide transition-all active:scale-95 shadow-sm" onclick="window.location.href='/teste'">
-<span class="material-icons text-base">build_circle</span>
-<span>Página de Teste</span>
-</button>
 <!-- Master Lock Toggle (Lista Aberta) -->
 <button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-sans tracking-wide transition-all active:scale-95 shadow-md shadow-emerald-700/20" id="btnLockToggle" onclick="toggleLockState()">
 <span class="material-icons text-base" id="lockIcon">lock_open</span>
@@ -721,6 +716,22 @@
     const atletasConhecidos = new Set();
     let inicializado = false;
 
+    // --- CÁLCULO DE CONDIÇÃO FÍSICA REAL DO CADASTRO ---
+    function calcularFitnessAtleta(atleta) {
+      if (!atleta) return 80;
+      const condRaw = String(atleta.condicao || atleta.condicaoFisica || '').toLowerCase().trim();
+      if (condRaw.includes('100') || condRaw.includes('top') || condRaw.includes('excelente')) return 100;
+      if (condRaw.includes('80') || condRaw.includes('boa')) return 80;
+      if (condRaw.includes('60') || condRaw.includes('ok') || condRaw.includes('regular')) return 60;
+      if (condRaw.includes('40') || condRaw.includes('recupera')) return 40;
+      
+      if (atleta.fitness !== undefined && atleta.fitness !== null && !isNaN(atleta.fitness) && Number(atleta.fitness) !== 90) {
+        return Math.min(100, Math.max(0, Math.round(Number(atleta.fitness))));
+      }
+      return 100;
+    }
+
+
     // --- SOM E TOAST NOTIFICATION DE JOGADOR ONLINE ---
     function tocarSomOnline() {
       try {
@@ -1085,7 +1096,14 @@
               <div class="flex items-center gap-2">
                 <span class="font-bold text-sm text-[#131313] font-sans tracking-tight truncate">${atleta.nome}</span>
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${posBadgeClass}">${posUpper}</span>
-                <span class="text-[11px] text-emerald-700 font-mono font-bold">★ ${atleta.fitness || 90}% Fit</span>
+                ${(() => {
+    const fitPct = calcularFitnessAtleta(atleta);
+    let fitColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+    if (fitPct <= 40) fitColor = "text-red-700 bg-red-50 border-red-200";
+    else if (fitPct <= 60) fitColor = "text-amber-800 bg-amber-50 border-amber-200";
+    else if (fitPct <= 80) fitColor = "text-blue-700 bg-blue-50 border-blue-200";
+    return '<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ' + fitColor + '">★ ' + fitPct + '% Fit</span>';
+  })()}
                 ${atleta.isNovoOnline ? '<span class="text-[9px] font-mono font-extrabold px-1 rounded bg-emerald-500 text-white animate-pulse">NOVO</span>' : ''}
               </div>
               <div class="text-[11px] text-[#64748b] font-mono flex items-center gap-2">

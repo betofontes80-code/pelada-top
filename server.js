@@ -29,6 +29,46 @@ function loadData() {
 }
 
 // Função de escrita segura em /tmp
+
+// Função para calcular a porcentagem de condição física real do atleta de acordo com o cadastro
+function calcularFitnessAtleta(atleta) {
+  if (!atleta) return 80;
+  const condRaw = String(atleta.condicao || atleta.condicaoFisica || '').toLowerCase().trim();
+  if (condRaw.includes('100') || condRaw.includes('top') || condRaw.includes('excelente')) return 100;
+  if (condRaw.includes('80') || condRaw.includes('boa')) return 80;
+  if (condRaw.includes('60') || condRaw.includes('ok') || condRaw.includes('regular')) return 60;
+  if (condRaw.includes('40') || condRaw.includes('recupera')) return 40;
+  
+  if (atleta.fitness !== undefined && atleta.fitness !== null && !isNaN(atleta.fitness) && Number(atleta.fitness) !== 90) {
+    return Math.min(100, Math.max(0, Math.round(Number(atleta.fitness))));
+  }
+  return 100;
+}
+
+// Verifica se a requisição é originada na máquina local de desenvolvimento (dev)
+function isLocalDevRequest(req) {
+  const xff = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const remote = req.socket?.remoteAddress || '';
+  const host = (req.headers['host'] || '').split(':')[0].toLowerCase();
+
+  // Se veio com X-Forwarded-For externo (Vercel, proxy, túnel), NÃO é dev local
+  if (xff && xff !== '127.0.0.1' && xff !== '::1' && !xff.startsWith('127.')) {
+    return false;
+  }
+
+  // Se o Host é um domínio remoto/externo, bloqueia
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') {
+    return false;
+  }
+
+  // Apenas conexões loopback na máquina local dev
+  if (remote === '127.0.0.1' || remote === '::1' || remote === '::ffff:127.0.0.1') {
+    return true;
+  }
+
+  return false;
+}
+
 function saveData(data) {
   try {
     const dir = path.dirname(DATA_FILE);
@@ -547,7 +587,7 @@ const requestHandler = (req, res) => {
               posicao: payload.posicao || 'ATA',
               condicao: payload.condicao || 'excelente',
               idade: payload.idade || 28,
-              fitness: payload.fitness || 90,
+              fitness: calcularFitnessAtleta(payload),
               foto: payload.foto || '',
               online: true,
               hora: horaAgora,
@@ -657,7 +697,7 @@ const requestHandler = (req, res) => {
                 posicao: payload.posicao || (usuarioBase ? usuarioBase.posicao : 'MEI'),
                 condicao: payload.condicao || (usuarioBase ? usuarioBase.condicao : 'excelente'),
                 idade: payload.idade || (usuarioBase ? usuarioBase.idade : 28),
-                fitness: payload.fitness || (usuarioBase ? usuarioBase.fitness : 90),
+                fitness: calcularFitnessAtleta(payload.condicao ? payload : usuarioBase),
                 foto: payload.foto || (usuarioBase ? usuarioBase.foto : ''),
                 online: true,
                 statusPresenca: 'confirmado',
@@ -804,6 +844,11 @@ const requestHandler = (req, res) => {
 
     // 16. API Teste: Simular GPS
     if (pathname === '/api/teste/simular-gps' && req.method === 'POST') {
+      if (!isLocalDevRequest(req)) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ sucesso: false, erro: 'Acesso restrito ao ambiente de desenvolvimento local.' }));
+        return;
+      }
       lerCorpoRequisicao(req, (err, payload) => {
         if (err || !payload) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -904,6 +949,35 @@ const requestHandler = (req, res) => {
     }
 
     if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
+      if (!isLocalDevRequest(req)) {
+        res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acesso Restrito - Pelada Top Dev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
+  <div class="max-w-md w-full bg-slate-800 border border-red-500/40 rounded-2xl p-6 shadow-2xl text-center">
+    <div class="w-14 h-14 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/50">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <h1 class="text-xl font-black text-red-400 tracking-tight">ACESSO RESTRITO AO DEV LOCAL</h1>
+    <p class="text-sm text-slate-300 mt-2">A tela de diagnóstico e testes técnicos foi configurada para execução <b>fora do painel de administração</b> e com permissão exclusiva para a <b>máquina local de desenvolvimento (localhost / 127.0.0.1)</b>.</p>
+    <div class="mt-4 p-3 bg-slate-900 rounded-lg text-xs font-mono text-slate-400 border border-slate-700">
+      Dispositivo remoto não autorizado a executar ferramentas de teste dev.
+    </div>
+    <div class="mt-6 flex justify-center gap-3">
+      <a href="/" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">Ir para o App</a>
+      <a href="/painel" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all">Painel Admin</a>
+    </div>
+  </div>
+</body>
+</html>`);
+        return;
+      }
       const testePath = path.join(__dirname, 'public_admin', 'teste.html');
       if (fs.existsSync(testePath)) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
