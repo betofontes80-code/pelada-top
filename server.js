@@ -40,6 +40,22 @@ function lerDados() {
 
 function salvarDados(dados) {
   try {
+    if (!dados || typeof dados !== 'object') return false;
+
+    // Sincroniza atletas e listaConfirmados
+    if (Array.isArray(dados.atletas) && (!dados.listaConfirmados || dados.listaConfirmados.length === 0)) {
+      dados.listaConfirmados = dados.atletas;
+    } else if (Array.isArray(dados.listaConfirmados) && (!dados.atletas || dados.atletas.length === 0)) {
+      dados.atletas = dados.listaConfirmados;
+    }
+
+    // Sincroniza usuarios e jogadoresCadastrados
+    if (Array.isArray(dados.usuarios) && (!dados.jogadoresCadastrados || dados.jogadoresCadastrados.length === 0)) {
+      dados.jogadoresCadastrados = dados.usuarios;
+    } else if (Array.isArray(dados.jogadoresCadastrados) && (!dados.usuarios || dados.usuarios.length === 0)) {
+      dados.usuarios = dados.jogadoresCadastrados;
+    }
+
     const dir = path.dirname(DATABASE_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -53,6 +69,7 @@ function salvarDados(dados) {
     } catch (e) {}
     try {
       fs.writeFileSync(path.join(TMP_DIR, 'database.json'), jsonStr, 'utf8');
+      fs.writeFileSync(path.join(TMP_DIR, 'pelada-dados.json'), jsonStr, 'utf8');
     } catch (e) {}
     return true;
   } catch (e) {
@@ -111,26 +128,18 @@ function isLocalDevRequest(req) {
   return false;
 }
 
-function saveData(data) {
-  try {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error("Erro ao salvar dados:", e);
-  }
-}
+// saveData delegado para salvarDados()
 
 // MIME types suportados
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon'
 };
@@ -162,41 +171,36 @@ let appData = {
   version: Date.now()
 };
 
-// Carregar dados salvos com proteção e fallback
+// Carregar dados salvos com prioridade absoluta para database.json
 try {
   let carregou = false;
+  const dadosIniciais = lerDados();
 
-  // 1. Tenta ler o arquivo de dados (em disco ou tmp local)
-  if (fs.existsSync(DATA_FILE)) {
-    const raw = fs.readFileSync(DATA_FILE, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (parsed.usuarios && parsed.usuarios.length) appData.usuarios = parsed.usuarios;
-    else if (parsed.jogadoresCadastrados) appData.usuarios = parsed.jogadoresCadastrados;
-    
-    if (parsed.listaConfirmados && parsed.listaConfirmados.length) appData.listaConfirmados = parsed.listaConfirmados;
-    else if (parsed.atletas) appData.listaConfirmados = parsed.atletas;
+  if (dadosIniciais) {
+    if (Array.isArray(dadosIniciais.usuarios) && dadosIniciais.usuarios.length) {
+      appData.usuarios = dadosIniciais.usuarios;
+    } else if (Array.isArray(dadosIniciais.jogadoresCadastrados) && dadosIniciais.jogadoresCadastrados.length) {
+      appData.usuarios = dadosIniciais.jogadoresCadastrados;
+    }
 
-    if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
-    if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
-    if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
-    if (parsed.version) appData.version = parsed.version;
-    carregou = true;
-  }
+    const listaInicial = (Array.isArray(dadosIniciais.atletas) && dadosIniciais.atletas.length > 0)
+      ? dadosIniciais.atletas
+      : (Array.isArray(dadosIniciais.listaConfirmados) && dadosIniciais.listaConfirmados.length > 0 ? dadosIniciais.listaConfirmados : []);
 
-  // Fallback para tmp se necessário
-  if (!carregou && fs.existsSync(path.join(TMP_DIR, 'pelada-dados.json'))) {
-    try {
-      const raw = fs.readFileSync(path.join(TMP_DIR, 'pelada-dados.json'), 'utf8');
-      const parsed = JSON.parse(raw);
-      if (parsed.usuarios) appData.usuarios = parsed.usuarios;
-      if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
-      if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
+    if (listaInicial.length > 0) {
+      appData.listaConfirmados = listaInicial;
+      appData.atletas = listaInicial;
       carregou = true;
-    } catch(e) {}
+    }
+
+    if (dadosIniciais.peladaConfig) appData.peladaConfig = dadosIniciais.peladaConfig;
+    if (dadosIniciais.escalacaoAtiva !== undefined) appData.escalacaoAtiva = dadosIniciais.escalacaoAtiva;
+    if (dadosIniciais.partidaEstado !== undefined) appData.partidaEstado = dadosIniciais.partidaEstado;
+    if (dadosIniciais.version) appData.version = dadosIniciais.version;
   }
 
   if (carregou) {
-    console.log('[Realtime] Dados da pelada carregados com sucesso.');
+    console.log('[Realtime] Dados da pelada carregados com sucesso do database.json (' + appData.listaConfirmados.length + ' atletas).');
   } else {
     salvarDadosDisco();
   }
@@ -206,15 +210,16 @@ try {
 
 // Salvar no disco com tratamento seguro para Serverless e preservação de todas as chaves
 function salvarDadosDisco() {
+  const lista = appData.listaConfirmados || appData.atletas || [];
   const dadosCompletos = {
     usuarios: appData.usuarios || [],
     jogadoresCadastrados: appData.usuarios || [],
-    listaConfirmados: appData.listaConfirmados || [],
-    atletas: appData.listaConfirmados || [],
-    peladaConfig: appData.peladaConfig,
+    listaConfirmados: lista,
+    atletas: lista,
+    peladaConfig: appData.peladaConfig || DEFAULT_CONFIG,
     escalacaoAtiva: appData.escalacaoAtiva,
     partidaEstado: appData.partidaEstado,
-    version: appData.version
+    version: appData.version || Date.now()
   };
   saveData(dadosCompletos);
 }
@@ -393,6 +398,34 @@ const requestHandler = (req, res) => {
     const rawPath = (req.headers && (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'])) || parsedUrl.pathname;
     const pathname = rawPath.replace(/\/+$/, '') || '/';
 
+    // 0. Rotas Oficiais de PWA: manifest.json e service-worker
+    if (pathname === '/manifest.json' || pathname === '/manifest.webmanifest') {
+      const manifestPath = path.join(__dirname, 'manifest.json');
+      if (fs.existsSync(manifestPath)) {
+        res.writeHead(200, {
+          'Content-Type': 'application/manifest+json; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(fs.readFileSync(manifestPath));
+        return;
+      }
+    }
+
+    if (pathname === '/sw.js' || pathname === '/service-worker.js' || pathname === '/service-worker') {
+      const swPath = path.join(__dirname, 'sw.js');
+      if (fs.existsSync(swPath)) {
+        res.writeHead(200, {
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Service-Worker-Allowed': '/',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(fs.readFileSync(swPath));
+        return;
+      }
+    }
+
     // 1. API: Realtime SSE (/api/stream ou /api/realtime)
     const isStreamRoute = pathname === '/api/stream' ||
                           pathname === '/api/realtime' ||
@@ -500,15 +533,34 @@ const requestHandler = (req, res) => {
     if (pathname === '/api/atletas' && req.method === 'GET') {
       try {
         const dados = lerDados();
-        const lista = (dados.listaConfirmados && dados.listaConfirmados.length)
-          ? dados.listaConfirmados
-          : (dados.atletas && dados.atletas.length ? dados.atletas : (appData.listaConfirmados || []));
+        let lista = [];
 
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        if (Array.isArray(dados.atletas) && dados.atletas.length > 0) {
+          lista = dados.atletas;
+        } else if (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0) {
+          lista = dados.listaConfirmados;
+        } else if (Array.isArray(appData.listaConfirmados) && appData.listaConfirmados.length > 0) {
+          lista = appData.listaConfirmados;
+        } else if (Array.isArray(appData.atletas) && appData.atletas.length > 0) {
+          lista = appData.atletas;
+        }
+
+        // Mantém a sincronização no appData em memória
+        if (lista.length > 0) {
+          appData.listaConfirmados = lista;
+          appData.atletas = lista;
+        }
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Access-Control-Allow-Origin': '*'
+        });
         res.end(JSON.stringify(lista));
       } catch (err) {
+        console.error('[API /api/atletas] Erro ao ler database.json:', err);
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ error: err.message, atletas: [] }));
       }
       return;
     }

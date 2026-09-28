@@ -6,7 +6,7 @@
     <title>Pelada Top - Football Match Manager</title>
 
     <!-- PWA & MOBILE CONFIGURATION (ANDROID, IOS, WINDOWS) -->
-    <link rel="manifest" href="./manifest.json"/>
+    <link rel="manifest" href="/manifest.json"/>
     <meta name="theme-color" content="#dd0000"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="color-scheme" content="light"/>
@@ -1531,8 +1531,32 @@
             });
         }
 
+                // Chama /api/atletas para garantir persistência e exibição em tempo real da lista de confirmados
+        async function carregarAtletasApi() {
+            if (!window.location.protocol.startsWith('http')) return;
+            try {
+                const resp = await fetch('/api/atletas?t=' + Date.now());
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const atletasRecebidos = Array.isArray(data)
+                        ? data
+                        : (Array.isArray(data.atletas) ? data.atletas : (Array.isArray(data.listaConfirmados) ? data.listaConfirmados : []));
+                    
+                    if (Array.isArray(atletasRecebidos) && atletasRecebidos.length > 0) {
+                        listaConfirmados = atletasRecebidos.filter(j => j && typeof j === 'object' && j.nome);
+                        localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                        aplicarDadosAtualizados();
+                        console.log('[API Atletas] Lista de atletas carregada em tempo real via /api/atletas:', listaConfirmados.length);
+                    }
+                }
+            } catch (err) {
+                console.warn('[API Atletas] Erro ao carregar /api/atletas:', err);
+            }
+        }
+
         function buscarDadosServidor() {
             if (!window.location.protocol.startsWith('http')) return Promise.resolve();
+            carregarAtletasApi();
             return fetch('/api/pelada?t=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
@@ -1657,6 +1681,11 @@
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
                     renderizarListaGestaoAdmin();
+                    // Chama /api/atletas imediatamente ao acessar a aba admin
+                    carregarAtletasApi().then(() => {
+                        renderizarListaGestaoAdmin();
+                        renderizarStatusCheckin();
+                    });
                     buscarDadosServidor().then(() => {
                         renderizarListaGestaoAdmin();
                         renderizarStatusCheckin();
@@ -3968,13 +3997,16 @@
             if (!container) return;
 
             if (atletasValidos.length === 0) {
-                // Tenta puxar do servidor imediatamente se ainda não populou localmente
+                // Tenta puxar de /api/atletas imediatamente para garantir exibição em tempo real
                 if (window.location.protocol.startsWith('http')) {
-                    fetch('/api/pelada?t=' + Date.now())
+                    fetch('/api/atletas?t=' + Date.now())
                         .then(r => r.json())
                         .then(data => {
-                            if (data && Array.isArray(data.listaConfirmados) && data.listaConfirmados.length > 0) {
-                                listaConfirmados = data.listaConfirmados.filter(j => j && typeof j === 'object' && j.nome);
+                            const atletasRecebidos = Array.isArray(data)
+                                ? data
+                                : (Array.isArray(data.atletas) ? data.atletas : (Array.isArray(data.listaConfirmados) ? data.listaConfirmados : []));
+                            if (Array.isArray(atletasRecebidos) && atletasRecebidos.length > 0) {
+                                listaConfirmados = atletasRecebidos.filter(j => j && typeof j === 'object' && j.nome);
                                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                                 renderizarListaGestaoAdmin();
                                 renderizarListaJogadores();
@@ -4335,6 +4367,13 @@
                 console.warn('[Init] Aviso ao conectar realtime:', e);
             }
 
+            // Garante que o fetch no frontend na aba de administracao chame /api/atletas ao carregar a pagina
+            try {
+                carregarAtletasApi();
+            } catch (e) {
+                console.warn('[Init] Aviso ao chamar carregarAtletasApi:', e);
+            }
+
             try {
                 renderizarListaJogadores();
             } catch (e) {
@@ -4430,12 +4469,12 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=6.6')
+                navigator.serviceWorker.register('/sw.js?v=6.7', { scope: '/' })
                     .then(reg => {
-                        console.log('PWA ServiceWorker v6.4 ativo com sucesso! Escopo:', reg.scope);
+                        console.log('PWA ServiceWorker v6.7 ativo com sucesso! Escopo:', reg.scope);
                         reg.update();
                     })
-                    .catch(err => console.log('Falha ao registrar ServiceWorker:', err));
+                    .catch(err => { navigator.serviceWorker.register('./sw.js?v=6.7').then(r => console.log('PWA SW relativo ativo:', r.scope)).catch(e => console.warn('Falha SW:', e)); });
             });
         }
         </script>

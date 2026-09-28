@@ -1,16 +1,16 @@
 // Service Worker do Pelada Top PWA
-const CACHE_NAME = 'pelada-top-v6.6';
+const CACHE_NAME = 'pelada-top-v6.7';
 
 // Mantenha nesta lista apenas arquivos que existem no projeto.
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './logo-transparent.png',
-  './logo.png',
-  './icon-192.png',
-  './icon-512.png',
-  './pix-qr.png'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/logo-transparent.png',
+  '/logo.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/pix-qr.png'
 ];
 
 self.addEventListener('install', (event) => {
