@@ -1550,14 +1550,14 @@
         }
 
                         // ==============================================================
-        // CONSUMO DA ROTA GET /api/atletas E RENDERIZAÇÃO NA ABA ADMIN
+        // CARREGAMENTO AUTOMÁTICO DE TODOS OS ATLETAS DO BANCO DE DADOS (database.json)
         // ==============================================================
-        async function consumirApiAtletasAdmin() {
-            const container = document.getElementById('admin-lista-atletas-gestao');
-            const badgeCount = document.getElementById('admin-contador-atletas');
+        async function carregarListaOficialAtletas() {
+            const containerAdmin = document.getElementById('admin-lista-atletas-gestao');
+            const badgeCountAdmin = document.getElementById('admin-contador-atletas');
 
             try {
-                // Consome a rota oficial GET /api/atletas
+                // Consome a rota oficial GET /api/atletas para carregar TODOS os atletas cadastrados na nuvem
                 const resp = await fetch('/api/atletas?t=' + Date.now(), {
                     headers: { 'Accept': 'application/json' }
                 });
@@ -1565,7 +1565,6 @@
                 if (resp.ok) {
                     const dadosRetornados = await resp.json();
 
-                    // Garante a extração correta do array retornado
                     let arrayAtletas = [];
                     if (Array.isArray(dadosRetornados)) {
                         arrayAtletas = dadosRetornados;
@@ -1582,31 +1581,25 @@
                         listaConfirmados = atletasValidos;
                         localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
 
-                        // 1. Atualiza a contagem substituindo o '0 atletas' atual
-                        if (badgeCount) {
-                            badgeCount.innerText = `${atletasValidos.length} atleta${atletasValidos.length !== 1 ? 's' : ''}`;
+                        if (badgeCountAdmin) {
+                            badgeCountAdmin.innerText = `${atletasValidos.length} atleta${atletasValidos.length !== 1 ? 's' : ''}`;
                         }
 
-                        // 2. Percorre o array retornado e renderiza na tela
-                        renderizarListaGestaoAdmin();
-
-                        // 3. Atualiza demais visões integradas
-                        try { renderizarListaJogadores(); } catch(e) {}
-                        try { renderizarStatusCheckin(); } catch(e) {}
-                        try { realizarSorteioStitch(true); } catch(e) {}
+                        // Renderiza e sincroniza instantaneamente todas as abas
+                        aplicarDadosAtualizados();
                         return;
                     }
                 }
             } catch (err) {
-                console.warn('[Admin] Erro ao consumir GET /api/atletas:', err);
+                console.warn('[Nuvem] Erro ao carregar atletas de database.json:', err);
             }
 
-            // Fallback: se falhar a rede ou o servidor ainda estiver iniciando, renderiza os dados salvos/padrão
-            renderizarListaGestaoAdmin();
+            // Fallback: renderiza dados locais / pré-carregados
+            aplicarDadosAtualizados();
         }
 
-        // Mantém alias para compatibilidade
-        const carregarAtletasApi = consumirApiAtletasAdmin;
+        const consumirApiAtletasAdmin = carregarListaOficialAtletas;
+        const carregarAtletasApi = carregarListaOficialAtletas;
 
         function buscarDadosServidor() {
             if (!window.location.protocol.startsWith('http')) return Promise.resolve();
@@ -2457,11 +2450,15 @@
             if (txtLocal) txtLocal.innerText = peladaConfig.local;
             if (inputLocal) inputLocal.value = peladaConfig.local;
 
-            const atletaLogado = listaConfirmados.find(j => 
+            const atletaLogado = (listaConfirmados || []).find(j => 
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
             );
-            const jaConfirmado = !!atletaLogado;
+            const jaConfirmado = atletaLogado && (
+                atletaLogado.statusPresenca === 'confirmado' || 
+                atletaLogado.statusPresenca === 'chegou' || 
+                atletaLogado.chegadaConfirmada === true
+            );
             const jaChegou = atletaLogado && (atletaLogado.chegadaConfirmada || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou');
 
             if (peladaConfig.listaAberta) {
@@ -2539,53 +2536,63 @@
             const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : 3500;
             const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            // Remove do local anterior caso já estivesse na lista para reposicionar na 1ª POSIÇÃO
-            listaConfirmados = listaConfirmados.filter(j => 
-                (j.nome || '').trim().toLowerCase() !== (usuarioAtual.nome || '').trim().toLowerCase() &&
-                (!usuarioAtual.id || String(j.id) !== String(usuarioAtual.id))
+            // Localiza o atleta logado na lista completa de atletas ou cria novo se não existir
+            let atleta = (listaConfirmados || []).find(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
             );
 
-            const novo = {
-                id: usuarioAtual.id || String(Date.now()),
-                nome: usuarioAtual.nome,
-                posicao: usuarioAtual.posicao || 'ATA',
-                condicao: usuarioAtual.condicao || 'excelente',
-                idade: usuarioAtual.idade || 28,
-                fitness: 95,
-                foto: usuarioAtual.foto || '',
-                hora: hora,
-                horaOnline: hora,
-                online: true,
-                statusPresenca: 'confirmado',
-                chegadaConfirmada: false,
-                distanciaMetros: dist,
-                statusAproximacao: dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe'),
-                entrouEm: Date.now(),
-                _notificadoToast: true
-            };
+            if (atleta) {
+                atleta.statusPresenca = 'confirmado';
+                atleta.chegadaConfirmada = false;
+                atleta.hora = hora;
+                atleta.horaOnline = hora;
+                atleta.online = true;
+                atleta.distanciaMetros = dist;
+                atleta.statusAproximacao = dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe');
+                atleta.entrouEm = Date.now();
+                atleta._notificadoToast = true;
+                if (usuarioAtual.foto) atleta.foto = usuarioAtual.foto;
+            } else {
+                atleta = {
+                    id: usuarioAtual.id || ('jog_' + Date.now()),
+                    nome: usuarioAtual.nome,
+                    posicao: usuarioAtual.posicao || 'ATA',
+                    condicao: usuarioAtual.condicao || 'excelente',
+                    idade: usuarioAtual.idade || 28,
+                    fitness: 95,
+                    foto: usuarioAtual.foto || '',
+                    hora: hora,
+                    horaOnline: hora,
+                    online: true,
+                    statusPresenca: 'confirmado',
+                    chegadaConfirmada: false,
+                    distanciaMetros: dist,
+                    statusAproximacao: dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe'),
+                    entrouEm: Date.now(),
+                    _notificadoToast: true
+                };
+                listaConfirmados.unshift(atleta);
+            }
 
-            // Coloca SEMPRE na 1ª POSIÇÃO (índice 0)
-            listaConfirmados.unshift(novo);
-            if (novo.id) atletasConhecidosIds.add(String(novo.id));
-            if (novo.nome) atletasConhecidosIds.add(novo.nome.toLowerCase().trim());
+            if (atleta.id) atletasConhecidosIds.add(String(atleta.id));
+            if (atleta.nome) atletasConhecidosIds.add(atleta.nome.toLowerCase().trim());
 
             // Dispara Toast de Online imediatamente
-            exibirToastJogadorOnline(novo, 'Você acabou de entrar na lista da pelada!');
+            exibirToastJogadorOnline(atleta, 'Você confirmou sua presença na pelada!');
 
             // Notifica BroadcastChannel para outras abas locais
             if (realtimeChannel) {
                 try {
                     realtimeChannel.postMessage({
                         type: 'JOGADOR_ONLINE',
-                        atleta: novo
+                        atleta: atleta
                     });
                 } catch(e) {}
             }
 
-            renderizarListaJogadores();
-            renderizarListaGestaoAdmin();
-            renderizarStatusCheckin();
-            realizarSorteioStitch(true);
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            aplicarDadosAtualizados();
 
             if (window.location.protocol.startsWith('http')) {
                 try {
@@ -2749,12 +2756,19 @@
 
         async function cancelarPresencaLogado() {
             if (confirm('Deseja cancelar sua presença na partida?')) {
-                listaConfirmados = listaConfirmados.filter(j => (j.nome || '').trim().toLowerCase() !== (usuarioAtual.nome || '').trim().toLowerCase());
+                const j = (listaConfirmados || []).find(x => 
+                    (usuarioAtual.id && String(x.id) === String(usuarioAtual.id)) ||
+                    (x.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                );
+                if (j) {
+                    j.statusPresenca = 'pendente';
+                    j.chegadaConfirmada = false;
+                    j.distanciaMetros = null;
+                    j.horaChegada = null;
+                }
+                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                aplicarDadosAtualizados();
                 await sincronizarServidor();
-                renderizarListaJogadores();
-                renderizarListaGestaoAdmin();
-                renderizarStatusCheckin();
-                realizarSorteioStitch(true);
             }
         }
 
@@ -2882,22 +2896,50 @@
         }
 
         // ==============================================================
-        // RENDERIZAÇÃO DA LISTA DE JOGADORES (COM 2 CONFIRMAÇÕES E 3 CORES)
+        // RENDERIZAÇÃO DA LISTA DE JOGADORES (TODOS OS ATLETAS COM INDICADOR VISUAL)
         // ==============================================================
         function renderizarListaJogadores() {
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
-            if (badge) badge.innerText = `${listaConfirmados.length} Confirmados`;
+
+            if (!Array.isArray(listaConfirmados) || listaConfirmados.length === 0) {
+                try {
+                    const salvos = JSON.parse(localStorage.getItem('pelada_confirmados'));
+                    if (Array.isArray(salvos) && salvos.length > 0) {
+                        listaConfirmados = salvos;
+                    } else if (Array.isArray(ATLETAS_INICIAIS_PADRAO) && ATLETAS_INICIAIS_PADRAO.length > 0) {
+                        listaConfirmados = [...ATLETAS_INICIAIS_PADRAO];
+                    }
+                } catch(e) {}
+            }
+
+            const totalCadastrados = (listaConfirmados || []).length;
+            const confirmados = (listaConfirmados || []).filter(j => 
+                j.statusPresenca === 'chegou' || 
+                j.statusPresenca === 'confirmado' || 
+                j.chegadaConfirmada === true
+            );
+            const totalConfirmados = confirmados.length;
+
+            if (badge) {
+                badge.innerText = `${totalConfirmados}/${totalCadastrados} Confirmados`;
+            }
 
             // Atualiza o aviso e botão de presença/chegada no topo da tela de jogadores
             const bannerPrompt = document.getElementById('banner-jogadores-checkin-prompt');
             if (bannerPrompt) {
-                const atletaLogado = listaConfirmados.find(j => 
+                const atletaLogado = (listaConfirmados || []).find(j => 
                     (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
                     (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
                 );
 
-                if (!atletaLogado) {
+                const presencaConfirmada = atletaLogado && (
+                    atletaLogado.statusPresenca === 'confirmado' || 
+                    atletaLogado.statusPresenca === 'chegou' || 
+                    atletaLogado.chegadaConfirmada === true
+                );
+
+                if (!atletaLogado || !presencaConfirmada) {
                     // ESTADO 1: Ainda não confirmou presença na lista (1ª Confirmação)
                     bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
@@ -2988,17 +3030,26 @@
                 }
             }
 
+            if (!container) return;
             if (listaConfirmados.length === 0) {
-                container.innerHTML = '<p class="text-center text-xs text-on-surface-variant py-6">Nenhum jogador confirmou ainda.</p>';
+                container.innerHTML = '<p class="text-center text-xs text-on-surface-variant py-6">Carregando lista de atletas cadastrados...</p>';
                 return;
             }
 
-            // Garante que o titular logado do app apareça como o PRIMEIRO (#1) da lista oficial
+            // ORDENAÇÃO: 
+            // 1. Usuário logado no app aparece SEMPRE em 1º lugar (#1)
+            // 2. Atletas com presença confirmada (No Campo / Confirmado)
+            // 3. Atletas aguardando confirmação (Pendente)
             const listaOrdenadaExibicao = [...listaConfirmados].sort((a, b) => {
                 const ehLogadoA = (a.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() || (usuarioAtual.id && String(a.id) === String(usuarioAtual.id));
                 const ehLogadoB = (b.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() || (usuarioAtual.id && String(b.id) === String(usuarioAtual.id));
                 if (ehLogadoA && !ehLogadoB) return -1;
                 if (!ehLogadoA && ehLogadoB) return 1;
+
+                const confA = (a.statusPresenca === 'chegou' || a.statusPresenca === 'confirmado' || a.chegadaConfirmada === true) ? 1 : 0;
+                const confB = (b.statusPresenca === 'chegou' || b.statusPresenca === 'confirmado' || b.chegadaConfirmada === true) ? 1 : 0;
+                if (confA !== confB) return confB - confA;
+
                 return 0;
             });
 
@@ -3011,41 +3062,48 @@
                     j.foto = usuarioAtual.foto;
                 }
                 const fotoSrc = obterFotoJogador(j, ehUsuarioLogado);
-
-                // CÁLCULO DO OVERALL REAL (0 A 100%) COM BASE NOS DADOS/ATRIBUTOS REAIS DO ATLETA
                 const overallReal = calcularOverallAtleta(j, ehUsuarioLogado ? usuarioAtual : null);
                 const corFitness = overallReal >= 90 ? 'text-success-green' : (overallReal >= 75 ? 'text-warning-amber' : 'text-primary');
 
-                // 3 CORES CONFORME REGRA SOLICITADA:
-                // Verde: Chegou (confirmado no local <= 500m)
-                // Amarelo: Próximo (distância entre 500m e 1500m ou no raio aguardando clique)
-                // Vermelho: Longe (distância > 1500m)
+                // DETERMINAÇÃO DO STATUS VISUAL DE PRESENÇA
                 const chegou = j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
                 const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? j.distanciaMetros : null;
-                const proximo = !chegou && ((distMetros !== null && distMetros <= 1500) || j.statusAproximacao === 'proximo');
-                const longe = !chegou && !proximo;
+                const estaConfirmado = j.statusPresenca === 'confirmado' || (!j.statusPresenca && j.hora) || j.statusPresenca === 'presente';
+                const estaPendente = !chegou && (j.statusPresenca === 'pendente' || j.statusPresenca === 'ausente' || j.statusPresenca === 'aguardando' || !estaConfirmado);
 
                 let corBadge, corBorda, statusTexto, iconeStatus, distTexto;
+
                 if (chegou) {
                     corBadge = 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
                     corBorda = 'border-l-4 border-l-emerald-500';
-                    statusTexto = 'CHEGOU';
+                    statusTexto = 'NO CAMPO';
                     iconeStatus = 'sports_soccer';
                     distTexto = `<span class="text-emerald-600 font-bold">No Campo (${j.horaChegada || j.hora || '19:00'})</span>`;
-                } else if (proximo) {
+                } else if (estaPendente) {
+                    corBadge = 'bg-slate-500/15 text-slate-600 border border-slate-400/30';
+                    corBorda = 'border-l-4 border-l-slate-400';
+                    statusTexto = 'AGUARDANDO';
+                    iconeStatus = 'schedule';
+                    distTexto = `<span class="text-on-surface-variant font-medium">Aguardando confirmação</span>`;
+                } else if (distMetros !== null && distMetros <= 1500) {
                     corBadge = 'bg-amber-500/15 text-amber-700 border border-amber-500/30';
                     corBorda = 'border-l-4 border-l-amber-500';
                     statusTexto = 'PRÓXIMO';
                     iconeStatus = 'near_me';
-                    const m = distMetros !== null ? `${distMetros}m` : 'Próximo';
-                    distTexto = `<span class="text-amber-600 font-bold">${m} do campo</span>`;
-                } else {
+                    distTexto = `<span class="text-amber-600 font-bold">${distMetros}m do campo</span>`;
+                } else if (distMetros !== null && distMetros > 1500) {
                     corBadge = 'bg-red-500/15 text-red-700 border border-red-500/30';
                     corBorda = 'border-l-4 border-l-red-500';
                     statusTexto = 'LONGE';
                     iconeStatus = 'navigation';
-                    const km = distMetros !== null ? (distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`) : 'A caminho';
-                    distTexto = `<span class="text-red-500 font-bold">${km}</span>`;
+                    const km = distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`;
+                    distTexto = `<span class="text-red-500 font-bold">${km} do campo</span>`;
+                } else {
+                    corBadge = 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
+                    corBorda = 'border-l-4 border-l-emerald-500';
+                    statusTexto = 'CONFIRMADO';
+                    iconeStatus = 'check_circle';
+                    distTexto = `<span class="text-emerald-600 font-bold">Confirmado (${j.hora || '19:00'})</span>`;
                 }
 
                 const ehPrimeiraPosicao = (idx === 0);
@@ -3059,7 +3117,7 @@
 
                 const cardClasses = ehUsuarioLogado
                     ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${corBorda} ${destaquePrimeiro}`
-                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${corBorda} ${destaquePrimeiro}`;
+                    : `bg-surface-container-lowest ${estaPendente ? 'opacity-90' : 'shadow-sm'} rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${corBorda} ${destaquePrimeiro}`;
 
                 const badgeVoce = ehUsuarioLogado
                     ? `<span class="bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase shadow-xs flex items-center gap-0.5">⭐ VOCÊ (#1)</span>`
@@ -3300,8 +3358,9 @@
             ordenados.forEach((a, idx) => {
                 const num = (idx + 1).toString().padStart(2, '0');
                 const pos = a.posicao || 'ATA';
-                const isPres = (a.statusPresenca === 'chegou' || a.chegadaConfirmada || (a.distanciaMetros && a.distanciaMetros <= 500));
-                const statusTag = isPres ? ' 🟢 [No Campo]' : '';
+                const isNoCampo = (a.statusPresenca === 'chegou' || a.chegadaConfirmada || (a.distanciaMetros && a.distanciaMetros <= 500));
+                const isConfirmado = isNoCampo || (a.statusPresenca === 'confirmado');
+                const statusTag = isNoCampo ? ' 🟢 [No Campo]' : (isConfirmado ? ' 🔵 [Confirmado]' : ' ⚪ [Aguardando]');
                 txt += num + ". " + a.nome + " (" + pos + ")" + statusTag + "\n";
             });
 

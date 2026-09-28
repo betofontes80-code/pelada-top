@@ -258,7 +258,16 @@ function verificarResetMeiaNoite() {
         console.log(`[Auto-Reset Meia-Noite] Dia da pelada (${dataPeladaStr}) finalizou. Data atual: ${hojeStr}.`);
         console.log(`[Auto-Reset Meia-Noite] Zerando a lista de presença da aba jogadores e mantendo configurações.`);
         
-        appData.listaConfirmados = [];
+        if (Array.isArray(appData.listaConfirmados)) {
+          appData.listaConfirmados = appData.listaConfirmados.map(a => ({
+            ...a,
+            statusPresenca: 'pendente',
+            chegadaConfirmada: false,
+            distanciaMetros: null,
+            horaChegada: null
+          }));
+        }
+        appData.atletas = appData.listaConfirmados;
         appData.escalacaoAtiva = null;
         appData.timesSorteados = [];
         appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
