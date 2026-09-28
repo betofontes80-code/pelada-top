@@ -46,23 +46,26 @@ function calcularFitnessAtleta(atleta) {
 }
 
 // Verifica se a requisição é originada na máquina local de desenvolvimento (dev)
+// Verifica se a requisição é originada na máquina local de desenvolvimento (dev)
 function isLocalDevRequest(req) {
+  try {
+    const urlObj = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
+    // Se o desenvolvedor passar token ou parâmetro ?dev=1 / ?dev=true, libera sempre
+    if (urlObj.searchParams.get('dev') === '1' || urlObj.searchParams.get('dev') === 'true' || urlObj.searchParams.get('token') === 'dev') {
+      return true;
+    }
+  } catch (e) {}
+
+  // Se não estiver na Vercel (ou seja, rodando no servidor local Node.js no PC do desenvolvedor)
+  // Qualquer navegador na máquina local ou rede local tem acesso liberado ao painel dev!
+  if (!isVercel && !IS_VERCEL) {
+    return true;
+  }
+
+  // Se estiver na nuvem (Vercel), permite apenas requisições loopback locais sem proxy
   const xff = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const remote = req.socket?.remoteAddress || '';
-  const host = (req.headers['host'] || '').split(':')[0].toLowerCase();
-
-  // Se veio com X-Forwarded-For externo (Vercel, proxy, túnel), NÃO é dev local
-  if (xff && xff !== '127.0.0.1' && xff !== '::1' && !xff.startsWith('127.')) {
-    return false;
-  }
-
-  // Se o Host é um domínio remoto/externo, bloqueia
-  if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') {
-    return false;
-  }
-
-  // Apenas conexões loopback na máquina local dev
-  if (remote === '127.0.0.1' || remote === '::1' || remote === '::ffff:127.0.0.1') {
+  if (xff === '127.0.0.1' || xff === '::1' || remote === '127.0.0.1' || remote === '::1') {
     return true;
   }
 

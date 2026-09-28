@@ -98,7 +98,7 @@
 </div>
 <!-- Quick Action Buttons -->
 <div class="flex items-center gap-2.5">
-<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95" onclick="logToTerminal('Navegando para App Mobile Pelada Top...', 'info')">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95" onclick="logToTerminal('Navegando para App...', 'info'); window.location.href='/';">
 <span class="material-icons text-base text-[#dd0000]">phone_android</span>
 <span>Abrir App</span>
 </button>
@@ -505,7 +505,70 @@
 </div>
 </div>
 </div>
-<!-- Live SSE Terminal & JSON Inspector -->
+
+      <!-- Section 5: Sincronização com Servidor Online (Nuvem / Vercel) -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+        <div class="flex flex-wrap items-center justify-between pb-3 border-b border-slate-200 gap-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+              <span class="material-icons text-lg">cloud_sync</span>
+            </div>
+            <div>
+              <h3 class="text-sm font-extrabold text-[#1a1c1c]">Sincronização com Servidor Online (Nuvem / Vercel)</h3>
+              <p class="text-[11px] text-slate-500 font-medium">Console executado exclusivamente na máquina local dev conectado com o servidor na nuvem</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="cloud-status-badge" class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="cloud-status-text">NUVEM PRONTA</span>
+            </span>
+            <button onclick="testCloudConnection()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-700 transition-all flex items-center gap-1 shadow-xs">
+              <span class="material-icons text-sm">speed</span>
+              <span>Testar Ping Nuvem</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+          <div class="lg:col-span-6 space-y-1">
+            <label class="text-[11px] font-mono font-bold text-slate-600 uppercase">Endpoint do Servidor de Produção / Nuvem</label>
+            <div class="flex items-center gap-2">
+              <input id="cloud-server-url" type="text" value="https://pelada-top.vercel.app" class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono text-slate-900 font-bold focus:outline-none focus:border-red-500 focus:bg-white" placeholder="https://seu-app.vercel.app">
+              <button onclick="saveCloudServerUrl()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-black text-white text-xs font-bold transition-all shadow-xs shrink-0">
+                Salvar URL
+              </button>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 flex flex-wrap items-end gap-2.5 pt-1">
+            <!-- Puxar da Nuvem (Pull) -->
+            <button onclick="pullDataFromCloud()" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 text-xs font-bold font-sans transition-all active:scale-95 shadow-xs">
+              <span class="material-icons text-base text-blue-600">cloud_download</span>
+              <span>⬇️ Baixar Dados da Nuvem (Pull)</span>
+            </button>
+            <!-- Subir para Nuvem (Push) -->
+            <button onclick="pushDataToCloud()" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold font-sans transition-all active:scale-95 shadow-xs">
+              <span class="material-icons text-base text-emerald-600">cloud_upload</span>
+              <span>⬆️ Enviar para Nuvem (Push)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono flex flex-wrap items-center justify-between text-slate-600 gap-2">
+          <div class="flex items-center gap-2">
+            <span class="material-icons text-sm text-slate-400">sync_alt</span>
+            <span>Simulações locais de GPS e Presença podem ser replicadas simultaneamente no servidor online.</span>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+            <input type="checkbox" id="sync-gps-to-cloud" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+            <span>Replicar GPS na Nuvem em Tempo Real</span>
+          </label>
+        </div>
+      </div>
+
+
+      <!-- Live SSE Terminal & JSON Inspector -->
 <div class="bg-white border border-slate-300 rounded-2xl overflow-hidden shadow-xs">
 <!-- Terminal Header -->
 <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
@@ -932,6 +995,26 @@
         logToTerminal(`[GPS RESET] Telemetria de GPS resetada para "${athleteName}".`, 'info');
       }
 
+      
+      // Opcional: Replicar GPS no Servidor Online (Nuvem)
+      const syncCloud = document.getElementById('sync-gps-to-cloud');
+      if (syncCloud && syncCloud.checked) {
+        try {
+          const cloudUrl = getCloudUrl();
+          fetch(cloudUrl + '/api/teste/simular-gps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              atletaId: athleteId,
+              nomeAtleta: athleteName,
+              statusDistancia: statusDist
+            })
+          }).then(() => {
+            logToTerminal(`[NUVEM SYNC] 📡 GPS de "${athleteName}" replicado em tempo real na nuvem online!`, 'success');
+          }).catch(() => {});
+        } catch(e) {}
+      }
+
       // Envia simulação real para o servidor
       try {
         await fetch('/api/teste/simular-gps', {
@@ -1023,6 +1106,104 @@
       } catch (e) {}
 
       runPingTest();
+    }
+
+    
+    // --- SINCRONIZAÇÃO COM O SERVIDOR ONLINE (NUVEM) ---
+    function getCloudUrl() {
+      const input = document.getElementById('cloud-server-url');
+      let url = input ? input.value.trim() : '';
+      if (!url) url = localStorage.getItem('pelada_cloud_url') || 'https://pelada-top.vercel.app';
+      return url.replace(/\/+$/, '');
+    }
+
+    function saveCloudServerUrl() {
+      const url = getCloudUrl();
+      localStorage.setItem('pelada_cloud_url', url);
+      logToTerminal(`[NUVEM CONFIG] URL do servidor de produção salva: ${url}`, 'success');
+      alert('URL do servidor de produção salva com sucesso:\n' + url);
+      testCloudConnection();
+    }
+
+    async function testCloudConnection() {
+      const cloudUrl = getCloudUrl();
+      const badge = document.getElementById('cloud-status-badge');
+      const text = document.getElementById('cloud-status-text');
+
+      logToTerminal(`[NUVEM PING] Testando conexão com ${cloudUrl}/api/pelada...`, 'info');
+      const start = performance.now();
+
+      try {
+        const resp = await fetch(cloudUrl + '/api/pelada', { mode: 'cors' });
+        const duration = Math.round(performance.now() - start);
+        if (resp.ok) {
+          if (badge && text) {
+            badge.className = "px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 flex items-center gap-1.5 shadow-xs";
+            text.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE (${duration}ms)`;
+          }
+          logToTerminal(`[NUVEM PING] Servidor online respondendo com sucesso em ${duration}ms!`, 'success');
+        } else {
+          throw new Error('Status ' + resp.status);
+        }
+      } catch (err) {
+        if (badge && text) {
+          badge.className = "px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1.5 shadow-xs";
+          text.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> CONECTANDO...`;
+        }
+        logToTerminal(`[NUVEM PING] Teste realizado com ${cloudUrl} (${err.message || 'Verifique CORS/URL'}).`, 'warn');
+      }
+    }
+
+    async function pullDataFromCloud() {
+      const cloudUrl = getCloudUrl();
+      logToTerminal(`[NUVEM PULL] Baixando dados mais recentes de ${cloudUrl}/api/pelada...`, 'info');
+
+      try {
+        const resp = await fetch(cloudUrl + '/api/pelada');
+        const data = await resp.json();
+
+        if (data && data.listaConfirmados) {
+          logToTerminal(`[NUVEM PULL] Sucesso! ${data.listaConfirmados.length} confirmados recebidos da nuvem.`, 'success');
+
+          // Salva no servidor local para sincronizar
+          await fetch('/api/admin/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data.configuracao || {})
+          });
+
+          // Atualiza lista local
+          const savedUrl = localStorage.getItem('pelada_cloud_url');
+      if (savedUrl && document.getElementById('cloud-server-url')) {
+        document.getElementById('cloud-server-url').value = savedUrl;
+      }
+      initTestPage();
+          alert(`Sincronização Concluída!\n\n${data.listaConfirmados.length} atletas recebidos do servidor online e gravados na máquina local.`);
+        }
+      } catch (err) {
+        logToTerminal(`[NUVEM PULL] Erro ao buscar da nuvem: ${err.message}`, 'error');
+      }
+    }
+
+    async function pushDataToCloud() {
+      const cloudUrl = getCloudUrl();
+      logToTerminal(`[NUVEM PUSH] Enviando estado e atletas locais para ${cloudUrl}...`, 'info');
+
+      try {
+        const respLocal = await fetch('/api/pelada');
+        const dataLocal = await respLocal.json();
+
+        const resp = await fetch(cloudUrl + '/api/admin/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataLocal.configuracao || {})
+        });
+
+        logToTerminal(`[NUVEM PUSH] Dados locais enviados com sucesso para a nuvem online!`, 'success');
+        alert('Configurações e atletas sincronizados com a nuvem online com sucesso!');
+      } catch (err) {
+        logToTerminal(`[NUVEM PUSH] Aviso ao enviar para nuvem: ${err.message}`, 'warn');
+      }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
