@@ -8,20 +8,65 @@ const PORT = process.env.PORT || 8080;
 const isRender = process.env.RENDER === 'true' || !!process.env.RENDER || !!process.env.RENDER_EXTERNAL_URL;
 const TMP_DIR = process.platform === 'win32' ? os.tmpdir() : '/tmp';
 const DATA_FILE = path.join(__dirname, 'pelada-dados.json');
+const DATABASE_FILE = path.join(__dirname, 'database.json');
 
-// Função de leitura segura
-function loadData() {
+// Funções de persistência real baseada em arquivo JSON usando 'fs' e 'path' apontando para 'database.json'
+function lerDados() {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    if (fs.existsSync(DATABASE_FILE)) {
+      return JSON.parse(fs.readFileSync(DATABASE_FILE, 'utf8'));
     }
-    if (!fs.existsSync(DATA_FILE) && fs.existsSync(path.join(TMP_DIR, 'pelada-dados.json'))) {
-      return JSON.parse(fs.readFileSync(path.join(TMP_DIR, 'pelada-dados.json'), 'utf8'));
+    if (fs.existsSync(DATA_FILE)) {
+      const dados = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      salvarDados(dados);
+      return dados;
+    }
+    if (fs.existsSync(path.join(TMP_DIR, 'database.json'))) {
+      return JSON.parse(fs.readFileSync(path.join(TMP_DIR, 'database.json'), 'utf8'));
     }
   } catch (e) {
-    console.error("Erro ao ler dados:", e);
+    console.error("[Database] Erro ao ler database.json:", e);
   }
-  return {};
+  return {
+    usuarios: [],
+    listaConfirmados: [],
+    atletas: [],
+    peladaConfig: DEFAULT_CONFIG,
+    escalacaoAtiva: null,
+    partidaEstado: { emAndamento: false, finalizada: false, tempoRestante: 600 },
+    version: Date.now()
+  };
+}
+
+function salvarDados(dados) {
+  try {
+    const dir = path.dirname(DATABASE_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const jsonStr = JSON.stringify(dados, null, 2);
+    fs.writeFileSync(DATABASE_FILE, jsonStr, 'utf8');
+
+    // Mantém sincronizado com pelada-dados.json e tmp para redundância e retrocompatibilidade
+    try {
+      fs.writeFileSync(DATA_FILE, jsonStr, 'utf8');
+    } catch (e) {}
+    try {
+      fs.writeFileSync(path.join(TMP_DIR, 'database.json'), jsonStr, 'utf8');
+    } catch (e) {}
+    return true;
+  } catch (e) {
+    console.error("[Database] Erro ao salvar database.json:", e);
+    return false;
+  }
+}
+
+function loadData() {
+  return lerDados();
+}
+
+function saveData(data) {
+  return salvarDados(data);
 }
 
 // Função de escrita segura em /tmp
@@ -438,6 +483,94 @@ const requestHandler = (req, res) => {
         } catch (innerErr) {
           res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: innerErr.message }));
+        }
+      });
+      return;
+    }
+
+
+    // 2.1. API Atletas (Persistência real em database.json): GET /api/atletas e POST /api/atletas
+    if (pathname === '/api/atletas' && req.method === 'GET') {
+      try {
+        const dados = lerDados();
+        const lista = (dados.listaConfirmados && dados.listaConfirmados.length)
+          ? dados.listaConfirmados
+          : (dados.atletas && dados.atletas.length ? dados.atletas : (appData.listaConfirmados || []));
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(lista));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
+
+    if (pathname === '/api/atletas' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: err.message }));
+          return;
+        }
+
+        try {
+          const dados = lerDados();
+          let lista = (dados.listaConfirmados && dados.listaConfirmados.length)
+            ? dados.listaConfirmados
+            : (dados.atletas || appData.listaConfirmados || []);
+
+          if (Array.isArray(payload)) {
+            lista = payload;
+          } else if (payload && Array.isArray(payload.atletas)) {
+            lista = payload.atletas;
+          } else if (payload && Array.isArray(payload.listaConfirmados)) {
+            lista = payload.listaConfirmados;
+          } else if (payload && typeof payload === 'object') {
+            const idBusca = payload.id ? String(payload.id).trim() : null;
+            const nomeBusca = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
+            const idx = lista.findIndex(j => 
+              (idBusca && String(j.id) === idBusca) ||
+              (nomeBusca && (j.nome || '').trim().toLowerCase() === nomeBusca)
+            );
+
+            if (idx >= 0) {
+              lista[idx] = { ...lista[idx], ...payload };
+            } else {
+              const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              const novoAtleta = {
+                id: payload.id || ('jog_' + Date.now()),
+                nome: payload.nome || 'Novo Atleta',
+                posicao: payload.posicao || 'ATA',
+                idade: payload.idade || 25,
+                fitness: payload.fitness || 90,
+                hora: horaAgora,
+                horaOnline: horaAgora,
+                online: true,
+                statusPresenca: 'confirmado',
+                chegadaConfirmada: false,
+                ...payload
+              };
+              lista.unshift(novoAtleta);
+            }
+          }
+
+          appData.listaConfirmados = lista;
+          appData.atletas = lista;
+          appData.version = Date.now();
+
+          dados.listaConfirmados = lista;
+          dados.atletas = lista;
+          dados.version = appData.version;
+          salvarDados(dados);
+
+          broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: true, atletas: lista, listaConfirmados: lista, version: appData.version }));
+        } catch (innerErr) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: innerErr.message }));
         }
       });
       return;
