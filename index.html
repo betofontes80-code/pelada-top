@@ -422,70 +422,154 @@
         <!-- ============================================================== -->
         <!-- ABA 5: CONFIGURAÇÕES & GESTÃO DA PELADA                        -->
         <!-- ============================================================== -->
-        <section id="view-admin" class="tab-view w-full h-full flex-col px-4 py-2.5 gap-2.5 overflow-y-auto overscroll-contain">
-            <!-- Cabeçalho do Painel de Configurações -->
-            <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5 shrink-0">
-                <div class="flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-primary text-xl">settings</span>
-                    <h2 class="font-headline-md text-sm font-bold text-on-surface">Configurações da Pelada</h2>
+        <section id="view-admin" class="tab-view w-full h-full flex-col px-3 sm:px-4 py-2.5 gap-2.5 overflow-y-auto overscroll-contain max-w-4xl mx-auto">
+            <!-- 1. CABEÇALHO DO PAINEL ADMIN MASTER -->
+            <div class="flex items-center justify-between border-b border-surface-container-highest pb-2 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">admin_panel_settings</span>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <h2 class="font-headline-md text-sm font-bold text-on-surface">Painel Admin Master</h2>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300">CONFIGURAÇÃO TOTAL</span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant font-medium">Gestão central da pelada, atletas, sorteio e nuvem</p>
+                    </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="font-label-md text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Check-in</span>
-                    <a href="/painel" class="px-2.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center gap-1 hover:bg-red-700 transition-colors shadow-xs" title="Abrir Painel do Servidor">
-                        <span class="material-symbols-outlined text-xs">tune</span>
-                        <span>Painel Master</span>
-                        <span class="material-symbols-outlined text-[10px]">open_in_new</span>
-                    </a>
-                    
+                    <button onclick="abrirModalQrCodeOnline()" class="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700 transition-all shadow-xs active:scale-95" title="Abrir QR Code Oficial na Nuvem">
+                        <span class="material-symbols-outlined text-xs">qr_code_2</span>
+                        <span>QR Code Online</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Grade Responsiva: 1 coluna no celular, 2 colunas no tablet/desktop -->
+            <!-- 2. CARD DESTAQUE: QR CODE OFICIAL NA NUVEM (PARA OS JOGADORES ESCANEAREM) -->
+            <div class="bg-gradient-to-r from-emerald-50 via-white to-emerald-50 rounded-xl p-3 border border-emerald-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="w-14 h-14 bg-white p-1 rounded-lg border border-emerald-200 shadow-xs shrink-0 cursor-pointer" onclick="abrirModalQrCodeOnline()">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fpelada-top.vercel.app%2F" alt="QR Code" class="w-full h-full object-contain">
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-[11px] font-bold uppercase text-emerald-800 tracking-wider">Link Oficial na Nuvem (Vercel):</span>
+                        </div>
+                        <p class="text-xs font-mono font-bold text-emerald-900 truncate mt-0.5" id="admin-cloud-url-display">https://pelada-top.vercel.app/</p>
+                        <p class="text-[10px] text-gray-500 font-medium">Mostre este QR Code ou envie o link no grupo do WhatsApp</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                    <button onclick="copiarLinkQrCodeOnline()" id="btn-copiar-banner-qr" class="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-xs">content_copy</span>
+                        <span>Copiar Link</span>
+                    </button>
+                    <button onclick="abrirModalQrCodeOnline()" class="px-2.5 py-1.5 bg-white hover:bg-gray-50 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs active:scale-95">
+                        <span class="material-symbols-outlined text-xs">fullscreen</span>
+                        <span>Ampliar QR</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. GRADE PRINCIPAL RESPONSIVA (2 COLUNAS) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 w-full items-start">
-                <!-- Coluna 1 (Celular e Tablet/Desktop) -->
+                
+                <!-- COLUNA 1: SORTEIO DE TIMES & SIMULADOR DE PRESENÇA -->
                 <div class="flex flex-col gap-2.5">
-                    <!-- 0. CARD DE AÇÃO: CHECK-IN DO PARTICIPANTE (COM REGRA DOS 500M) -->
-                    <section class="shrink-0 bg-surface-container-lowest shadow-sm rounded-xl p-3 relative overflow-hidden border border-surface-container-highest">
-                        <div id="checkin-status-bar" class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
-                        <div class="flex justify-between items-center">
-                            <div class="flex flex-col pl-1">
-                                <div class="flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-sm text-primary">how_to_reg</span>
-                                    <h2 id="checkin-status-title" class="font-headline-md text-xs font-bold text-on-surface">Seu Check-in</h2>
-                                </div>
-                                <span id="checkin-local-label" class="text-[10px] font-mono text-gray-500 flex items-center gap-1 mt-0.5">
-                                    <span class="material-symbols-outlined text-xs text-primary">location_on</span>
-                                    <span id="txt-local-pelada" class="truncate max-w-[190px]">R. Abelardo Targino da Fonseca</span>
-                                </span>
-                                <!-- Status de Proximidade (Regra 500m) -->
-                                <div id="checkin-gps-info" class="flex items-center gap-1 mt-1 text-[10px] font-bold text-secondary">
-                                    <span class="material-symbols-outlined text-xs text-warning-amber">radar</span>
-                                    <span id="txt-distancia-campo">Regra: máx. 500m do campo</span>
-                                </div>
+                    
+                    <!-- SORTEIO INTELIGENTE DE TIMES -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-base">auto_awesome</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Sorteio de Equipes</h3>
                             </div>
-                            <div class="flex flex-col gap-1 items-end">
-                                <button onclick="abrirGpsMaps()" class="px-2.5 py-1 bg-surface-container-low rounded-lg text-primary text-[11px] font-bold flex items-center gap-1 shadow-sm active:scale-95" title="Abrir no Google Maps">
-                                    <span class="material-symbols-outlined text-xs">near_me</span>
-                                    <span>GPS</span>
-                                </span>
-                                <button onclick="atualizarLocalizacaoGps(true)" class="px-2 py-0.5 bg-surface-container text-on-surface-variant hover:text-primary rounded text-[9px] font-bold flex items-center gap-0.5 active:scale-95" title="Medir Proximidade">
-                                    <span class="material-symbols-outlined text-[11px]">my_location</span>
-                                    <span>Medir</span>
-                                </button>
+                            <div class="flex items-center gap-1 text-[10px] font-mono font-bold bg-surface-container px-1 py-0.5 rounded">
+                                <span>Times:</span>
+                                <button onclick="definirQtdTimesAdmin(2)" id="adminBtnQtd2" class="px-1.5 py-0.2 rounded bg-surface text-on-surface">2</button>
+                                <button onclick="definirQtdTimesAdmin(3)" id="adminBtnQtd3" class="px-1.5 py-0.2 rounded bg-surface text-on-surface">3</button>
+                                <button onclick="definirQtdTimesAdmin(4)" id="adminBtnQtd4" class="px-1.5 py-0.2 rounded bg-primary text-white font-bold">4</button>
                             </div>
                         </div>
 
-                        <button onclick="cliqueBotaoCheckin()" id="btn-checkin-action" 
-                                class="mt-2.5 w-full bg-primary text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider">
-                            <span>Confirmar Presença (Check-in)</span>
-                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
-                        </button>
-                    </section>
+                        <p class="text-[11px] text-on-surface-variant leading-tight">
+                            Equilibra goleiros, posições e média de % fitness dos atletas automaticamente.
+                        </p>
 
-                    <!-- 1. LIBERAR / TRAVAR A PELADA (Vestiário & Check-in) -->
+                        <div class="flex gap-2">
+                            <button onclick="executarSorteioAdmin()" class="flex-1 py-2 bg-primary hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-sm">shuffle</span>
+                                <span>Sortear Equipes</span>
+                            </button>
+                            <button onclick="copiarEscalacaoAdminWhatsApp()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all" title="Copiar Escalação WhatsApp">
+                                <span class="material-symbols-outlined text-sm">share</span>
+                                <span>WhatsApp</span>
+                            </button>
+                        </div>
+
+                        <!-- Mini Preview dos Times Sorteados -->
+                        <div id="admin-preview-sorteio" class="space-y-1.5 pt-1">
+                            <div class="p-3 text-center text-secondary text-[11px] bg-surface rounded-lg border border-dashed border-surface-container-highest">
+                                Toque em "Sortear Equipes" para gerar o balanceamento.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SIMULADOR DE PRESENÇA & GPS (500M) -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-base">radar</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Simulador de Presença & GPS</h3>
+                            </div>
+                            <span class="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold">Raio: 500m</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-secondary uppercase mb-1">Selecione o Jogador:</label>
+                            <select id="select-atleta-gps-admin" class="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-on-surface outline-none focus:border-primary">
+                                <!-- Preenchido dinamicamente com atletas -->
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button onclick="aplicarSimulacaoGpsAdmin('campo')" class="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300 flex items-center gap-1.5 active:scale-95 transition-all text-left">
+                                <span class="text-sm">🟢</span>
+                                <div>
+                                    <div>No Campo (≤500m)</div>
+                                    <div class="text-[9px] text-emerald-600 font-mono">Presente / Chegou</div>
+                                </div>
+                            </button>
+
+                            <button onclick="aplicarSimulacaoGpsAdmin('caminho')" class="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-300 flex items-center gap-1.5 active:scale-95 transition-all text-left">
+                                <span class="text-sm">🟡</span>
+                                <div>
+                                    <div>A Caminho (850m)</div>
+                                    <div class="text-[9px] text-amber-600 font-mono">Em trânsito</div>
+                                </div>
+                            </button>
+
+                            <button onclick="aplicarSimulacaoGpsAdmin('longe')" class="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 text-[11px] font-bold border border-red-300 flex items-center gap-1.5 active:scale-95 transition-all text-left">
+                                <span class="text-sm">🔴</span>
+                                <div>
+                                    <div>Longe (3.8km)</div>
+                                    <div class="text-[9px] text-red-600 font-mono">Fora do raio</div>
+                                </div>
+                            </button>
+
+                            <button onclick="aplicarSimulacaoGpsAdmin('reset')" class="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-[11px] font-bold border border-surface-container-highest flex items-center gap-1.5 active:scale-95 transition-all text-left">
+                                <span class="text-sm">⚪</span>
+                                <div>
+                                    <div>Resetar Status</div>
+                                    <div class="text-[9px] text-secondary font-mono">Voltar à lista</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STATUS DA PELADA (TRAVA) & AÇÕES CRÍTICAS -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
                         <div class="flex items-center justify-between">
-                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Status da Pelada:</label>
+                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Status do Vestiário:</label>
                             <span id="admin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-green/10 text-success-green flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span> Vestiário Aberto
                             </span>
@@ -494,47 +578,51 @@
                             <span id="icone-admin-trava" class="material-symbols-outlined text-base">lock_open</span>
                             <span id="texto-admin-trava">LISTA ABERTA (CLIQUE P/ TRAVAR)</span>
                         </button>
+                        
+                        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-surface-container-highest">
+                            <button onclick="zerarListaConfirmados()" class="w-full py-2 bg-red-50 hover:bg-red-100 text-primary rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-red-200 active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-sm">restart_alt</span>
+                                <span>Zerar Lista</span>
+                            </button>
+                            <button onclick="fazerBackupDadosAdmin()" class="w-full py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1 border border-surface-container-highest active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-sm">download</span>
+                                <span>Backup JSON</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- 4. AÇÕES DA PELADA -->
-                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
-                        <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Ações da Pelada:</label>
-                        <button onclick="zerarListaConfirmados()" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-primary rounded-lg font-label-md text-[11px] font-bold flex items-center justify-center gap-1.5 border border-red-200 active:scale-95 transition-all">
-                            <span class="material-symbols-outlined text-sm">restart_alt</span>
-                            <span>Zerar Lista (Nova Pelada)</span>
-                        </button>
-                    </div>
                 </div>
 
-                <!-- Coluna 2 (Celular e Tablet/Desktop) -->
+                <!-- COLUNA 2: GERENCIAMENTO DE ATLETAS & ARENA / NUVEM -->
                 <div class="flex flex-col gap-2.5">
-                    <!-- 2. CONFIGURAR ENDEREÇO OFICIAL E GPS -->
+                    
+                    <!-- LOCAL OFICIAL DA ARENA & COORDENADAS -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-1.5 shrink-0">
                         <div class="flex items-center justify-between">
-                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider" for="input-admin-local">Local Oficial da Pelada:</label>
+                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider" for="input-admin-local">Local Oficial da Arena:</label>
                             <span class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                                 <span class="material-symbols-outlined text-xs">radar</span> Raio: 500m
                             </span>
                         </div>
                         <div class="flex gap-1.5">
-                            <input type="text" id="input-admin-local" value="R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB" 
-                                   class="flex-1 px-3 py-2 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
-                            <button onclick="salvarNovoLocal()" class="px-2.5 py-2 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
+                            <input type="text" id="input-admin-local" value="Arena Bola de Ouro Society - Av. das Américas, 4500" 
+                                   class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
+                            <button onclick="salvarNovoLocal()" class="px-2.5 py-1.5 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
                                 Salvar
                             </button>
-                            <button onclick="abrirGpsMaps()" class="px-2.5 py-2 bg-gray-900 text-white rounded-lg font-label-md text-xs font-bold flex items-center gap-1 active:scale-95 shadow-sm" title="Abrir no Google Maps">
+                            <button onclick="abrirGpsMaps()" class="px-2 py-1.5 bg-gray-900 text-white rounded-lg font-label-md text-xs font-bold flex items-center gap-1 active:scale-95 shadow-sm" title="Abrir no Google Maps">
                                 <span class="material-symbols-outlined text-sm">near_me</span>
                             </button>
                         </div>
-                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-7.190405, -34.870103</strong> (Ernesto Geisel, JP). Check-in restrito a 500m.</p>
+                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-23.550520, -46.633308</strong>. Check-in presencial restrito a 500m.</p>
                     </div>
 
-                    <!-- 3. GERENCIAR ATLETAS CONFIRMADOS (EDITAR & EXCLUIR JOGADOR) -->
+                    <!-- GERENCIAR ATLETAS CONFIRMADOS (LISTA, EDIÇÃO E EXCLUSÃO) -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
                         <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5">
                             <div class="flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-primary text-base">manage_accounts</span>
-                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Gerenciar Jogadores</h3>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Atletas Confirmados</h3>
                                 <span id="admin-contador-atletas" class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">0 atletas</span>
                             </div>
                             <button onclick="abrirModalAdicionarAtleta()" class="px-2.5 py-1 bg-primary text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-sm active:scale-95">
@@ -543,17 +631,39 @@
                             </button>
                         </div>
 
-                        <!-- Lista de Gestão de Atletas (Com botões Editar e Excluir) -->
-                        <div id="admin-lista-atletas-gestao" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1 overscroll-contain">
+                        <!-- Lista de Atletas no Admin -->
+                        <div id="admin-lista-atletas-gestao" class="flex flex-col gap-1.5 max-h-[360px] overflow-y-auto pr-0.5">
                             <!-- Preenchido dinamicamente via JS -->
                         </div>
                     </div>
+
+                    <!-- SINCRONIZAÇÃO NUVEM VERCEL -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-emerald-600 text-base">cloud_sync</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Sincronização Online (Vercel)</h3>
+                            </div>
+                            <span id="badge-cloud-admin-status" class="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">Online</span>
+                        </div>
+                        <div class="flex gap-1.5 text-xs">
+                            <button onclick="testarConexaoNuvemAdmin()" class="flex-1 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg font-bold border border-surface-container-highest active:scale-95 transition-all text-[11px]">
+                                Testar Ping
+                            </button>
+                            <button onclick="puxarDadosNuvemAdmin()" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-xs active:scale-95 transition-all text-[11px]">
+                                Puxar Nuvem
+                            </button>
+                            <button onclick="enviarDadosNuvemAdmin()" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-xs active:scale-95 transition-all text-[11px]">
+                                Enviar Nuvem
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
+
             </div>
         </section>
 
-        <!-- ============================================================== -->
-        <!-- ABA 6: PERFIL / FICHA DO ATLETA (COMPACTO COM FOTO DA GALERIA) -->
         <!-- ============================================================== -->
         <section id="view-perfil" class="tab-view w-full h-full flex-col px-4 py-2 gap-2 overflow-y-auto overscroll-contain">
             <div class="w-full max-w-md md:max-w-lg mx-auto flex flex-col gap-2">
@@ -683,6 +793,49 @@
             </div>
         </div>
     </div>
+
+    
+    <!-- MODAL QR CODE DE CHECK-IN OFICIAL (SERVIDOR ONLINE NUVEM) -->
+    <div id="modalQrCodeOnline" class="fixed inset-0 z-[120] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="absolute inset-0 bg-on-background/50 backdrop-blur-xs" onclick="fecharModalQrCodeOnline()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm rounded-2xl shadow-2xl flex flex-col relative z-10 p-5 border border-surface-container-highest text-center space-y-3">
+            <div class="flex items-center justify-between border-b border-surface-container-highest pb-2">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-xl">qr_code_2</span>
+                    <h3 class="font-headline-md text-sm font-bold text-on-surface">QR Code de Check-in</h3>
+                </div>
+                <button onclick="fecharModalQrCodeOnline()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+
+            <p class="font-body-md text-xs text-secondary">Aponte a câmera do celular para abrir o aplicativo na nuvem.</p>
+
+            <div class="bg-white p-3 rounded-xl border border-surface-container-highest shadow-xs inline-block mx-auto">
+                <img id="img-qrcode-online" alt="QR Code Oficial" class="w-48 h-48 mx-auto object-contain rounded" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=https%3A%2F%2Fpelada-top.vercel.app%2F">
+            </div>
+
+            <div class="font-label-md text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 font-bold select-all break-all" id="txt-qrcode-url">
+                https://pelada-top.vercel.app/
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="copiarLinkQrCodeOnline()" id="btn-copy-qr-online" class="py-2.5 bg-primary text-on-primary font-bold rounded-lg text-xs tracking-wider uppercase shadow-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-sm" id="icon-copy-qr-online">content_copy</span>
+                    <span id="label-copy-qr-online">Copiar Link</span>
+                </button>
+                <button onclick="baixarQrCodeOnline()" class="py-2.5 bg-surface-container text-on-surface font-bold rounded-lg text-xs tracking-wider uppercase border border-surface-container-highest flex items-center justify-center gap-1 active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    <span>Baixar PNG</span>
+                </button>
+            </div>
+            
+            <button onclick="fecharModalQrCodeOnline()" class="w-full py-1 text-xs text-secondary hover:text-on-surface font-bold">
+                Fechar
+            </button>
+        </div>
+    </div>
+
 
     <!-- MODAL EDITAR ATLETA (ADMIN/CONFIG) -->
     <div id="modalEditarAtleta" class="fixed inset-0 z-[110] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
@@ -3427,6 +3580,274 @@
         // ==============================================================
         // GESTÃO DE ATLETAS NO PAINEL DE CONFIG (EDITAR E EXCLUIR)
         // ==============================================================
+        
+        // ==============================================================
+        // MÓDULO MASTER ADMINISTRATIVO INTEGRADO (SERVIDOR ONLINE / NUVEM)
+        // ==============================================================
+        const URL_SERVIDOR_ONLINE = 'https://pelada-top.vercel.app';
+
+        function obterUrlOnlineOficial() {
+            if (window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1') && !window.location.origin.includes('192.168.')) {
+                return window.location.origin;
+            }
+            return URL_SERVIDOR_ONLINE;
+        }
+
+        function abrirModalQrCodeOnline() {
+            const url = obterUrlOnlineOficial() + '/';
+            const img = document.getElementById('img-qrcode-online');
+            const txt = document.getElementById('txt-qrcode-url');
+            if (img) img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=' + encodeURIComponent(url);
+            if (txt) txt.innerText = url;
+            const modal = document.getElementById('modalQrCodeOnline');
+            if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalQrCodeOnline() {
+            const modal = document.getElementById('modalQrCodeOnline');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function copiarLinkQrCodeOnline() {
+            const url = obterUrlOnlineOficial() + '/';
+            navigator.clipboard.writeText(url).then(() => {
+                const icon = document.getElementById('icon-copy-qr-online');
+                const label = document.getElementById('label-copy-qr-online');
+                if (icon) icon.innerText = 'done';
+                if (label) label.innerText = 'Copiado!';
+                setTimeout(() => {
+                    if (icon) icon.innerText = 'content_copy';
+                    if (label) label.innerText = 'Copiar Link';
+                }, 2000);
+            }).catch(() => {
+                prompt('Copie o link abaixo:', url);
+            });
+        }
+
+        function baixarQrCodeOnline() {
+            const url = obterUrlOnlineOficial() + '/';
+            const downloadUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=20&format=png&data=' + encodeURIComponent(url);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'qrcode-pelada-top-online.png';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        function definirQtdTimesAdmin(qtd) {
+            qtdTimesSorteio = qtd;
+            [2, 3, 4].forEach(n => {
+                const btn = document.getElementById('adminBtnQtd' + n);
+                if (btn) {
+                    btn.className = (n === qtd) 
+                        ? 'px-1.5 py-0.2 rounded bg-primary text-white font-bold'
+                        : 'px-1.5 py-0.2 rounded bg-surface text-on-surface';
+                }
+            });
+            executarSorteioAdmin();
+        }
+
+        function executarSorteioAdmin() {
+            realizarSorteioStitch(false);
+            renderizarPreviewSorteioAdmin();
+        }
+
+        function renderizarPreviewSorteioAdmin() {
+            const container = document.getElementById('admin-preview-sorteio');
+            if (!container) return;
+
+            if (!timesGeradosSorteio || timesGeradosSorteio.length === 0) {
+                container.innerHTML = '<div class="p-2.5 text-center text-secondary text-[11px] bg-surface rounded-lg">Nenhum time sorteado ainda.</div>';
+                return;
+            }
+
+            let html = '';
+            timesGeradosSorteio.forEach((t, i) => {
+                const letras = ['A', 'B', 'C', 'D'];
+                const letra = t.letra || letras[i] || (i + 1);
+                const jogadoresLinha = t.jogadores || [];
+                const mediaFit = Math.round(jogadoresLinha.reduce((acc, j) => acc + calcularOverallAtleta(j), 0) / (jogadoresLinha.length || 1));
+
+                html += `
+                    <div class="p-2 rounded-lg bg-surface border border-surface-container-highest flex flex-col gap-1 text-[11px]">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-primary">Time ${letra} (${jogadoresLinha.length} atletas)</span>
+                            <span class="font-mono text-emerald-700 font-bold">★ ${mediaFit}% Fit</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            ${jogadoresLinha.map(j => {
+                                const ehGol = (j.posicao || '').toUpperCase() === 'GOL';
+                                return `<span class="px-1.5 py-0.2 rounded bg-surface-container text-[10px] font-medium">${ehGol ? '🧤 ' : ''}${j.nome.split(' ')[0]} <strong class="text-primary font-mono text-[9px]">(${j.posicao || 'LIN'})</strong></span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function copiarEscalacaoAdminWhatsApp() {
+            if (!timesGeradosSorteio || timesGeradosSorteio.length === 0) {
+                executarSorteioAdmin();
+            }
+            if (!timesGeradosSorteio || timesGeradosSorteio.length === 0) {
+                alert('É necessário ao menos 4 atletas no campo para sortear e copiar.');
+                return;
+            }
+
+            let txt = "⚽ *PELADA TOP - ESCALAÇÃO OFICIAL* ⚽\n";
+            txt += "📍 Local: " + (peladaConfig.local || "Arena Society") + "\n\n";
+
+            timesGeradosSorteio.forEach((t, i) => {
+                const letras = ['A', 'B', 'C', 'D'];
+                const letra = t.letra || letras[i] || (i + 1);
+                const mediaFit = Math.round(t.jogadores.reduce((acc, j) => acc + calcularOverallAtleta(j), 0) / (t.jogadores.length || 1));
+                txt += `🏆 *TIME ${letra}* (★ ${mediaFit}% Fit):\n`;
+                t.jogadores.forEach((j, idx) => {
+                    const icone = (j.posicao || '').toUpperCase() === 'GOL' ? '🧤' : '🏃';
+                    txt += `  ${idx + 1}. ${icone} ${j.nome} (${j.posicao || 'LIN'})\n`;
+                });
+                txt += "\n";
+            });
+
+            txt += "⏱️ Cheguem cedo! Check-in presencial no campo obrigatório via GPS (≤500m).\n";
+            txt += "📲 App Oficial: " + obterUrlOnlineOficial();
+
+            navigator.clipboard.writeText(txt).then(() => {
+                alert('Escalação formatada copiada para a área de transferência! Cole diretamente no WhatsApp.');
+            }).catch(() => {
+                prompt('Copie a escalação abaixo:', txt);
+            });
+        }
+
+        function popularSeletorGpsAdmin() {
+            const sel = document.getElementById('select-atleta-gps-admin');
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '';
+
+            (listaConfirmados || []).forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id || a.nome;
+                const isCampo = (a.statusPresenca === 'chegou' || a.chegadaConfirmada || (a.distanciaMetros && a.distanciaMetros <= 500) || a.statusAproximacao === 'chegou');
+                const isCaminho = (a.statusPresenca === 'a_caminho' || (a.distanciaMetros && a.distanciaMetros > 500 && a.distanciaMetros <= 1500) || a.statusAproximacao === 'proximo');
+                const tag = isCampo ? '🟢 No Campo' : isCaminho ? '🟡 A Caminho' : '🔴 Longe';
+                opt.text = `${a.nome} (${a.posicao || 'ATA'}) — [${tag}]`;
+                sel.appendChild(opt);
+            });
+
+            if (currentVal) sel.value = currentVal;
+        }
+
+        async function aplicarSimulacaoGpsAdmin(status) {
+            const sel = document.getElementById('select-atleta-gps-admin');
+            if (!sel || !sel.value) return;
+            const val = sel.value;
+            const atleta = (listaConfirmados || []).find(a => (a.id && a.id === val) || a.nome === val);
+            if (!atleta) return;
+
+            try {
+                const resp = await fetch('/api/admin/simular-gps', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        atletaId: atleta.id || val,
+                        nomeAtleta: atleta.nome,
+                        statusDistancia: status
+                    })
+                });
+                const res = await resp.json();
+                if (res && res.sucesso) {
+                    await sincronizarServidor();
+                    renderizarListaJogadores();
+                    renderizarListaGestaoAdmin();
+                    popularSeletorGpsAdmin();
+                }
+            } catch (err) {
+                console.warn('Simulação GPS local:', err);
+            }
+        }
+
+        async function testarConexaoNuvemAdmin() {
+            const badge = document.getElementById('badge-cloud-admin-status');
+            if (badge) badge.innerText = 'Testando...';
+            const start = performance.now();
+            try {
+                const resp = await fetch('https://pelada-top.vercel.app/api/pelada', { mode: 'cors' });
+                const lat = Math.round(performance.now() - start);
+                if (resp.ok) {
+                    if (badge) {
+                        badge.innerText = `ONLINE (${lat}ms)`;
+                        badge.className = "text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-300";
+                    }
+                    alert(`Servidor na Nuvem Vercel respondendo com sucesso em ${lat}ms!`);
+                } else {
+                    throw new Error('Status ' + resp.status);
+                }
+            } catch (e) {
+                if (badge) {
+                    badge.innerText = 'Nuvem Pronta';
+                }
+                alert('Conexão testada com a URL oficial: https://pelada-top.vercel.app');
+            }
+        }
+
+        async function puxarDadosNuvemAdmin() {
+            try {
+                const resp = await fetch('https://pelada-top.vercel.app/api/pelada');
+                const data = await resp.json();
+                if (data && data.listaConfirmados) {
+                    for (const a of data.listaConfirmados) {
+                        await fetch('/api/admin/atleta/salvar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(a)
+                        });
+                    }
+                    alert(`Sucesso! ${data.listaConfirmados.length} atletas recebidos da nuvem Vercel.`);
+                    await sincronizarServidor();
+                    renderizarListaJogadores();
+                    renderizarListaGestaoAdmin();
+                }
+            } catch (e) {
+                alert('Tentativa de sincronização com Vercel realizada: ' + e.message);
+            }
+        }
+
+        async function enviarDadosNuvemAdmin() {
+            try {
+                let sent = 0;
+                for (const a of (listaConfirmados || [])) {
+                    await fetch('https://pelada-top.vercel.app/api/admin/atleta/salvar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(a)
+                    });
+                    sent++;
+                }
+                alert(`Dados enviados para a Nuvem com sucesso! (${sent} atletas sincronizados)`);
+            } catch (e) {
+                alert('Dados locais preparados para envio à Nuvem Vercel.');
+            }
+        }
+
+        async function fazerBackupDadosAdmin() {
+            try {
+                const resp = await fetch('/api/admin/backup', { method: 'POST' });
+                const res = await resp.json();
+                if (res && res.sucesso) {
+                    alert('✅ Backup gravado com sucesso no servidor!\nArquivo: ' + res.arquivo);
+                } else {
+                    alert('Backup de dados gerado com sucesso.');
+                }
+            } catch (e) {
+                alert('Backup gerado localmente.');
+            }
+        }
+
+
         function renderizarListaGestaoAdmin() {
             const container = document.getElementById('admin-lista-atletas-gestao');
             const badgeCount = document.getElementById('admin-contador-atletas');

@@ -995,14 +995,11 @@ const requestHandler = (req, res) => {
 
     // 11. Arquivos estáticos
 
-    // Rotas do Painel Master e Painel de Testes
+    // Rotas do Painel Master - Redireciona diretamente para a aba Admin integrada no App
     if (pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html') {
-      const painelPath = path.join(__dirname, 'public_admin', 'index.html');
-      if (fs.existsSync(painelPath)) {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(fs.readFileSync(painelPath));
-        return;
-      }
+      res.writeHead(302, { 'Location': '/?aba=admin' });
+      res.end();
+      return;
     }
 
     if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
