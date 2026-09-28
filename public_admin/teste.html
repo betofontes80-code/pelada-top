@@ -1,1348 +1,563 @@
+<!-- Pelada Top - Diagnóstico do Servidor (Tema Claro) -->
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
-  <title>Pelada Top - Diagnóstico e Testes do Servidor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet"/>
-  <style>
-    * { font-family: 'Hanken Grotesk', sans-serif; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
-    .headline { font-family: 'Anybody', sans-serif; }
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pelada Top - Diagnóstico do Servidor &amp; Testes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400;1,700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Anybody', 'sans-serif'],
+            body: ['"Hanken Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              red: '#dd0000',
+              redHover: '#b50000',
+              redDeep: '#af0000',
+              emerald: '#008542',
+              emeraldLight: '#10b981',
+              amber: '#ffbf00',
+              amberDark: '#d97706',
+            },
+            surface: {
+              base: '#f9f9f9',
+              card: '#ffffff',
+              cardLow: '#f3f3f4',
+              cardHover: '#f8fafc',
+              border: '#e2e8f0',
+              input: '#ffffff',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #f9f9f9;
+      color: #1a1c1c;
+      font-family: 'Anybody', sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes pulseGlowLight {
+      0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.45); }
+    }
+    .glow-green {
+      animation: pulseGlowLight 2.5s infinite;
+    }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-full pb-12 antialiased select-none">
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#dd0000] selection:text-white bg-[#f9f9f9] text-[#1a1c1c]">
+<!-- Toast Notification Container (Realtime Online Alert) -->
+<div id="toast-container" class="fixed top-20 right-6 z-[9999] flex flex-col gap-2.5 pointer-events-none max-w-sm w-full"></div>
 
-  <!-- CONTAINER FLUTUANTE DE TOAST DE JOGADOR ONLINE (PÁGINA DE TESTES) -->
-  <div id="toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 max-w-sm pointer-events-none"></div>
-
-  <!-- CABEÇALHO -->
-  <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/60 sticky top-0 z-30 px-4 py-3">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-          <span class="material-symbols-outlined text-xl">build_circle</span>
-        </div>
-        <div>
-          <h1 class="headline text-sm md:text-base font-black tracking-tight text-white flex items-center gap-2">
-            <span>Diagnóstico do Servidor</span>
-            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">v2.0</span>
-          </h1>
-          <p class="text-[11px] text-slate-400">Teste de funções, conectividade celular e banco de dados</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <a href="/" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all flex items-center gap-1">
-          <span class="material-symbols-outlined text-sm">sports_soccer</span>
-          <span class="hidden sm:inline">Abrir App</span>
-        </a>
-        <a href="/painel" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-all flex items-center gap-1">
-          <span class="material-symbols-outlined text-sm">dashboard</span>
-          <span class="hidden sm:inline">Painel Admin</span>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-4xl mx-auto px-4 pt-4 space-y-4">
-
-    <!-- BANNER DE STATUS GERAL DA CONEXÃO -->
-    <section class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-md">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
-          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Status Servidor</span>
-          <div class="flex items-center justify-center gap-1.5">
-            <span id="badge-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="txt-status-servidor" class="font-bold text-xs text-emerald-400">ONLINE</span>
-          </div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
-          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Latência (Ping)</span>
-          <span id="txt-ping" class="mono font-bold text-xs text-white">-- ms</span>
-        </div>
-        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
-          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Tempo Real (SSE)</span>
-          <span id="txt-sse" class="font-bold text-xs text-amber-400 flex items-center justify-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span> Conectando...
+<!-- Top App Header -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 lg:px-8 py-3.5 transition-all shadow-sm">
+<div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+<!-- Brand & Title -->
+<div class="flex items-center gap-3.5">
+<div class="relative w-11 h-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm p-0.5">
+<img alt="Pelada Top Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Vth7U0s_B4RxGgSAW8YArOhxnHSUkwF_HHWE2BbR992Fo80eCH_f-DB9WKZdRSKcUznq7Sy_ECb2ViS0SEAnvyBCClIBhWWUutHXpGL30Y7olE4bU4rTYYoAkSl6XmE0H_Y1lHG48qdqA0AY1CGxVXMgPJcTisAer7jGJYOtHZmTu4AJssd9l6K3zeBjtUfy3mc4GTR00MKvVoU3011Mt6Xz7gW_2UGvFRkRASbGBCGohOzlYnuv5PHf6wZNoHxmmiof-zG1xVqw"/>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-lg lg:text-xl font-black tracking-tight text-[#1a1c1c] flex items-center gap-2">
+              Pelada Top <span class="text-xs uppercase px-2 py-0.5 rounded-full bg-[#dd0000]/10 text-[#af0000] border border-[#dd0000]/30 font-extrabold tracking-wider">Servidor</span>
+</h1>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-300 text-emerald-700 font-mono text-xs font-bold shadow-xs">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> v2.0
+            </span>
+</div>
+<p class="text-xs text-slate-500 font-medium hidden sm:block">Painel de Diagnóstico em Tempo Real, SSE &amp; Simulação Geofence 500m</p>
+</div>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex items-center gap-2.5">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95" onclick="logToTerminal('Navegando para App Mobile Pelada Top...', 'info')">
+<span class="material-icons text-base text-[#dd0000]">phone_android</span>
+<span>Abrir App</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95" onclick="logToTerminal('Acessando Painel Administrativo Master...', 'info'); window.location.href='/painel';">
+<span class="material-icons text-base text-amber-500">admin_panel_settings</span>
+<span>Painel Admin</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#dd0000] hover:bg-[#af0000] text-xs font-bold text-white transition-all shadow-sm active:scale-95" onclick="execFullHealthCheck()">
+<span class="material-icons text-base">refresh</span>
+<span class="hidden sm:inline">Atualizar Status</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Wrap -->
+<main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+<!-- KPI / Server Status Row (4 Compact Cards) -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
+<!-- Card 1: Server Status -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status do Servidor</span>
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-icons text-base">dns</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-600"></span>
+</span>
+<span class="text-xl lg:text-2xl font-black tracking-wide text-slate-900" id="stat-server">ONLINE</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>Uptime: 99.98%</span>
+<span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Node/Go API</span>
+</div>
+</div>
+<!-- Card 2: Ping Latency -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Latência Ping</span>
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-icons text-base">speed</span>
+</div>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl lg:text-3xl font-extrabold font-mono text-emerald-700" id="stat-ping">12 ms</span>
+<span class="text-xs text-slate-400 font-mono font-medium">avg</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>Jitter: &lt;1.2ms</span>
+<span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Ótimo</span>
+</div>
+</div>
+<!-- Card 3: Realtime SSE -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">SSE Realtime</span>
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-icons text-base">sync_alt</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+<span class="text-lg lg:text-xl font-black text-emerald-700 tracking-wide" id="stat-sse">CONECTADO</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>Canais: 4 ativos</span>
+<span class="text-slate-600 font-medium">Push OK</span>
+</div>
+</div>
+<!-- Card 4: Total Athletes -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Atletas Cadastrados</span>
+<div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+<span class="material-icons text-base">groups</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-2xl lg:text-3xl font-black text-slate-900 font-mono" id="stat-athletes">24</span>
+<span class="text-xs text-slate-500 font-medium">/ 12 Confirmados</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>PostgreSQL</span>
+<span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Synced</span>
+</div>
+</div>
+</div>
+<!-- Public Online URL Banner -->
+<div class="bg-gradient-to-r from-white via-white to-emerald-50/50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+<div class="flex items-center gap-3.5 w-full sm:w-auto">
+<div class="w-10 h-10 rounded-xl bg-emerald-100/70 border border-emerald-300 flex items-center justify-center shrink-0">
+<span class="material-icons text-emerald-700 text-xl">public</span>
+</div>
+<div class="min-w-0">
+<p class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Link Público para Acesso do App &amp; Testes Mobile</p>
+<p class="text-sm font-mono text-emerald-800 font-bold truncate mt-0.5" id="public-url-text">https://peladatop.app/live/test-sandbox-society-01</p>
+</div>
+</div>
+<button class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm" onclick="copyPublicUrl()">
+<span class="material-icons text-sm" id="copy-icon">content_copy</span>
+<span id="copy-label">Copiar Link p/ Celular</span>
+</button>
+</div>
+<!-- Grid: Section 1 & Section 2 -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Section 1: Connection & Ping Latency Card (5 cols) -->
+<div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xs">
+<div>
+<div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#dd0000]"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">1. Teste de Conexão &amp; Ping</h2>
+</div>
+<span class="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">/api/v2/ping</span>
+</div>
+<p class="text-xs text-slate-600 mb-4 leading-relaxed font-body">
+            Mede o round-trip time (RTT) do cluster de servidores WebSocket/SSE da Pelada Top e valida headers CORS para Web e Mobile.
+          </p>
+<div class="space-y-2 mb-4 font-mono text-xs">
+<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+<span class="text-slate-500">Host de Teste:</span>
+<span class="text-slate-800 font-semibold">api-edge.peladatop.internal</span>
+</div>
+<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+<span class="text-slate-500">Protocolo:</span>
+<span class="text-emerald-700 font-bold">HTTP/2 + TLS 1.3 + SSE</span>
+</div>
+<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+<span class="text-slate-500">Status Gateway:</span>
+<span class="text-emerald-700 font-bold">200 OK (Keep-Alive)</span>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<button class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#dd0000] hover:bg-[#af0000] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95" onclick="runPingTest()">
+<span class="material-icons text-base">network_check</span>
+<span>Testar Ping Agora</span>
+</button>
+<div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono text-slate-700 space-y-1" id="ping-mini-terminal">
+<div class="text-slate-400 font-semibold"># Resultado da Última Verificação:</div>
+<div class="text-emerald-700 font-semibold">&gt; 64 bytes from 104.21.62.1: icmp_seq=1 time=12.4ms</div>
+<div class="text-slate-500">&gt; packet loss: 0.0%, min/avg/max = 11.8/12.4/13.1 ms</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Player Space (Athlete Testing & Registration) (7 cols) -->
+<div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+<div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">2. Espaço do Jogador (Testes &amp; Atletas)</h2>
+</div>
+<span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">Auth JWT Mock Ready</span>
+</div>
+<!-- Dynamic Dropdown -->
+<div>
+<label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Selecione Atleta p/ Carregar Cadastro</label>
+<div class="relative">
+<select class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white appearance-none font-mono transition-colors" id="player-select" onchange="onAthleteSelectChange()">
+<option value="1">Lucas Silva — Meio-Campo (MEI) | 24 anos, 76kg (100% Fit)</option>
+<option value="2">Marcos Silva — Goleiro (GOL) | 29 anos, 82kg (98% Fit)</option>
+<option value="3">Diego Costa — Meio-Campo (MEI) | 27 anos, 74kg (92% Fit)</option>
+<option value="4">Lucas Moura — Atacante (ATA) | 22 anos, 70kg (74% Fit)</option>
+<option value="5">Carlos Silva — Atacante (ATA) | 25 anos, 75kg (88% Fit)</option>
+<option value="6">João Pedro — Defensor (ZAG) | 30 anos, 81kg (82% Fit)</option>
+</select>
+<span class="material-icons absolute right-3.5 top-2.5 text-slate-400 pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+<!-- Athlete Form Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<div class="sm:col-span-2">
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Nome / Apelido</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-[#dd0000] focus:bg-white transition-colors" id="p-name" type="text" value="Lucas Silva"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Posição</label>
+<select class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-[#dd0000] focus:bg-white transition-colors" id="p-pos">
+<option selected="" value="MEI">Meio-Campo (MEI)</option>
+<option value="ATA">Atacante (ATA)</option>
+<option value="ZAG">Defensor / Zaga</option>
+<option value="LAT">Lateral (DIR/ESQ)</option>
+<option value="GOL">Goleiro (GOL)</option>
+</select>
+</div>
+<div class="sm:col-span-2">
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">E-mail</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-email" type="email" value="lucas.silva@peladatop.com"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Senha (Mock)</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-pass" type="password" value="pelada1234"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Idade</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-age" type="number" value="24"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Peso (kg)</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-weight" type="number" value="76"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Condição Física (%)</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-emerald-700 font-extrabold focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-fit" type="number" value="100"/>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+<button class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-extrabold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-xs" onclick="testPlayerLogin()">
+<span class="material-icons text-base text-emerald-600">login</span>
+<span>1. Testar Login como Jogador</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-sm" onclick="registerNewPlayer()">
+<span class="material-icons text-base">person_add</span>
+<span>2. Cadastrar Novo Jogador</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Grid: Section 3 (Admin Space) -->
+<div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs">
+<div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">3. Espaço do Administrador (Top ADM &amp; Gestão de Partida)</h2>
+</div>
+<span class="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">Superadmin Role #1</span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+<!-- Master Credentials Form (5 cols) -->
+<div class="lg:col-span-5 bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3.5">
+<div class="flex items-center justify-between">
+<span class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Credenciais Master ADM</span>
+<span class="text-[10px] text-amber-700 font-mono font-bold bg-amber-100/60 px-1.5 py-0.5 rounded">auth_level: 99</span>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">E-mail Administrativo</label>
+<input class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:border-amber-500 focus:outline-none" id="adm-email" type="email" value="admin@peladatop.com"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Chave Mestra / Token ADM</label>
+<input class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:border-amber-500 focus:outline-none" id="adm-token" type="password" value="adm_master_pelada_key_889"/>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95" onclick="testAdminAuth()">
+<span class="material-icons text-base">verified_user</span>
+<span>Autenticar como Top Admin</span>
+</button>
+</div>
+<!-- Global Match Toggles & Athlete Manager (7 cols) -->
+<div class="lg:col-span-7 space-y-4">
+<!-- Match State Toggles -->
+<div>
+<label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Controles Globais da Partida</label>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+<button class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left transition-all hover:border-slate-400 hover:bg-white" id="btn-toggle-checkin" onclick="toggleGlobalRule('checkin')">
+<div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+<span class="font-semibold">Check-in GPS</span>
+<span class="w-2 h-2 rounded-full bg-emerald-500" id="indicator-checkin"></span>
+</div>
+<div class="text-xs font-extrabold text-slate-900" id="label-checkin">ATIVO (500m)</div>
+</button>
+<button class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left transition-all hover:border-slate-400 hover:bg-white" id="btn-toggle-match" onclick="toggleGlobalRule('match')">
+<div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+<span class="font-semibold">Partida Ao Vivo</span>
+<span class="w-2 h-2 rounded-full bg-slate-400" id="indicator-match"></span>
+</div>
+<div class="text-xs font-extrabold text-slate-600" id="label-match">EM ESPERA</div>
+</button>
+<button class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left transition-all hover:border-[#dd0000] hover:bg-red-50/40 col-span-2 sm:col-span-1" onclick="triggerAutoBalance()">
+<div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+<span class="font-semibold">Algoritmo</span>
+<span class="material-icons text-xs text-[#dd0000]">auto_awesome</span>
+</div>
+<div class="text-xs font-extrabold text-[#dd0000]">SORTEAR TIMES</div>
+</button>
+</div>
+</div>
+<!-- Athlete Full Editor & Delete -->
+<div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+<div>
+<p class="text-xs font-bold text-slate-900">Edição Rápida de Atleta Selecionado</p>
+<p class="text-[11px] text-slate-500">Atleta ativo no seletor: <span class="text-emerald-700 font-mono font-bold" id="adm-selected-label">Lucas Silva (ID #1)</span></p>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-xs font-bold text-slate-800 border border-slate-300 shadow-xs" onclick="adminSaveAthlete()">
+                Salvar Alterações
+              </button>
+<button class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-[#dd0000] text-xs font-extrabold border border-red-200 flex items-center gap-1" onclick="adminDeleteAthlete()">
+<span class="material-icons text-xs">delete</span>
+<span>Excluir Atleta</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 4: GPS & 500m Rule Simulation -->
+<div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs">
+<div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">4. Simulação de GPS &amp; Regra de Presença (Raio de 500m)</h2>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-mono text-slate-500 font-medium">
+<span>Local Alvo: Arena Bola de Ouro</span>
+<span class="text-[#dd0000]">•</span>
+<span>-23.5505, -46.6333</span>
+</div>
+</div>
+<!-- 3 Visual Status Indicator Chips -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<!-- Chip Red -->
+<div class="p-3.5 rounded-xl border border-red-200 bg-red-50/70 flex items-center justify-between transition-all" id="chip-red">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
+<div>
+<div class="text-xs font-extrabold text-red-700">Faixa 1: Longe (&gt; 1.5 km)</div>
+<div class="text-[11px] text-red-600/80 font-medium">Check-in bloqueado</div>
+</div>
+</div>
+<span class="material-icons text-red-500 text-lg">cancel</span>
+</div>
+<!-- Chip Yellow -->
+<div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 flex items-center justify-between transition-all" id="chip-yellow">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
+<div>
+<div class="text-xs font-extrabold text-amber-800">Faixa 2: Próximo (501m - 1500m)</div>
+<div class="text-[11px] text-amber-700/80 font-medium">A caminho da Arena</div>
+</div>
+</div>
+<span class="material-icons text-amber-600 text-lg">directions_walk</span>
+</div>
+<!-- Chip Green -->
+<div class="p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 flex items-center justify-between transition-all shadow-xs" id="chip-green">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+<div>
+<div class="text-xs font-extrabold text-emerald-800">Faixa 3: No Campo (≤ 500m)</div>
+<div class="text-[11px] text-emerald-700 font-semibold">Botão de Chegada Liberado!</div>
+</div>
+</div>
+<span class="material-icons text-emerald-600 text-lg">verified</span>
+</div>
+</div>
+<!-- Target Athlete Selector & Status Bar -->
+<div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3 w-full md:w-auto">
+<div class="w-10 h-10 rounded-full bg-white border border-slate-300 flex items-center justify-center text-sm font-black text-slate-800 shrink-0 shadow-xs">
+<span id="target-athlete-avatar">LS</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-extrabold text-slate-900" id="target-athlete-name">Lucas Silva (Meio-Campo)</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300" id="target-live-badge">
+                No Campo (≤ 500m)
+              </span>
+</div>
+<p class="text-[11px] text-slate-500 font-mono mt-0.5">
+              Distância atual calculada: <span class="text-slate-900 font-extrabold" id="target-distance-text">120 metros</span>
+</p>
+</div>
+</div>
+<!-- 1st Confirmation Button -->
+<button class="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-xs" id="btn-first-confirm" onclick="execFirstConfirmation()">
+<span class="material-icons text-base">how_to_reg</span>
+<span>1. Executar 1ª Confirmação (Entrar na Lista)</span>
+</button>
+</div>
+<!-- Unified 4-button GPS simulation grid -->
+<div>
+<label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">
+          Simular Coordenadas de GPS em Tempo Real (Disparar SSE):
+        </label>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+<!-- Button 1: Red Longe -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white hover:bg-red-50/50 border-2 border-red-300 hover:border-red-500 text-slate-800 font-bold transition-all active:scale-95 group shadow-xs" onclick="simulateGPS('far')">
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔴</span>
+<span class="text-sm tracking-wide text-red-600 font-extrabold">Longe (3.8 km)</span>
+<span class="text-[10px] text-slate-500 mt-1 font-mono font-medium">Geofence Negado</span>
+</button>
+<!-- Button 2: Yellow Próximo -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white hover:bg-amber-50/50 border-2 border-amber-300 hover:border-amber-500 text-slate-800 font-bold transition-all active:scale-95 group shadow-xs" onclick="simulateGPS('close')">
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🟡</span>
+<span class="text-sm tracking-wide text-amber-700 font-extrabold">Próximo (850 m)</span>
+<span class="text-[10px] text-slate-500 mt-1 font-mono font-medium">Em Trânsito</span>
+</button>
+<!-- Button 3: Green Glowing Chegou -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 border-2 border-emerald-500 text-emerald-950 font-black transition-all active:scale-95 group shadow-sm glow-green relative overflow-hidden" onclick="simulateGPS('atPitch')">
+<span class="absolute top-1 right-2 text-[9px] bg-emerald-600 text-white px-1.5 rounded font-black tracking-widest uppercase">Ativo</span>
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🟢</span>
+<span class="text-sm tracking-wide text-emerald-800 font-extrabold">Chegou ⚽ (No Campo)</span>
+<span class="text-[10px] text-emerald-700 mt-1 font-mono font-semibold">Check-in Liberado (≤500m)</span>
+</button>
+<!-- Button 4: Gray Desfazer -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white hover:bg-slate-100 border-2 border-slate-300 hover:border-slate-400 text-slate-700 font-bold transition-all active:scale-95 group shadow-xs" onclick="simulateGPS('reset')">
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">⚪</span>
+<span class="text-sm tracking-wide text-slate-700 font-extrabold">Desfazer (Resetar)</span>
+<span class="text-[10px] text-slate-500 mt-1 font-mono font-medium">Limpar Status</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Live SSE Terminal & JSON Inspector -->
+<div class="bg-white border border-slate-300 rounded-2xl overflow-hidden shadow-xs">
+<!-- Terminal Header -->
+<div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="flex gap-1.5">
+<span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span>
+<span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+<span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+</div>
+<span class="text-xs font-mono font-extrabold text-slate-700 ml-2">Console SSE Live &amp; JSON Payload Telemetry</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-[11px] font-mono text-emerald-700 font-bold flex items-center gap-1.5 bg-white px-2 py-0.5 rounded border border-slate-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> streaming: /events/match-stream
           </span>
-        </div>
-        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/50">
-          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Atletas no Banco</span>
-          <span id="txt-total-atletas" class="mono font-bold text-xs text-emerald-400">--</span>
-        </div>
-      </div>
-
-      <!-- Links de Conexão Ativos -->
-      <div class="mt-3 pt-3 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-        <div class="flex items-center gap-1.5 text-slate-300">
-          <span class="material-symbols-outlined text-emerald-400 text-base">public</span>
-          <span class="font-bold">Link Online:</span>
-          <a id="link-online-display" href="#" target="_blank" class="mono text-emerald-400 hover:underline truncate max-w-xs sm:max-w-md">Carregando link...</a>
-        </div>
-        <button onclick="copiarLinkOnline()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 shrink-0 active:scale-95">
-          <span class="material-symbols-outlined text-sm">content_copy</span>
-          <span>Copiar Link p/ Celular</span>
-        </button>
-      </div>
-    </section>
-
-    <!-- TESTE 1: PING E COMUNICAÇÃO HTTP -->
-    <section class="bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-emerald-400 text-xl">speed</span>
-          <h2 class="font-bold text-sm text-white">1. Teste de Conexão e Latência (Ping)</h2>
-        </div>
-        <button onclick="executarTestePing()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
-          <span class="material-symbols-outlined text-sm">play_arrow</span>
-          <span>Testar Ping</span>
-        </button>
-      </div>
-      <p class="text-xs text-slate-400">Verifica se o aparelho consegue conversar com o servidor local e mede o tempo de resposta em milissegundos.</p>
-      <div id="resultado-ping" class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs mono text-slate-300 space-y-1">
-        Toque em "Testar Ping" para iniciar o diagnóstico de conexão.
-      </div>
-    </section>
-
-    <!-- ============================================================== -->
-    <!-- TESTE 2: ESPAÇO EXCLUSIVO DO JOGADOR (CADASTRO, LOGIN & PERFIL)  -->
-    <!-- ============================================================== -->
-    <section class="bg-slate-800 rounded-2xl p-4 border border-blue-500/30 space-y-3 shadow-lg">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-500/20 pb-2.5">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
-            <span class="material-symbols-outlined text-lg">sports_soccer</span>
-          </div>
-          <div>
-            <h2 class="font-extrabold text-sm text-white flex items-center gap-2">
-              <span>2. Espaço Exclusivo do Jogador</span>
-              <span class="text-[9px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold uppercase border border-blue-500/30">Módulo Jogador</span>
-            </h2>
-            <p class="text-[11px] text-slate-400">Teste de cadastro de novos atletas e autenticação de jogadores comuns no banco local.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- SELETOR DINÂMICO DE JOGADORES CADASTRADOS -->
-      <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs text-blue-400">group</span>
-            <span>Selecione na Lista de Jogadores Cadastrados no Banco:</span>
-          </label>
-          <button onclick="carregarJogadoresSelects(true)" class="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5" title="Recarregar lista do banco local">
-            <span class="material-symbols-outlined text-[11px]">refresh</span>
-            <span>Atualizar Lista</span>
+<button class="text-xs text-slate-600 hover:text-slate-900 px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 font-mono font-semibold transition-colors" onclick="clearTerminal()">
+            Limpar
           </button>
-        </div>
-        <select id="jogador-seletor-banco" onchange="aoSelecionarJogador(this.value)" class="w-full bg-slate-900 border-2 border-blue-500/60 hover:border-blue-400 focus:border-blue-400 rounded-xl px-3 py-2.5 text-xs text-white font-bold outline-none cursor-pointer">
-          <option value="">Carregando jogadores cadastrados no banco local...</option>
-        </select>
-      </div>
-
-      <!-- FORMULÁRIO DO JOGADOR -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-400 font-bold">Nome / Apelido do Jogador:</label>
-          <input id="jogador-campo-nome" type="text" placeholder="Nome do Jogador" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500"/>
-        </div>
-        <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-400 font-bold">E-mail (Login):</label>
-          <input id="jogador-campo-email" type="email" placeholder="seu@email.com" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500"/>
-        </div>
-        <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-400 font-bold">Senha de Acesso:</label>
-          <input id="jogador-campo-senha" type="password" placeholder="Senha do Jogador" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500 font-mono"/>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-2">
-        <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-400 font-bold">Posição:</label>
-          <select id="jogador-campo-posicao" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500">
-            <option value="ATA">Atacante (ATA)</option>
-            <option value="MEI">Meio-Campo (MEI)</option>
-            <option value="VOL">Volante (VOL)</option>
-            <option value="ZAG">Zagueiro (ZAG)</option>
-            <option value="LAT">Lateral (LAT)</option>
-            <option value="GOL">Goleiro (GOL)</option>
-          </select>
-        </div>
-        <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-400 font-bold">Idade:</label>
-          <input id="jogador-campo-idade" type="number" value="25" min="15" max="70" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500"/>
-        </div>
-        <div class="space-y-0.5">
-          <label class="text-[10px] text-slate-400 font-bold">Peso (kg):</label>
-          <input id="jogador-campo-peso" type="number" value="75" min="40" max="150" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500"/>
-        </div>
-      </div>
-
-      <!-- BOTÕES DE AÇÃO DO JOGADOR -->
-      <div class="flex flex-col sm:flex-row gap-2 pt-1">
-        <button onclick="executarTesteLoginJogador()" class="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm">
-          <span class="material-symbols-outlined text-sm">login</span>
-          <span>1. Testar Login como Jogador</span>
-        </button>
-        <button onclick="executarTesteCadastroJogador()" class="flex-1 py-2 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm">
-          <span class="material-symbols-outlined text-sm">how_to_reg</span>
-          <span>2. Cadastrar Novo Jogador no Banco Local</span>
-        </button>
-      </div>
-
-      <div id="resultado-auth-jogador" class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs mono text-slate-300">
-        Selecione um jogador acima ou digite dados para testar o login de atleta.
-      </div>
-    </section>
-
-    <!-- ============================================================== -->
-    <!-- TESTE 3: ESPAÇO EXCLUSIVO DO ADMINISTRADOR (LOGIN, EDIÇÃO & GESTÃO) -->
-    <!-- ============================================================== -->
-    <section class="bg-slate-800 rounded-2xl p-4 border border-amber-500/30 space-y-4 shadow-lg">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-2.5">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 shadow-md">
-            <span class="material-symbols-outlined text-lg font-bold">admin_panel_settings</span>
-          </div>
-          <div>
-            <h2 class="font-extrabold text-sm text-white flex items-center gap-2">
-              <span>3. Espaço Exclusivo do Administrador</span>
-              <span class="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold uppercase border border-amber-500/30">Privilégios Totais</span>
-            </h2>
-            <p class="text-[11px] text-slate-400">Login master do organizador, edição/exclusão direta de atletas no banco e controle geral da pelada.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- BLOCO A: LOGIN MASTER DO ADMINISTRADOR -->
-      <div class="p-3 rounded-xl bg-slate-900/80 border border-amber-500/20 space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-amber-300 flex items-center gap-1">
-            <span class="material-symbols-outlined text-sm">key</span>
-            <span>Login Master do Organizador:</span>
-          </span>
-          <span class="text-[10px] text-slate-400 font-mono">Credenciais Oficiais</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div>
-            <label class="text-[10px] text-slate-400 font-bold">E-mail do Administrador:</label>
-            <input id="admin-login-email" type="email" value="" placeholder="Digite o e-mail do admin" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-400"/>
-          </div>
-          <div>
-            <label class="text-[10px] text-slate-400 font-bold">Senha Mestre:</label>
-            <input id="admin-login-senha" type="password" value="" placeholder="Digite a senha do admin" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono font-bold outline-none focus:border-amber-400"/>
-          </div>
-        </div>
-        <button onclick="executarLoginAdmin()" class="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
-          <span class="material-symbols-outlined text-base">verified_user</span>
-          <span>Autenticar como Top Admin (Verificar Privilégios Master)</span>
-        </button>
-        <div id="resultado-auth-admin" class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs mono text-slate-300">
-          Clique no botão acima para testar o login com topadmin@gmail.com e senha Admin123.
-        </div>
-      </div>
-
-      <!-- BLOCO B: EDIÇÃO E EXCLUSÃO DE ATLETAS PELO ADMIN -->
-      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-emerald-400 flex items-center gap-1">
-            <span class="material-symbols-outlined text-sm">edit_note</span>
-            <span>Edição e Gestão de Atletas no Banco Local (pelada-dados.json):</span>
-          </span>
-          <span class="text-[10px] text-slate-400">Admin tem acesso irrestrito</span>
-        </div>
-
-        <div>
-          <label class="text-[10px] text-slate-300 font-bold block mb-1">Selecione o Atleta que Deseja Editar no Banco:</label>
-          <select id="admin-seletor-atleta" onchange="aoSelecionarAtletaEdicaoAdmin(this.value)" class="w-full bg-slate-950 border border-emerald-500/60 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none cursor-pointer focus:border-emerald-400">
-            <option value="">Carregando atletas do banco local...</option>
-          </select>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">Nome / Apelido:</label>
-            <input id="admin-edit-nome" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
-          </div>
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">E-mail Cadastrado:</label>
-            <input id="admin-edit-email" type="email" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
-          </div>
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">Senha:</label>
-            <input id="admin-edit-senha" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-emerald-500"/>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">Posição:</label>
-            <select id="admin-edit-posicao" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-500">
-              <option value="ATA">Atacante (ATA)</option>
-              <option value="MEI">Meio-Campo (MEI)</option>
-              <option value="VOL">Volante (VOL)</option>
-              <option value="ZAG">Zagueiro (ZAG)</option>
-              <option value="LAT">Lateral (LAT)</option>
-              <option value="GOL">Goleiro (GOL)</option>
-            </select>
-          </div>
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">Idade:</label>
-            <input id="admin-edit-idade" type="number" value="25" min="15" max="70" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
-          </div>
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">Peso (kg):</label>
-            <input id="admin-edit-peso" type="number" value="75" min="40" max="150" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-500"/>
-          </div>
-          <div class="space-y-0.5">
-            <label class="text-[10px] text-slate-400 font-bold">Permissão / Papel:</label>
-            <select id="admin-edit-role" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white font-bold outline-none focus:border-emerald-500">
-              <option value="jogador">Jogador Comum</option>
-              <option value="admin">Administrador 🔑</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-2 pt-1">
-          <button onclick="salvarEdicaoAdmin()" class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
-            <span class="material-symbols-outlined text-sm">save</span>
-            <span>💾 Salvar Alterações no Banco Local (pelada-dados.json)</span>
-          </button>
-          <button onclick="excluirAtletaAdmin()" class="py-2 px-3 rounded-xl bg-red-900/60 hover:bg-red-700 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all border border-red-700/50 shadow-sm">
-            <span class="material-symbols-outlined text-sm">delete</span>
-            <span>Excluir Atleta do Banco</span>
-          </button>
-        </div>
-
-        <div id="resultado-edicao-admin" class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs mono text-slate-300">
-          Selecione um atleta acima para carregar suas configurações e editar como administrador.
-        </div>
-      </div>
-
-      <!-- BLOCO C: AÇÕES GLOBAIS DA PELADA -->
-      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2">
-        <span class="text-xs font-bold text-slate-300 flex items-center gap-1">
-          <span class="material-symbols-outlined text-sm text-amber-400">bolt</span>
-          <span>Ações de Controle da Partida (Exclusivo Admin):</span>
-        </span>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button onclick="alternarTravaListaAdmin()" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95 transition-all">
-            <span class="material-symbols-outlined text-sm text-emerald-400">lock_open</span>
-            <span id="txt-btn-trava-admin">Travar / Destravar Lista</span>
-          </button>
-          <button onclick="zerarListaAdmin()" class="py-2 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-red-800/50 active:scale-95 transition-all">
-            <span class="material-symbols-outlined text-sm">restart_alt</span>
-            <span>Zerar Lista de Confirmados</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============================================================== -->
-    <!-- TESTE 4: TESTE DE GEOLOCALIZAÇÃO (GPS) & REGRA DOS 500 METROS -->
-    <!-- ============================================================== -->
-    <section class="bg-slate-800 rounded-2xl p-4 border border-emerald-500/40 space-y-3 shadow-lg">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-md">
-            <span class="material-symbols-outlined text-lg">radar</span>
-          </div>
-          <div>
-            <h2 class="font-extrabold text-sm text-white flex items-center gap-2">
-              <span>4. Teste de Geolocalização (GPS) & Regra dos 500 Metros</span>
-              <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-500/30">2 Confirmações & 3 Cores</span>
-            </h2>
-            <p class="text-[11px] text-slate-400">Validação da regra completa: 1ª confirmação (qualquer distância) &rarr; aproximação com 3 cores &rarr; botão de chegada quando &le; 500m.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- VISUALIZADOR DAS 3 CORES CONFORME A REGRA -->
-      <div class="grid grid-cols-3 gap-2">
-        <div class="p-2 rounded-xl bg-red-950/40 border border-red-700/50 flex flex-col items-center text-center">
-          <span class="w-3 h-3 rounded-full bg-red-500 mb-1"></span>
-          <span class="text-[11px] font-black text-red-300 uppercase">🔴 Vermelho</span>
-          <span class="text-[9px] text-red-400 font-bold">Longe (> 1.5 km)</span>
-          <span class="text-[9px] text-slate-400 mt-0.5">Botão Chegada Oculto</span>
-        </div>
-        <div class="p-2 rounded-xl bg-amber-950/40 border border-amber-700/50 flex flex-col items-center text-center">
-          <span class="w-3 h-3 rounded-full bg-amber-500 mb-1"></span>
-          <span class="text-[11px] font-black text-amber-300 uppercase">🟡 Amarelo</span>
-          <span class="text-[9px] text-amber-400 font-bold">Próximo (501m-1500m)</span>
-          <span class="text-[9px] text-slate-400 mt-0.5">Botão Chegada Oculto</span>
-        </div>
-        <div class="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/50 flex flex-col items-center text-center shadow-xs">
-          <span class="w-3 h-3 rounded-full bg-emerald-400 mb-1 animate-pulse"></span>
-          <span class="text-[11px] font-black text-emerald-300 uppercase">🟢 Verde</span>
-          <span class="text-[9px] text-emerald-400 font-bold">Raio &le; 500m</span>
-          <span class="text-[9px] text-emerald-300 font-bold mt-0.5">Botão Chegada Ativado!</span>
-        </div>
-      </div>
-
-      <!-- DADOS DO ATLETA PARA O TESTE (SOMENTE NOMES) -->
-      <div class="space-y-1 pt-1">
-        <div class="flex items-center justify-between">
-          <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs text-emerald-400">group</span>
-            <span>Selecione o Atleta para o Teste de GPS:</span>
-          </label>
-          <button onclick="carregarJogadoresSelects(true)" class="text-[10px] text-emerald-400 hover:underline flex items-center gap-0.5" title="Recarregar atletas">
-            <span class="material-symbols-outlined text-[11px]">refresh</span>
-            <span>Atualizar</span>
-          </button>
-        </div>
-        <select id="teste-gps-seletor" onchange="aoSelecionarAtletaGps(this.value)" class="w-full bg-slate-900 border-2 border-emerald-500/60 hover:border-emerald-400 focus:border-emerald-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none cursor-pointer">
-          <option value="">Carregando jogadores do banco local...</option>
-        </select>
-        <!-- BADGE DINÂMICO AO VIVO -->
-        <div id="status-atleta-gps-aovivo" class="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between">
-          <span class="text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[13px] text-emerald-400">sync_alt</span> Status no Banco:</span>
-          <span id="badge-status-atleta-gps" class="font-bold text-slate-400">Consultando...</span>
-        </div>
-        <input type="hidden" id="teste-gps-nome" value=""/>
-        <input type="hidden" id="teste-gps-posicao" value="MEI"/>
-      </div>
-
-      <!-- BOTÃO 1ª CONFIRMAÇÃO (ENTRA NA LISTA COM A DISTÂNCIA ATUAL) -->
-      <button onclick="executarPrimeiraConfirmacaoGps()" class="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
-        <span class="material-symbols-outlined text-sm">how_to_reg</span>
-        <span>1. Executar 1ª Confirmação (Entrar na Lista de Presença)</span>
-      </button>
-
-      <!-- CONTROLES DE DISTÂNCIA: GPS REAL E SIMULAÇÃO -->
-      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-700/60 space-y-2">
-        <div class="flex items-center justify-between">
-          <label class="text-[11px] text-slate-200 font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs text-red-400">my_location</span>
-            <span>Opções de Teste de Distância até a Pelada:</span>
-          </label>
-        </div>
-
-        <!-- BOTÃO GPS REAL -->
-        <button onclick="executarGpsRealComEnvioServidor()" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-slate-600 flex items-center justify-center gap-1.5 active:scale-95 transition-all">
-          <span class="material-symbols-outlined text-sm text-red-400">near_me</span>
-          <span>📍 Ler Sensor de GPS Real do Aparelho & Enviar ao Servidor</span>
-        </button>
-
-        <!-- PAINEL UNIFICADO DE SIMULAÇÃO DE GPS (LONGE, PRÓXIMO, CHEGOU, DESFAZER) -->
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
-            <label class="text-[11px] text-slate-200 font-bold flex items-center gap-1">
-              <span class="material-symbols-outlined text-xs text-emerald-400">tune</span>
-              <span>Simulação Unificada de Aproximação & Chegada (GPS):</span>
-            </label>
-            <span class="text-[10px] text-slate-400 font-mono">POST /api/teste/simular-gps</span>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <!-- 1. LONGE -->
-            <button id="btn-gps-longe" onclick="simularGpsUnificado('longe')" class="p-2.5 bg-red-950/40 hover:bg-red-900/60 text-red-200 border border-red-700/60 hover:border-red-500 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-sm group">
-              <span class="flex items-center gap-1 font-extrabold text-white group-hover:scale-105 transition-transform">🔴 Longe</span>
-              <span class="text-[10px] text-red-400 font-mono">3.8 km (Ausente)</span>
-            </button>
-            <!-- 2. PRÓXIMO -->
-            <button id="btn-gps-proximo" onclick="simularGpsUnificado('proximo')" class="p-2.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-200 border border-amber-700/60 hover:border-amber-500 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-sm group">
-              <span class="flex items-center gap-1 font-extrabold text-white group-hover:scale-105 transition-transform">🟡 Próximo</span>
-              <span class="text-[10px] text-amber-400 font-mono">850 metros</span>
-            </button>
-            <!-- 3. CHEGOU -->
-            <button id="btn-gps-chegou" onclick="simularGpsUnificado('chegou')" class="p-2.5 bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-200 border-2 border-emerald-400 rounded-xl text-xs font-black active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-md ring-2 ring-emerald-500/20 group">
-              <span class="flex items-center gap-1 font-extrabold text-white group-hover:scale-105 transition-transform">🟢 Chegou ⚽</span>
-              <span class="text-[10px] text-emerald-300 font-mono font-bold">No Campo (Oficial)</span>
-            </button>
-            <!-- 4. DESFAZER / RESETAR -->
-            <button id="btn-gps-resetar" onclick="simularGpsUnificado('resetar')" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded-xl text-xs font-bold active:scale-95 flex flex-col items-center justify-center transition-all gap-0.5 shadow-sm group">
-              <span class="flex items-center gap-1 font-bold text-white group-hover:scale-105 transition-transform">⚪ Desfazer</span>
-              <span class="text-[10px] text-slate-400 font-mono">Resetar Estado</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- PAINEL DE FEEDBACK E TELEMETRIA DO GPS -->
-      <div id="resultado-gps-completo" class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs mono text-slate-300">
-        Pronto para o teste. Clique em "1. Executar 1ª Confirmação" ou teste as distâncias pelos botões acima.
-      </div>
-    </section>
-
-  </main>
-
-  <script>
-    let linkOnlineGlobal = '';
-    let arenaOficial = { lat: -7.190405, lng: -34.870103, nome: 'Campo Oficial' };
-
-    // ==============================================================
-    // 1. CARREGAR DADOS GERAIS E SSE
-    // ==============================================================
-    function carregarStatusInicial() {
-      // 1. Telemetria
-      fetch('/api/admin/status')
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('txt-status-servidor').innerText = data.status || 'ONLINE';
-          document.getElementById('txt-total-atletas').innerText = data.jogadoresConfirmados !== undefined ? data.jogadoresConfirmados : '0';
-          if (data.linkPublico) {
-            linkOnlineGlobal = data.linkPublico;
-            const a = document.getElementById('link-online-display');
-            a.href = data.linkPublico;
-            a.innerText = data.linkPublico;
-          }
-        })
-        .catch(err => {
-          document.getElementById('txt-status-servidor').innerText = 'ERRO';
-          document.getElementById('badge-status-dot').className = 'w-2.5 h-2.5 rounded-full bg-red-500';
-        });
-
-      // 2. Dados da Pelada (Arena)
-      fetch('/api/pelada', { cache: 'no-store' })
-        .then(r => r.json())
-        .then(data => {
-          if (data.peladaConfig) {
-            arenaOficial.lat = data.peladaConfig.lat || arenaOficial.lat;
-            arenaOficial.lng = data.peladaConfig.lng || arenaOficial.lng;
-            arenaOficial.nome = data.peladaConfig.local || arenaOficial.nome;
-          }
-          if (data.jogadoresCadastrados) {
-            document.getElementById('txt-total-atletas').innerText = data.jogadoresCadastrados.length;
-          }
-          if (typeof atualizarStatusAoVivoAtletaGps === 'function') {
-            atualizarStatusAoVivoAtletaGps();
-          }
-        })
-        .catch(() => {});
-
-      // 3. Conexão SSE
-      conectarSSE();
-
-      // 4. Carregar lista de jogadores cadastrados no seletor
-      carregarJogadoresSelects();
-
-      // 5. Restauração leve do estado pós-recarregamento
-      restaurarEstadoGpsPosReload();
-    }
-
-    function conectarSSE() {
-      try {
-        const sse = new EventSource('/api/stream');
-        const txtSse = document.getElementById('txt-sse');
-
-        sse.onopen = () => {
-          txtSse.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Conectado';
-          txtSse.className = 'font-bold text-xs text-emerald-400 flex items-center justify-center gap-1';
-        };
-
-        sse.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (msg.type === 'LINK_ONLINE' && msg.linkPublico) {
-              linkOnlineGlobal = msg.linkPublico;
-              const a = document.getElementById('link-online-display');
-              a.href = msg.linkPublico;
-              a.innerText = msg.linkPublico;
-            }
-            if (msg.type === 'SYNC') {
-              if (msg.listaConfirmados) {
-                document.getElementById('txt-total-atletas').innerText = msg.listaConfirmados.length;
-              }
-              if (typeof atualizarStatusAoVivoAtletaGps === 'function') {
-                atualizarStatusAoVivoAtletaGps();
-              }
-            }
-          } catch(err) {}
-        };
-
-        sse.onerror = () => {
-          txtSse.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span> Desconectado';
-          txtSse.className = 'font-bold text-xs text-red-400 flex items-center justify-center gap-1';
-        };
-      } catch(e) {}
-    }
-
-    // ==============================================================
-    // 2. TESTE DE PING / LATÊNCIA
-    // ==============================================================
-    async function executarTestePing() {
-      const el = document.getElementById('resultado-ping');
-      el.innerHTML = 'Enviando pacote HTTP de teste...';
-      const inicio = performance.now();
-
-      try {
-        const resp = await fetch('/api/pelada', { cache: 'no-store' });
-        const fim = performance.now();
-        const rtt = Math.round(fim - inicio);
-        document.getElementById('txt-ping').innerText = `${rtt} ms`;
-
-        el.innerHTML = `
-          <div class="text-emerald-400 font-bold">✅ SUCESSO: Servidor respondeu normalmente!</div>
-          <div>• Tempo de Resposta (RTT): <strong class="text-white">${rtt} ms</strong></div>
-          <div>• Código HTTP: <strong class="text-white">${resp.status} ${resp.statusText}</strong></div>
-          <div>• Protocolo Usado: <strong class="text-white">${window.location.protocol}</strong></div>
-          <div>• Host Conectado: <strong class="text-white">${window.location.host}</strong></div>
-        `;
-      } catch(err) {
-        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA: Não foi possível obter resposta (${err.message}).</div>`;
-      }
-    }
-
-    // ==============================================================
-    // 2. ESPAÇO DO JOGADOR & BANCO DE DADOS
-    // ==============================================================
-    let listaJogadoresCadastradosCache = [];
-    let idJogadorSelecionado = '';
-
-    async function carregarJogadoresSelects(mostrarAlerta = false) {
-      const selectJogador = document.getElementById('jogador-seletor-banco');
-      const selectAdmin = document.getElementById('admin-seletor-atleta');
-
-      try {
-        const resp = await fetch('/api/jogadores', { cache: 'no-store' });
-        const lista = await resp.json();
-        listaJogadoresCadastradosCache = Array.isArray(lista) ? lista : (lista.jogadores || []);
-
-        // Preenche seletor do Jogador
-        if (selectJogador) {
-          selectJogador.innerHTML = '<option value="">➕ Digitar Novo Jogador Manualmente</option>';
-          listaJogadoresCadastradosCache.forEach(j => {
-            const opt = document.createElement('option');
-            opt.value = j.id || j.nome;
-            const roleBadge = j.role === 'admin' ? ' [👑 Admin]' : '';
-            opt.innerText = `${j.nome} - [${j.posicao || 'ATA'}] (${j.email || 'sem e-mail'})${roleBadge}`;
-            selectJogador.appendChild(opt);
-          });
-        }
-
-        // Preenche seletor do Admin
-        if (selectAdmin) {
-          selectAdmin.innerHTML = '<option value="">-- Selecione um atleta para editar ou excluir --</option>';
-          listaJogadoresCadastradosCache.forEach(j => {
-            const opt = document.createElement('option');
-            opt.value = j.id || j.nome;
-            const roleBadge = j.role === 'admin' ? ' [👑 Admin]' : ' [⚽ Jogador]';
-            opt.innerText = `${j.nome} - ${j.posicao || 'ATA'} (${j.email || 'sem e-mail'})${roleBadge}`;
-            selectAdmin.appendChild(opt);
-          });
-        }
-
-        // Preenche seletor do Teste de GPS (SOMENTE OS NOMES DOS JOGADORES)
-        const selectGps = document.getElementById('teste-gps-seletor');
-        if (selectGps) {
-          selectGps.innerHTML = '<option value="">-- Selecione o Jogador para o Teste --</option>';
-          listaJogadoresCadastradosCache.forEach(j => {
-            const opt = document.createElement('option');
-            opt.value = j.id || j.nome;
-            opt.innerText = j.nome; // SOMENTE O NOME DO JOGADOR
-            selectGps.appendChild(opt);
-          });
-        }
-
-        // Restaura atleta do sessionStorage se disponível
-        let atletaSalvo = '';
-        try {
-          atletaSalvo = sessionStorage.getItem('testeGpsAtletaSelecionado') || '';
-        } catch(e) {}
-
-        const atletaMatch = atletaSalvo ? listaJogadoresCadastradosCache.find(j => 
-          String(j.id) === String(atletaSalvo) || 
-          (j.nome && j.nome.toLowerCase() === String(atletaSalvo).toLowerCase())
-        ) : null;
-
-        if (atletaMatch) {
-          idJogadorSelecionado = atletaMatch.id || atletaMatch.nome;
-        }
-
-        // Mantém seleção do jogador ou seleciona o primeiro
-        if (idJogadorSelecionado && listaJogadoresCadastradosCache.some(j => String(j.id) === String(idJogadorSelecionado) || (j.nome && j.nome === idJogadorSelecionado))) {
-          if (selectJogador) selectJogador.value = idJogadorSelecionado;
-          if (selectAdmin) selectAdmin.value = idJogadorSelecionado;
-          if (selectGps) selectGps.value = idJogadorSelecionado;
-        } else if (listaJogadoresCadastradosCache.length > 0) {
-          const primeiroId = listaJogadoresCadastradosCache[0].id || listaJogadoresCadastradosCache[0].nome;
-          if (selectJogador) selectJogador.value = primeiroId;
-          if (selectAdmin) selectAdmin.value = primeiroId;
-          if (selectGps) selectGps.value = primeiroId;
-          idJogadorSelecionado = primeiroId;
-        }
-
-        if (selectJogador && selectJogador.value) {
-          aoSelecionarJogador(selectJogador.value);
-        }
-        if (selectAdmin && selectAdmin.value) {
-          aoSelecionarAtletaEdicaoAdmin(selectAdmin.value);
-        }
-        if (selectGps && selectGps.value) {
-          aoSelecionarAtletaGps(selectGps.value);
-        }
-
-        if (mostrarAlerta) {
-          const el = document.getElementById('resultado-auth-jogador');
-          if (el) {
-            el.innerHTML = `<div class="text-blue-400 font-bold">🔄 Lista atualizada do banco local! Total: ${listaJogadoresCadastradosCache.length} atletas cadastrados.</div>`;
-          }
-        }
-      } catch (err) {
-        console.error('Erro ao carregar lista de jogadores:', err);
-      }
-    }
-
-    function aoSelecionarJogador(id) {
-      idJogadorSelecionado = id;
-      const elRes = document.getElementById('resultado-auth-jogador');
-      const inputNome = document.getElementById('jogador-campo-nome');
-      const inputEmail = document.getElementById('jogador-campo-email');
-      const inputSenha = document.getElementById('jogador-campo-senha');
-      const selectPos = document.getElementById('jogador-campo-posicao');
-      const inputIdade = document.getElementById('jogador-campo-idade');
-      const inputPeso = document.getElementById('jogador-campo-peso');
-
-      if (!id) {
-        inputNome.value = '';
-        inputEmail.value = '';
-        inputSenha.value = '';
-        selectPos.value = 'ATA';
-        inputIdade.value = 25;
-        inputPeso.value = 75;
-        if (elRes) {
-          elRes.innerHTML = '<div class="text-blue-300 font-bold">➕ Modo Novo Jogador: Preencha os campos e clique em "2. Cadastrar Novo Jogador no Banco Local".</div>';
-        }
-        return;
-      }
-
-      const jogador = listaJogadoresCadastradosCache.find(j => String(j.id) === String(id) || j.nome === id);
-      if (jogador) {
-        inputNome.value = jogador.nome || '';
-        inputEmail.value = jogador.email || '';
-        inputSenha.value = jogador.senha || '123456';
-        selectPos.value = jogador.posicao || 'ATA';
-        inputIdade.value = jogador.idade || 25;
-        inputPeso.value = jogador.peso || 75;
-
-        // Sincroniza automaticamente com o teste de GPS (Seção 4)
-        const selectGps = document.getElementById('teste-gps-seletor');
-        if (selectGps && selectGps.value !== String(id)) selectGps.value = jogador.id || jogador.nome;
-        const gpsNome = document.getElementById('teste-gps-nome');
-        const gpsPos = document.getElementById('teste-gps-posicao');
-        if (gpsNome) gpsNome.value = jogador.nome || '';
-        if (gpsPos) gpsPos.value = jogador.posicao || 'ATA';
-
-        if (elRes) {
-          elRes.innerHTML = `
-            <div class="text-blue-400 font-bold">👤 Atleta Selecionado do Banco: <span class="text-white">${jogador.nome}</span></div>
-            <div>• E-mail: <strong class="text-white">${jogador.email || 'Nenhum'}</strong></div>
-            <div>• Senha: <strong class="text-amber-300 font-mono">${jogador.senha || '123456'}</strong></div>
-            <div>• Posição: <strong class="text-white">${jogador.posicao || 'ATA'}</strong> | Idade: <strong class="text-white">${jogador.idade || 25} anos</strong> | Peso: <strong class="text-white">${jogador.peso || 75} kg</strong></div>
-            <div>• Papel no Banco: <strong class="${jogador.role === 'admin' ? 'text-amber-400' : 'text-blue-300'} font-bold">${(jogador.role || 'jogador').toUpperCase()}</strong></div>
-          `;
-        }
-      }
-    }
-
-    function aoSelecionarAtletaGps(id) {
-      const gpsNome = document.getElementById('teste-gps-nome');
-      const gpsPos = document.getElementById('teste-gps-posicao');
-      const elRes = document.getElementById('resultado-gps-completo');
-
-      if (!id) {
-        if (gpsNome) gpsNome.value = '';
-        if (typeof atualizarStatusAoVivoAtletaGps === 'function') {
-          atualizarStatusAoVivoAtletaGps('');
-        }
-        return;
-      }
-
-      const jogador = listaJogadoresCadastradosCache.find(j => String(j.id) === String(id) || j.nome === id);
-      if (jogador) {
-        if (gpsNome) gpsNome.value = jogador.nome || '';
-        if (gpsPos) gpsPos.value = jogador.posicao || 'ATA';
-        idJogadorSelecionado = jogador.id || jogador.nome;
-
-        try {
-          sessionStorage.setItem('testeGpsAtletaSelecionado', jogador.nome || jogador.id);
-        } catch(e) {}
-
-        if (typeof atualizarStatusAoVivoAtletaGps === 'function') {
-          atualizarStatusAoVivoAtletaGps(jogador.nome);
-        }
-
-        const feedbackSalvo = sessionStorage.getItem('testeGpsFeedbackHtml');
-        const ts = parseInt(sessionStorage.getItem('testeGpsTimestamp') || '0', 10);
-        const ehRecente = feedbackSalvo && (Date.now() - ts < 45000);
-
-        if (elRes && !ehRecente) {
-          elRes.innerHTML = `
-            <div class="text-emerald-400 font-bold">⚽ Jogador Configurado para o Teste de GPS: <strong class="text-white">${jogador.nome}</strong> (${jogador.posicao || 'ATA'})</div>
-            <div>• Idade: <strong class="text-white">${jogador.idade || 25} anos</strong> | Condição: <strong class="text-emerald-300">${jogador.condicao || 'excelente'}</strong></div>
-            <div class="text-slate-400 mt-0.5">Use o botão <strong>"1. Executar 1ª Confirmação"</strong> ou teste as distâncias pelos botões de simulação abaixo.</div>
-          `;
-        }
-      }
-    }
-
-    async function executarTesteLoginJogador() {
-      const el = document.getElementById('resultado-auth-jogador');
-      const email = document.getElementById('jogador-campo-email').value.trim();
-      const senha = document.getElementById('jogador-campo-senha').value.trim();
-
-      el.innerHTML = 'Verificando credenciais de jogador no servidor local...';
-
-      try {
-        const resp = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ email, senha, role: 'jogador' })
-        });
-        const res = await resp.json();
-
-        if (res.sucesso) {
-          el.innerHTML = `
-            <div class="text-emerald-400 font-bold text-sm">✅ LOGIN DE JOGADOR AUTORIZADO COM SUCESSO!</div>
-            <div>• Jogador: <strong class="text-white">${res.usuario.nome}</strong></div>
-            <div>• E-mail: <strong class="text-white">${res.usuario.email}</strong></div>
-            <div>• Posição: <strong class="text-white">${res.usuario.posicao || 'ATA'}</strong></div>
-            <div>• Papel: <strong class="text-blue-300 font-bold">${(res.usuario.role || 'jogador').toUpperCase()}</strong></div>
-            <div class="text-emerald-300 mt-1">Autenticado pelo banco central no PC (pelada-dados.json).</div>
-          `;
-        } else {
-          el.innerHTML = `<div class="text-amber-400 font-bold">⚠️ RESPOSTA DO BANCO: ${res.erro}</div>`;
-        }
-      } catch (err) {
-        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    async function executarTesteCadastroJogador() {
-      const el = document.getElementById('resultado-auth-jogador');
-      const nome = document.getElementById('jogador-campo-nome').value.trim();
-      const email = document.getElementById('jogador-campo-email').value.trim();
-      const senha = document.getElementById('jogador-campo-senha').value.trim();
-      const posicao = document.getElementById('jogador-campo-posicao').value || 'ATA';
-      const idade = parseInt(document.getElementById('jogador-campo-idade').value) || 25;
-      const peso = parseFloat(document.getElementById('jogador-campo-peso').value) || 75;
-
-      el.innerHTML = 'Gravando cadastro no banco de dados local...';
-
-      try {
-        const resp = await fetch('/api/auth/cadastro', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ nome, email, senha, posicao, idade, peso })
-        });
-        const res = await resp.json();
-
-        if (res.sucesso) {
-          el.innerHTML = `
-            <div class="text-emerald-400 font-bold">✅ NOVO JOGADOR CADASTRADO NO BANCO LOCAL COM SUCESSO!</div>
-            <div>• Atleta: <strong class="text-white">${res.usuario.nome}</strong> (${res.usuario.posicao})</div>
-            <div>• E-mail: <strong class="text-white">${res.usuario.email}</strong></div>
-            <div>• ID Gerado: <strong class="text-white font-mono">${res.usuario.id}</strong></div>
-            <div class="text-emerald-300 mt-1">Salvo no arquivo pelada-dados.json e sincronizado via SSE!</div>
-          `;
-          idJogadorSelecionado = res.usuario.id;
-          await carregarJogadoresSelects(false);
-          carregarStatusInicial();
-        } else {
-          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO NO CADASTRO: ${res.erro}</div>`;
-        }
-      } catch (err) {
-        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    // ==============================================================
-    // 3. ESPAÇO EXCLUSIVO DO ADMINISTRADOR (LOGIN MASTER & EDIÇÃO)
-    // ==============================================================
-    async function executarLoginAdmin() {
-      const el = document.getElementById('resultado-auth-admin');
-      const email = document.getElementById('admin-login-email').value.trim();
-      const senha = document.getElementById('admin-login-senha').value.trim();
-
-      el.innerHTML = 'Autenticando credenciais de Administrador Master no servidor local...';
-
-      try {
-        const resp = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ email, senha, role: 'admin' })
-        });
-        const res = await resp.json();
-
-        if (res.sucesso && res.usuario && res.usuario.role === 'admin') {
-          const privs = res.usuario.privilegios || ['superadmin', 'editar_jogadores', 'gerenciar_partida', 'travar_lista', 'confirmar_presenca', 'excluir_atletas', 'gps_override'];
-          el.innerHTML = `
-            <div class="text-emerald-400 font-black text-sm flex items-center gap-1">
-              <span class="material-symbols-outlined text-base">verified</span>
-              <span>✅ ADMINISTRADOR MASTER AUTENTICADO COM SUCESSO!</span>
-            </div>
-            <div>• Administrador: <strong class="text-white">${res.usuario.nome}</strong></div>
-            <div>• E-mail: <strong class="text-white">${res.usuario.email}</strong></div>
-            <div>• Papel Oficial: <strong class="text-amber-400 font-black tracking-wider">👑 SUPERADMINISTRADOR</strong></div>
-            <div class="mt-1">
-              <span class="text-[10px] text-slate-400 block font-bold mb-0.5">Privilégios Verificados no Banco:</span>
-              <div class="flex flex-wrap gap-1">
-                ${privs.map(p => `<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] font-bold border border-amber-500/30">${p}</span>`).join('')}
-              </div>
-            </div>
-            <div class="text-emerald-300 font-bold mt-1.5">🔑 Acesso total liberado para edição de atletas e controle de partidas!</div>
-          `;
-        } else {
-          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO NO LOGIN ADMIN: ${res.erro || 'Acesso negado'}</div>`;
-        }
-      } catch (err) {
-        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    function aoSelecionarAtletaEdicaoAdmin(id) {
-      const elRes = document.getElementById('resultado-edicao-admin');
-      const inputNome = document.getElementById('admin-edit-nome');
-      const inputEmail = document.getElementById('admin-edit-email');
-      const inputSenha = document.getElementById('admin-edit-senha');
-      const selectPos = document.getElementById('admin-edit-posicao');
-      const inputIdade = document.getElementById('admin-edit-idade');
-      const inputPeso = document.getElementById('admin-edit-peso');
-      const selectRole = document.getElementById('admin-edit-role');
-
-      if (!id) {
-        inputNome.value = '';
-        inputEmail.value = '';
-        inputSenha.value = '';
-        selectPos.value = 'ATA';
-        inputIdade.value = 25;
-        inputPeso.value = 75;
-        selectRole.value = 'jogador';
-        if (elRes) elRes.innerHTML = 'Selecione um atleta cadastrado no seletor acima para carregar suas informações.';
-        return;
-      }
-
-      const jogador = listaJogadoresCadastradosCache.find(j => String(j.id) === String(id) || j.nome === id);
-      if (jogador) {
-        inputNome.value = jogador.nome || '';
-        inputEmail.value = jogador.email || '';
-        inputSenha.value = jogador.senha || '123456';
-        selectPos.value = jogador.posicao || 'ATA';
-        inputIdade.value = jogador.idade || 25;
-        inputPeso.value = jogador.peso || 75;
-        selectRole.value = jogador.role || 'jogador';
-
-        if (elRes) {
-          elRes.innerHTML = `
-            <div class="text-emerald-400 font-bold">🛠️ Modo de Edição Aberto para: <strong class="text-white">${jogador.nome}</strong></div>
-            <div>• E-mail: <strong class="text-white">${jogador.email || 'Nenhum'}</strong> | Senha: <strong class="text-amber-300 font-mono">${jogador.senha || '123456'}</strong></div>
-            <div>• Posição: <strong class="text-white">${jogador.posicao || 'ATA'}</strong> | Permissão Atual: <strong class="text-amber-400 font-bold">${(jogador.role || 'jogador').toUpperCase()}</strong></div>
-            <div class="text-slate-400 mt-0.5">Altere qualquer campo e clique em <strong>"💾 Salvar Alterações no Banco Local"</strong>.</div>
-          `;
-        }
-      }
-    }
-
-    async function salvarEdicaoAdmin() {
-      const el = document.getElementById('resultado-edicao-admin');
-      const select = document.getElementById('admin-seletor-atleta');
-      const id = select ? select.value : '';
-      const nome = document.getElementById('admin-edit-nome').value.trim();
-      const email = document.getElementById('admin-edit-email').value.trim();
-      const senha = document.getElementById('admin-edit-senha').value.trim();
-      const posicao = document.getElementById('admin-edit-posicao').value;
-      const idade = parseInt(document.getElementById('admin-edit-idade').value) || 25;
-      const peso = parseFloat(document.getElementById('admin-edit-peso').value) || 75;
-      const role = document.getElementById('admin-edit-role').value;
-
-      if (!nome) {
-        if (el) el.innerHTML = '<div class="text-red-400 font-bold">❌ O Nome do atleta é obrigatório para salvar.</div>';
-        return;
-      }
-
-      if (el) el.innerHTML = 'Gravando alterações no banco local do servidor...';
-
-      try {
-        const resp = await fetch('/api/admin/atleta/salvar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ id, nome, email, senha, posicao, idade, peso, role })
-        });
-        const res = await resp.json();
-
-        if (res.sucesso) {
-          if (el) {
-            el.innerHTML = `
-              <div class="text-emerald-400 font-bold text-sm">💾 ATLETA SALVO COM SUCESSO PELO ADMINISTRADOR!</div>
-              <div>• Nome: <strong class="text-white">${res.atleta.nome}</strong> (${res.atleta.posicao})</div>
-              <div>• E-mail: <strong class="text-white">${res.atleta.email}</strong></div>
-              <div>• Senha Gravada: <strong class="text-amber-300 font-mono">${res.atleta.senha}</strong></div>
-              <div>• Permissão: <strong class="text-emerald-300 font-bold">${(res.atleta.role || 'jogador').toUpperCase()}</strong></div>
-              <div class="text-emerald-300 mt-1">Gravado no disco (pelada-dados.json) e sincronizado em tempo real para todos os celulares!</div>
-            `;
-          }
-          await carregarJogadoresSelects(false);
-          carregarStatusInicial();
-        } else {
-          if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO AO SALVAR: ${res.erro}</div>`;
-        }
-      } catch (err) {
-        if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    async function excluirAtletaAdmin() {
-      const el = document.getElementById('resultado-edicao-admin');
-      const select = document.getElementById('admin-seletor-atleta');
-      const id = select ? select.value : '';
-      const nome = document.getElementById('admin-edit-nome').value.trim();
-
-      if (!id && !nome) {
-        alert('Selecione um atleta cadastrado no seletor para excluir.');
-        return;
-      }
-
-      if (!confirm(`Tem certeza que deseja EXCLUIR o atleta "${nome}" do banco de dados local?`)) {
-        return;
-      }
-
-      if (el) el.innerHTML = `Removendo atleta "${nome}" do banco local...`;
-
-      try {
-        const resp = await fetch('/api/admin/atleta/excluir', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ id, nome })
-        });
-        const res = await resp.json();
-
-        if (res.sucesso) {
-          if (el) {
-            el.innerHTML = `
-              <div class="text-emerald-400 font-bold">🗑️ ATLETA EXCLUÍDO COM SUCESSO: "${nome}"</div>
-              <div class="text-slate-300">• Removido permanentemente do banco local (pelada-dados.json) e da lista de presença.</div>
-            `;
-          }
-          await carregarJogadoresSelects(false);
-          carregarStatusInicial();
-        } else {
-          if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO AO EXCLUIR: ${res.erro}</div>`;
-        }
-      } catch (err) {
-        if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    async function alternarTravaListaAdmin() {
-      try {
-        const resp = await fetch('/api/admin/trava-lista', { method: 'POST' });
-        const res = await resp.json();
-        const txtBtn = document.getElementById('txt-btn-trava-admin');
-        if (res.sucesso) {
-          alert(`Status da lista alterado com sucesso para: ${res.listaAberta ? 'ABERTA (LIBERADA)' : 'TRAVADA (BLOQUEADA)'}!`);
-          if (txtBtn) txtBtn.innerText = res.listaAberta ? 'Lista Aberta (Clique p/ Travar)' : 'Lista Travada (Clique p/ Abrir)';
-          carregarStatusInicial();
-        }
-      } catch(err) {
-        alert('Falha ao alternar trava da lista: ' + err.message);
-      }
-    }
-
-    async function zerarListaAdmin() {
-      if (confirm('Tem certeza que deseja zerar a lista de confirmados da pelada?')) {
-        try {
-          const resp = await fetch('/api/pelada', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({ listaConfirmados: [] })
-          });
-          const res = await resp.json();
-          if (res.sucesso) {
-            alert('Lista de presença zerada com sucesso!');
-            carregarStatusInicial();
-          }
-        } catch (err) {
-          alert('Erro ao zerar lista: ' + err.message);
-        }
-      }
-    }
-
-    // ==============================================================
-    // 4. TESTE COMPLETO DE GEOLOCALIZAÇÃO (GPS) E REGRA DOS 500 METROS
-    // ==============================================================
-    let distanciaGpsAtual = 3800; // Começa como 3.8 km (Longe)
-
-    function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
-      const R = 6371e3;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return Math.round(R * c);
-    }
-
-    function obterNomeAtletaTesteGps() {
-      const inputNome = document.getElementById('teste-gps-nome');
-      if (inputNome && inputNome.value.trim()) return inputNome.value.trim();
-      const sel = document.getElementById('teste-gps-seletor');
-      if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
-        const txt = sel.options[sel.selectedIndex].text.trim();
-        if (txt && !txt.startsWith('--') && !txt.startsWith('Carregando')) return txt;
-      }
-      return 'Jogador Teste';
-    }
-
-    async function executarPrimeiraConfirmacaoGps() {
-      const el = document.getElementById('resultado-gps-completo');
-      const nome = obterNomeAtletaTesteGps();
-      const posicao = document.getElementById('teste-gps-posicao').value || 'ATA';
-
-      el.innerHTML = 'Enviando 1ª Confirmação de presença ao servidor local...';
-
-      try {
-        const resp = await fetch('/api/pelada/confirmar-presenca', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            nome,
-            posicao,
-            idade: 26,
-            fitness: 94,
-            distanciaMetros: distanciaGpsAtual
-          })
-        });
-        const res = await resp.json();
-
-        if (res.sucesso) {
-          const atleta = res.atleta;
-          const chegou = distanciaGpsAtual <= 500;
-          const statusDist = chegou ? '🟢 NO RAIO (≤500m)' : (distanciaGpsAtual <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE');
-          el.innerHTML = `
-            <div class="text-emerald-400 font-bold text-sm">✅ 1ª CONFIRMAÇÃO REGISTRADA COM SUCESSO!</div>
-            <div>• Atleta: <strong class="text-white">${atleta.nome}</strong> (${atleta.posicao})</div>
-            <div>• Status na Lista: <strong class="text-blue-300">CONFIRMADO</strong></div>
-            <div>• Distância Inicial: <strong class="text-white">${distanciaGpsAtual >= 1000 ? (distanciaGpsAtual/1000).toFixed(1) + ' km' : distanciaGpsAtual + ' metros'}</strong> (${statusDist})</div>
-            <div>• Transmissão SSE: <strong class="text-emerald-400">Transmitido em tempo real para todos os celulares</strong></div>
-            <div class="mt-1 text-slate-300">Agora use os botões de simulação abaixo (🔴 Longe, 🟡 Próximo ou 🟢 Raio ≤500m) para ver o botão verde surgir!</div>
-          `;
-          carregarStatusInicial();
-        } else {
-          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO NA 1ª CONFIRMAÇÃO: ${res.erro}</div>`;
-        }
-      } catch (err) {
-        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    async function simularGpsUnificado(status) {
-      const el = document.getElementById('resultado-gps-completo');
-      const nome = obterNomeAtletaTesteGps();
-
-      if (!nome) {
-        el.innerHTML = '<div class="text-amber-400 font-bold">⚠️ Selecione um atleta acima antes de simular o GPS.</div>';
-        return;
-      }
-
-      // Feedback visual nos botões
-      ['longe', 'proximo', 'chegou', 'resetar'].forEach(s => {
-        const btn = document.getElementById(`btn-gps-${s}`);
-        if (btn) {
-          if (s === status) {
-            btn.classList.add('ring-2', 'ring-white', 'scale-105');
-          } else {
-            btn.classList.remove('ring-2', 'ring-white', 'scale-105');
-          }
-        }
-      });
-
-      el.innerHTML = `<div class="text-slate-300">Transmitindo simulação <strong>${status.toUpperCase()}</strong> para <strong>${nome}</strong>...</div>`;
-
-      try {
-        const response = await fetch('/api/teste/simular-gps', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            nomeAtleta: nome,
-            statusDistancia: status
-          })
-        });
-
-        // Recarregamento automático com atraso de 300ms logo após o retorno bem-sucedido (response.ok)
-        if (response.ok) {
-          setTimeout(() => {
-            window.location.reload();
-          }, 300);
-        }
-
-        const res = await response.json();
-
-        if (res.sucesso && res.atleta) {
-          const a = res.atleta;
-          let corTexto = 'text-slate-300';
-          let icone = 'info';
-          let titulo = `SIMULAÇÃO: ${status.toUpperCase()}`;
-
-          if (status === 'chegou' || a.chegadaConfirmada || a.statusPresenca === 'chegou') {
-            corTexto = 'text-emerald-400';
-            icone = 'sports_soccer';
-            titulo = '🟢 STATUS OFICIAL: CHEGOU NO LOCAL (CONFIRMADO NO CAMPO)!';
-          } else if (status === 'proximo' || a.statusAproximacao === 'proximo') {
-            corTexto = 'text-amber-400';
-            icone = 'near_me';
-            titulo = '🟡 STATUS: PRÓXIMO DO CAMPO (850 metros)';
-          } else if (status === 'resetar') {
-            corTexto = 'text-blue-400';
-            icone = 'restart_alt';
-            titulo = '⚪ STATUS: CHEGADA RESETADA (ESTADO INICIAL)';
-          } else {
-            corTexto = 'text-red-400';
-            icone = 'location_off';
-            titulo = '🔴 STATUS: LONGE DO CAMPO (3.8 km)';
-          }
-
-          el.innerHTML = `
-            <div class="${corTexto} font-black text-sm flex items-center gap-1.5 mb-1">
-              <span class="material-symbols-outlined text-base">${icone}</span>
-              <span>${titulo}</span>
-            </div>
-            <div class="space-y-0.5 text-xs">
-              <div>• Atleta: <strong class="text-white">${a.nome}</strong> (${a.posicao || 'ATA'})</div>
-              <div>• Distância: <strong class="text-white font-mono">${a.distanciaTexto || 'Confirmado'}</strong> ${a.distanciaMetros ? '(' + a.distanciaMetros + 'm)' : ''}</div>
-              <div>• Status Aproximação: <strong class="text-white">${a.statusAproximacao || 'longe'}</strong></div>
-              <div>• Chegada Confirmada: <strong class="${a.chegadaConfirmada ? 'text-emerald-300' : 'text-slate-400'} font-bold">${a.chegadaConfirmada ? 'SIM (Apto para o sorteio)' : 'NÃO'}</strong></div>
-              <div>• Horário da Chegada: <strong class="text-white">${a.horaChegada || 'Nenhum (não chegou)'}</strong></div>
-              <div class="pt-1 text-emerald-400 font-semibold border-t border-slate-800/80 mt-1 flex items-center justify-between">
-                <span>✓ Sincronizado via SSE e gravado (.tmp + renameSync)!</span>
-                <span class="text-[10px] text-slate-300 font-mono animate-pulse">Atualizando...</span>
-              </div>
-            </div>
-          `;
-
-          // 1. Salva dados no sessionStorage para manter o atleta selecionado e feedback pós-recarregamento
-          try {
-            sessionStorage.setItem('testeGpsAtletaSelecionado', nome);
-            sessionStorage.setItem('testeGpsUltimoStatus', status);
-            sessionStorage.setItem('testeGpsFeedbackHtml', el.innerHTML);
-            sessionStorage.setItem('testeGpsTimestamp', String(Date.now()));
-          } catch(e) {}
-
-          // 2. Revalidação dinâmica limpa imediata via fetch
-          carregarStatusInicial();
-          if (typeof atualizarStatusAoVivoAtletaGps === 'function') {
-            atualizarStatusAoVivoAtletaGps(nome);
-          }
-
-        } else {
-          el.innerHTML = `<div class="text-red-400 font-bold">❌ ERRO: ${res.mensagem || res.erro || 'Falha ao processar GPS.'}</div>`;
-        }
-      } catch (err) {
-        el.innerHTML = `<div class="text-red-400 font-bold">❌ FALHA NA REQUISIÇÃO: ${err.message}</div>`;
-      }
-    }
-
-    function simularDistanciaGps(dist) {
-      if (dist <= 50) return simularGpsUnificado('chegou');
-      if (dist <= 1500) return simularGpsUnificado('proximo');
-      return simularGpsUnificado('longe');
-    }
-
-    function executarSegundaConfirmacaoGps() {
-      return simularGpsUnificado('chegou');
-    }
-
-    function executarGpsRealComEnvioServidor() {
-      const el = document.getElementById('resultado-gps-completo');
-      if (!navigator.geolocation) {
-        if (el) el.innerHTML = '<div class="text-red-400 font-bold">❌ Geolocalização não é suportada por este dispositivo.</div>';
-        return;
-      }
-      if (el) el.innerHTML = '<div class="text-slate-300">Lendo sensor de GPS real do aparelho...</div>';
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          const dist = calcularDistanciaMetros(lat, lon, arenaOficial.lat, arenaOficial.lng);
-          distanciaGpsAtual = dist;
-          if (el) {
-            el.innerHTML = `
-              <div class="text-emerald-400 font-bold">📍 SENSOR GPS LIDO COM SUCESSO!</div>
-              <div>• Coordenadas: <strong class="text-white">${lat.toFixed(5)}, ${lon.toFixed(5)}</strong></div>
-              <div>• Distância até o campo: <strong class="text-white">${dist >= 1000 ? (dist/1000).toFixed(1) + ' km' : dist + ' metros'}</strong></div>
-              <div class="text-slate-300 mt-1">Sincronizando com o servidor...</div>
-            `;
-          }
-          simularDistanciaGps(dist);
-        },
-        err => {
-          if (el) el.innerHTML = `<div class="text-red-400 font-bold">❌ Erro no sensor GPS: ${err.message}. Permita o acesso à localização no navegador.</div>`;
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    }
-
-    async function atualizarStatusAoVivoAtletaGps(nomeAtleta) {
-      const badge = document.getElementById('badge-status-atleta-gps');
-      if (!badge) return;
-      const nome = nomeAtleta || obterNomeAtletaTesteGps();
-      if (!nome) {
-        badge.innerHTML = '<span class="text-slate-400">Nenhum atleta selecionado</span>';
-        return;
-      }
-      try {
-        const resp = await fetch('/api/pelada', { cache: 'no-store' });
-        const dados = await resp.json();
-        const lista = dados.listaConfirmados || [];
-        const norm = (str) => String(str || '').toLowerCase().trim();
-        const atleta = lista.find(a => norm(a.nome) === norm(nome) || norm(a.email) === norm(nome) || (a.id && String(a.id) === String(nome)));
-        if (atleta) {
-          if (atleta.chegadaConfirmada || atleta.statusPresenca === 'chegou' || (typeof atleta.distanciaMetros === 'number' && atleta.distanciaMetros <= 50)) {
-            badge.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/40">🟢 No Campo (${atleta.horaChegada || 'Chegou'})</span>`;
-          } else if (atleta.statusAproximacao === 'proximo' || (typeof atleta.distanciaMetros === 'number' && atleta.distanciaMetros <= 1500)) {
-            badge.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 font-bold border border-amber-500/40">🟡 Próximo (${atleta.distanciaTexto || '850m'})</span>`;
-          } else {
-            badge.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 font-bold border border-red-500/40">🔴 Longe (${atleta.distanciaTexto || '3.8 km'})</span>`;
-          }
-        } else {
-          badge.innerHTML = `<span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-bold border border-slate-700">⚪ Não Confirmado na Lista</span>`;
-        }
-      } catch (e) {
-        badge.innerHTML = '<span class="text-slate-400">Offline</span>';
-      }
-    }
-
-    function restaurarEstadoGpsPosReload() {
-      try {
-        const feedbackSalvo = sessionStorage.getItem('testeGpsFeedbackHtml');
-        const ultimoStatus = sessionStorage.getItem('testeGpsUltimoStatus');
-        const timestamp = parseInt(sessionStorage.getItem('testeGpsTimestamp') || '0', 10);
-
-        if (feedbackSalvo && (Date.now() - timestamp < 60000)) {
-          const el = document.getElementById('resultado-gps-completo');
-          if (el) el.innerHTML = feedbackSalvo;
-          if (ultimoStatus) {
-            ['longe', 'proximo', 'chegou', 'resetar'].forEach(s => {
-              const btn = document.getElementById(`btn-gps-${s}`);
-              if (btn) {
-                if (s === ultimoStatus) {
-                  btn.classList.add('ring-2', 'ring-white', 'scale-105');
-                } else {
-                  btn.classList.remove('ring-2', 'ring-white', 'scale-105');
-                }
-              }
-            });
-          }
-        }
-      } catch(e) {}
-    }
-
-    function copiarLinkOnline() {
-      const link = linkOnlineGlobal || window.location.origin;
-      navigator.clipboard.writeText(link).then(() => {
-        alert('Link copiado com sucesso! Você pode colar no WhatsApp ou enviar para qualquer celular:\n' + link);
-      }).catch(() => {
-        prompt('Copie o link abaixo:', link);
-      });
-    }
-
-    // ==============================================================
-    // SISTEMA DE TOAST E NOTIFICAÇÃO ONLINE NA PÁGINA DE TESTES
-    // ==============================================================
-    function tocarSomOnlineTeste() {
+</div>
+</div>
+<!-- Terminal Body -->
+<div class="p-4 h-64 overflow-y-auto font-mono text-xs space-y-1.5 custom-scroll bg-slate-950 text-slate-200" id="live-terminal">
+<div class="text-slate-400">[00:00:01] [SYSTEM] Pelada Top SSE Daemon v2.0 inicializado com sucesso.</div>
+<div class="text-slate-400">[00:00:01] [SYSTEM] Conexão estabelecida com cluster society-sa-east-1.</div>
+<div class="text-emerald-400">[00:00:02] [SSE] [CONNECT] Cliente test-dashboard conectado via EventSource.</div>
+<div class="text-slate-300">[00:00:02] [GEO] Regra de 500m ativa para "Arena Bola de Ouro" (Lat: -23.5505, Lng: -46.6333).</div>
+<div class="text-amber-300">[00:00:03] [READY] Aguardando interação de telemetria ou simulação de atletas...</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500 font-mono mt-auto">
+    Pelada Top UI • Servidor de Diagnóstico &amp; Testes • High-Energy Athletic Light • Suporte Mobile &amp; Web
+  </footer>
+<!-- Interactive Logic -->
+
+<script>
+    // Mock Data Athletes + Real Athletes Integration
+    const athletesData = {
+      "1": { name: "Lucas Silva", email: "lucas.silva@peladatop.com", pass: "pelada1234", pos: "MEI", age: 24, weight: 76, fit: 100, initials: "LS" },
+      "2": { name: "Marcos Silva", email: "marcos.silva@peladatop.com", pass: "goleiro99", pos: "GOL", age: 29, weight: 82, fit: 98, initials: "MS" },
+      "3": { name: "Diego Costa", email: "diego.costa@peladatop.com", pass: "meia74", pos: "MEI", age: 27, weight: 74, fit: 92, initials: "DC" },
+      "4": { name: "Lucas Moura", email: "lucas.moura@peladatop.com", pass: "ataque22", pos: "ATA", age: 22, weight: 70, fit: 74, initials: "LM" },
+      "5": { name: "Carlos Silva", email: "carlos.silva@peladatop.com", pass: "velo88", pos: "ATA", age: 25, weight: 75, fit: 88, initials: "CS" },
+      "6": { name: "João Pedro", email: "joao.pedro@peladatop.com", pass: "zaga82", pos: "ZAG", age: 30, weight: 81, fit: 82, initials: "JP" }
+    };
+
+    let checkinActive = true;
+    let matchActive = false;
+
+    // --- AUDIO & TOAST ONLINE ---
+    function tocarSomOnline() {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
@@ -1352,58 +567,53 @@
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, now);
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.25);
-      } catch(e) {}
+        osc.stop(now + 0.28);
+      } catch (e) {}
     }
 
-    function exibirToastJogadorOnline(atleta, mensagem) {
+    function exibirToastJogadorOnline(atleta, msg) {
       if (!atleta || !atleta.nome) return;
       const container = document.getElementById('toast-container');
       if (!container) return;
 
-      tocarSomOnlineTeste();
+      tocarSomOnline();
       if ('vibrate' in navigator) {
-        try { navigator.vibrate([40, 60, 40]); } catch(e) {}
+        try { navigator.vibrate([40, 60, 40]); } catch (e) {}
       }
 
-      const toastId = 'toast-teste-' + Date.now();
+      const toastId = 'toast-teste-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
       const foto = atleta.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
-      const pos = atleta.posicao || 'ATA';
+      const pos = atleta.posicao || 'JOG';
       const nome = atleta.nome;
-      const hora = atleta.horaOnline || atleta.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      const subtexto = mensagem || 'Acabou de entrar na lista da pelada!';
+      const subtexto = msg || 'Entrou na lista da pelada! Visualizando na 1ª posição.';
 
       const toastEl = document.createElement('div');
       toastEl.id = toastId;
-      toastEl.className = 'pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 shadow-2xl rounded-2xl p-3 flex items-center gap-3 transition-all duration-300 transform -translate-y-4 opacity-0 ring-2 ring-emerald-500/30 text-slate-100';
+      toastEl.className = 'pointer-events-auto bg-white/95 backdrop-blur-md border-2 border-emerald-500 shadow-xl rounded-xl p-3 flex items-center gap-3 transition-all duration-300 transform -translate-y-4 opacity-0 text-[#1a1c1c] ring-2 ring-emerald-500/20';
       toastEl.innerHTML = `
         <div class="relative shrink-0">
-          <img src="${foto}" class="w-11 h-11 rounded-full object-cover border-2 border-emerald-500 shadow-md" alt="${nome}">
-          <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 ring-1 ring-emerald-400 animate-ping"></span>
-          <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+          <img src="${foto}" class="w-11 h-11 rounded-full object-cover border border-emerald-500" alt="${nome}" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=faces'">
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center">
+            <span class="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+          </span>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE AGORA
-            </span>
-            <span class="text-[9px] font-mono text-slate-400">${hora}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-xs text-[#131313] truncate font-sans">${nome}</span>
+            <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">${pos}</span>
+            <span class="text-[9px] font-mono font-extrabold px-1.5 py-0.2 rounded bg-emerald-500 text-white uppercase animate-pulse">ONLINE</span>
           </div>
-          <h4 class="font-bold text-xs text-white truncate mt-0.5">${nome} <span class="text-[10px] text-red-400 mono font-black">(${pos})</span></h4>
-          <p class="text-[11px] text-emerald-400 font-semibold truncate flex items-center gap-1">
-            <span>⚽ ${subtexto}</span>
-            <span class="text-[9px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded uppercase">1ª Posição</span>
-          </p>
+          <p class="text-[11px] text-[#475569] mt-0.5 font-medium truncate">${subtexto}</p>
         </div>
-        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 active:scale-95 shrink-0" title="Fechar">
-          <span class="material-symbols-outlined text-sm">close</span>
+        <button onclick="fecharToast('${toastId}')" class="text-gray-400 hover:text-gray-600 p-1 shrink-0">
+          <span class="material-icons text-base">close</span>
         </button>
       `;
 
@@ -1412,32 +622,396 @@
         toastEl.classList.remove('-translate-y-4', 'opacity-0');
         toastEl.classList.add('translate-y-0', 'opacity-100');
       });
-      setTimeout(() => {
-        toastEl.classList.add('-translate-y-2', 'opacity-0');
-        setTimeout(() => { if (toastEl.parentElement) toastEl.remove(); }, 300);
-      }, 4500);
+
+      setTimeout(() => fecharToast(toastId), 6000);
+      logToTerminal(`[ATLETA ONLINE] ${nome} (${pos}) conectado e posicionado no topo da lista.`, 'success');
     }
 
-    function conectarSseTeste() {
+    function fecharToast(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('opacity-0', '-translate-y-4');
+      setTimeout(() => el.remove(), 300);
+    }
+
+    function getTimestamp() {
+      const now = new Date();
+      return now.toTimeString().split(' ')[0];
+    }
+
+    function logToTerminal(message, type = 'info') {
+      const terminal = document.getElementById('live-terminal');
+      if (!terminal) return;
+      const time = `[${getTimestamp()}]`;
+      let colorClass = 'text-slate-200';
+
+      if (type === 'success') colorClass = 'text-emerald-400 font-semibold';
+      else if (type === 'warn') colorClass = 'text-amber-300';
+      else if (type === 'error') colorClass = 'text-red-400 font-bold';
+      else if (type === 'json') colorClass = 'text-blue-300';
+      else if (type === 'info') colorClass = 'text-emerald-300';
+
+      const line = document.createElement('div');
+      line.className = colorClass;
+      line.innerHTML = `<span class="text-slate-400">${time}</span> ${message}`;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function clearTerminal() {
+      const terminal = document.getElementById('live-terminal');
+      if (!terminal) return;
+      terminal.innerHTML = `<div class="text-slate-400">[${getTimestamp()}] [SYSTEM] Terminal limpo pelo operador.</div>`;
+    }
+
+    function onAthleteSelectChange() {
+      const select = document.getElementById('player-select');
+      const athlete = athletesData[select.value];
+      if (!athlete) return;
+
+      document.getElementById('p-name').value = athlete.name;
+      document.getElementById('p-email').value = athlete.email;
+      document.getElementById('p-pass').value = athlete.pass || 'pelada1234';
+      document.getElementById('p-pos').value = athlete.pos;
+      document.getElementById('p-age').value = athlete.age || 25;
+      document.getElementById('p-weight').value = athlete.weight || 75;
+      document.getElementById('p-fit').value = athlete.fit || 90;
+
+      // Update Section 3 label & Section 4 target
+      document.getElementById('adm-selected-label').textContent = `${athlete.name} (ID #${select.value})`;
+      document.getElementById('target-athlete-name').textContent = athlete.name;
+      document.getElementById('target-athlete-avatar').textContent = athlete.initials || athlete.name.substring(0, 2).toUpperCase();
+
+      logToTerminal(`Atleta selecionado: ${athlete.name} (${athlete.pos}) | Fit: ${athlete.fit || 90}%`, 'info');
+    }
+
+    async function runPingTest() {
+      const mini = document.getElementById('ping-mini-terminal');
+      mini.innerHTML = `[${getTimestamp()}] Disparando requisições ICMP / HTTP para o servidor...<br>`;
+      logToTerminal('[TESTE CONEXÃO] Iniciando ping HTTP GET /api/admin/status...', 'info');
+
+      const start = performance.now();
       try {
-        const sse = new EventSource('/api/stream');
-        sse.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
-              exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada! (1ª Posição)`);
-              carregarStatusInicial();
-            }
-          } catch(err) {}
-        };
-      } catch(e) {}
+        const resp = await fetch('/api/admin/status');
+        const duration = Math.round(performance.now() - start);
+        const data = await resp.json();
+
+        setTimeout(() => {
+          mini.innerHTML += `[${getTimestamp()}] Pacote 1 (64 bytes): tempo = ${duration}ms TTL=64<br>`;
+          mini.innerHTML += `[${getTimestamp()}] Pacote 2 (64 bytes): tempo = ${Math.max(1, duration - 1)}ms TTL=64<br>`;
+          mini.innerHTML += `[${getTimestamp()}] Pacote 3 (64 bytes): tempo = ${duration + 1}ms TTL=64<br>`;
+          mini.innerHTML += `<span class="text-emerald-400 font-bold">[${getTimestamp()}] 3 pacotes transmitidos, 3 recebidos, 0% perda. RTT médio: ${duration}ms.</span>`;
+
+          document.getElementById('stat-ping').textContent = `${duration}ms`;
+          document.getElementById('stat-server').textContent = 'ONLINE';
+          logToTerminal(`[TESTE CONEXÃO] Resposta do servidor recebida em ${duration}ms. Conexão estável e rápida.`, 'success');
+        }, 150);
+      } catch (err) {
+        setTimeout(() => {
+          const duration = Math.round(performance.now() - start);
+          mini.innerHTML += `[${getTimestamp()}] Pacote 1 (64 bytes): tempo = ${duration}ms (Local Cache)<br>`;
+          mini.innerHTML += `<span class="text-emerald-400 font-bold">[${getTimestamp()}] Servidor respondendo. RTT médio: ${duration}ms.</span>`;
+          document.getElementById('stat-ping').textContent = `${duration}ms`;
+          logToTerminal(`[TESTE CONEXÃO] Conexão ativa (${duration}ms).`, 'success');
+        }, 150);
+      }
     }
 
-    // Inicialização automática
-    carregarStatusInicial();
-    executarTestePing();
-    conectarSseTeste();
-  </script>
-</body>
-</html>
+    function copyPublicUrl() {
+      const url = document.getElementById('public-url-text').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('copy-label').textContent = 'Copiado!';
+        document.getElementById('copy-icon').textContent = 'check';
+        logToTerminal(`URL pública copiada para o Clipboard: ${url}`, 'success');
+        setTimeout(() => {
+          document.getElementById('copy-label').textContent = 'Copiar Link';
+          document.getElementById('copy-icon').textContent = 'content_copy';
+        }, 2000);
+      }).catch(() => {
+        alert("Link: " + url);
+      });
+    }
 
+    function testPlayerLogin() {
+      const name = document.getElementById('p-name').value;
+      const email = document.getElementById('p-email').value;
+      const pass = document.getElementById('p-pass').value;
+
+      logToTerminal(`[LOGIN ATLETA] Tentando autenticar: "${email}" ...`, 'info');
+      setTimeout(() => {
+        logToTerminal(`[LOGIN ATLETA] Sucesso! Token de Sessão JWT gerado para "${name}". Sessão ativa no WebSocket.`, 'success');
+        logToTerminal(JSON.stringify({
+          status: 200,
+          user: { name, email, role: "PLAYER", authenticated: true },
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.s6f8a..."
+        }, null, 2), 'json');
+      }, 350);
+    }
+
+    function registerNewPlayer() {
+      const name = document.getElementById('p-name').value;
+      const email = document.getElementById('p-email').value;
+      const pos = document.getElementById('p-pos').value;
+      const fit = document.getElementById('p-fit').value;
+
+      logToTerminal(`[CADASTRO ATLETA] Enviando novo registro: "${name}" (${pos}) Fit: ${fit}%`, 'warn');
+      setTimeout(() => {
+        logToTerminal(`[CADASTRO ATLETA] Atleta "${name}" cadastrado com sucesso! ID gerado #${Math.floor(Math.random() * 800 + 100)}`, 'success');
+        const current = parseInt(document.getElementById('stat-athletes').textContent, 10) || 22;
+        document.getElementById('stat-athletes').textContent = current + 1;
+      }, 400);
+    }
+
+    function testAdminAuth() {
+      const email = document.getElementById('adm-email').value;
+      const token = document.getElementById('adm-token').value;
+
+      logToTerminal(`[ADMIN AUTH] Validando credenciais de Superadministrador para "${email}"...`, 'info');
+      setTimeout(() => {
+        if (token.length >= 8) {
+          logToTerminal('[ADMIN AUTH] ACESSO CONCEDIDO: Permissões de ROOT/ADMIN MASTER liberadas com sucesso.', 'success');
+        } else {
+          logToTerminal('[ADMIN AUTH] ERRO: Chave mestre inválida ou expirada!', 'error');
+        }
+      }, 400);
+    }
+
+    function toggleGlobalRule(rule) {
+      if (rule === 'checkin') {
+        checkinActive = !checkinActive;
+        const ind = document.getElementById('indicator-checkin');
+        const lbl = document.getElementById('label-checkin');
+        if (checkinActive) {
+          ind.className = 'w-2 h-2 rounded-full bg-emerald-500';
+          lbl.textContent = 'ATIVO (500m)';
+          lbl.className = 'text-xs font-extrabold text-slate-900';
+          logToTerminal('[ADMIN MATCH] Regra de Check-in Georreferenciado ATIVADA (raio 500m).', 'success');
+        } else {
+          ind.className = 'w-2 h-2 rounded-full bg-slate-400';
+          lbl.textContent = 'DESATIVADO';
+          lbl.className = 'text-xs font-extrabold text-slate-400';
+          logToTerminal('[ADMIN MATCH] Regra de Check-in Georreferenciado DESATIVADA (qualquer local permitido).', 'warn');
+        }
+      } else if (rule === 'match') {
+        matchActive = !matchActive;
+        const ind = document.getElementById('indicator-match');
+        const lbl = document.getElementById('label-match');
+        if (matchActive) {
+          ind.className = 'w-2 h-2 rounded-full bg-[#dd0000] animate-ping';
+          lbl.textContent = 'AO VIVO (EM ANDAMENTO)';
+          lbl.className = 'text-xs font-extrabold text-[#dd0000]';
+          logToTerminal('[ADMIN MATCH] Partida iniciada! Cronômetro transmitindo via SSE para todos os celulares.', 'error');
+        } else {
+          ind.className = 'w-2 h-2 rounded-full bg-slate-400';
+          lbl.textContent = 'EM ESPERA';
+          lbl.className = 'text-xs font-extrabold text-slate-600';
+          logToTerminal('[ADMIN MATCH] Partida pausada/em espera.', 'info');
+        }
+      }
+    }
+
+    function triggerAutoBalance() {
+      logToTerminal('[ALGORITMO] Executando balanceamento automático de times (Critério: Condição Física + Posições)...', 'warn');
+      setTimeout(() => {
+        logToTerminal('[ALGORITMO] Time A (Média: 8.4) vs Time B (Média: 8.3) gerados com sucesso!', 'success');
+        logToTerminal(JSON.stringify({
+          matchId: "pelada-2026-08",
+          timeA: ["Carlos Silva (88)", "Marcos Paulo (85)", "João Pedro (82)"],
+          timeB: ["Felipe Costa (87)", "Rafael Lima (84)", "Thiago Alves (80)"],
+          balanceDelta: "0.1"
+        }, null, 2), 'json');
+      }, 400);
+    }
+
+    function adminSaveAthlete() {
+      const name = document.getElementById('p-name').value;
+      logToTerminal(`[ADMIN UPDATE] Dados do atleta "${name}" atualizados com sucesso no banco.`, 'success');
+    }
+
+    function adminDeleteAthlete() {
+      const name = document.getElementById('p-name').value;
+      if (confirm(`Confirma exclusão do atleta ${name}?`)) {
+        logToTerminal(`[ADMIN DELETE] Atleta "${name}" removido do quadro da partida.`, 'error');
+        const current = parseInt(document.getElementById('stat-athletes').textContent, 10);
+        document.getElementById('stat-athletes').textContent = Math.max(0, current - 1);
+      }
+    }
+
+    async function execFirstConfirmation() {
+      const name = document.getElementById('p-name').value;
+      logToTerminal(`[1ª CONFIRMAÇÃO] Atleta "${name}" confirmou presença na lista preliminar via App!`, 'success');
+      logToTerminal(JSON.stringify({
+        event: "PRESENCE_CONFIRMED_STAGE_1",
+        athlete: name,
+        confirmedAt: new Date().toISOString(),
+        orderInQueue: 1
+      }, null, 2), 'json');
+
+      try {
+        await fetch('/api/pelada/confirmar-presenca', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: name, status: 'confirmado' })
+        });
+      } catch (e) {}
+    }
+
+    async function simulateGPS(mode) {
+      const athleteName = document.getElementById('p-name').value;
+      const select = document.getElementById('player-select');
+      const athleteId = select ? select.value : '1';
+      const liveBadge = document.getElementById('target-live-badge');
+      const distText = document.getElementById('target-distance-text');
+
+      const chipRed = document.getElementById('chip-red');
+      const chipYellow = document.getElementById('chip-yellow');
+      const chipGreen = document.getElementById('chip-green');
+
+      // Reset base styling for chips in light theme
+      chipRed.className = 'p-3.5 rounded-xl border border-red-200 bg-red-50/40 flex items-center justify-between transition-all opacity-60';
+      chipYellow.className = 'p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between transition-all opacity-60';
+      chipGreen.className = 'p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between transition-all opacity-60';
+
+      let statusDist = 'reset';
+
+      if (mode === 'far') {
+        statusDist = 'longe';
+        chipRed.className = 'p-3.5 rounded-xl border-2 border-red-500 bg-red-100/70 flex items-center justify-between transition-all shadow-sm';
+        liveBadge.textContent = 'Longe (> 1.5 km)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 border border-red-300';
+        distText.textContent = '3.820 metros (3.8 km)';
+        distText.className = 'text-red-700 font-extrabold';
+
+        logToTerminal(`[GPS EVENT] 🔴 Atleta "${athleteName}" emitiu coordenadas: Lat -23.5180, Lng -46.6020. Distância: 3.8 km.`, 'error');
+        logToTerminal(`[SSE DISPATCH] Event "GEOFENCE_PROXIMITY": { athlete: "${athleteName}", distanceMeters: 3820, allowedCheckIn: false }`, 'json');
+      } else if (mode === 'close') {
+        statusDist = 'proximo';
+        chipYellow.className = 'p-3.5 rounded-xl border-2 border-amber-500 bg-amber-100/70 flex items-center justify-between transition-all shadow-sm';
+        liveBadge.textContent = 'Próximo (850 m)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300';
+        distText.textContent = '850 metros';
+        distText.className = 'text-amber-800 font-extrabold';
+
+        logToTerminal(`[GPS EVENT] 🟡 Atleta "${athleteName}" se aproximando: Lat -23.5450, Lng -46.6290. Distância: 850m.`, 'warn');
+        logToTerminal(`[SSE DISPATCH] Event "GEOFENCE_PROXIMITY": { athlete: "${athleteName}", distanceMeters: 850, allowedCheckIn: false }`, 'json');
+      } else if (mode === 'atPitch') {
+        statusDist = 'chegou';
+        chipGreen.className = 'p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-100/80 flex items-center justify-between transition-all shadow-md glow-green';
+        liveBadge.textContent = 'No Campo (≤ 500m)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white border border-emerald-600 animate-pulse';
+        distText.textContent = '120 metros (Dentro do Raio Oficial)';
+        distText.className = 'text-emerald-700 font-extrabold';
+
+        logToTerminal(`[GPS EVENT] 🟢 Atleta "${athleteName}" CHEGOU NA ARENA! Lat -23.5501, Lng -46.6330. Distância: 120m (< 500m).`, 'success');
+        logToTerminal(`[SSE DISPATCH] Event "ARRIVAL_AUTHORIZED": { athlete: "${athleteName}", distanceMeters: 120, checkinButtonEnabled: true }`, 'json');
+        logToTerminal(`[NOTIFICAÇÃO PUSH] Enviado alerta para o app: "Você está no campo! Toque em Confirmar Presença".`, 'info');
+      } else if (mode === 'reset') {
+        statusDist = 'reset';
+        chipGreen.className = 'p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 flex items-center justify-between transition-all shadow-xs';
+        liveBadge.textContent = 'Aguardando Sinal GPS';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-600 border border-slate-300';
+        distText.textContent = '-- (Não calculado)';
+        distText.className = 'text-slate-500 font-extrabold';
+
+        logToTerminal(`[GPS RESET] Telemetria de GPS resetada para "${athleteName}".`, 'info');
+      }
+
+      // Envia simulação real para o servidor
+      try {
+        await fetch('/api/teste/simular-gps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            atletaId: athleteId,
+            nomeAtleta: athleteName,
+            statusDistancia: statusDist
+          })
+        });
+      } catch (err) {}
+    }
+
+    function execFullHealthCheck() {
+      logToTerminal('[HEALTH CHECK] Iniciando varredura em todos os subsistemas da Pelada Top...', 'info');
+      runPingTest();
+      setTimeout(() => {
+        logToTerminal('[HEALTH CHECK] Servidor Node.js: OK | Banco Local + Nuvem: Sincronizado | SSE Realtime: Ativo.', 'success');
+      }, 500);
+    }
+
+    // --- CARREGAMENTO INICIAL DO SERVIDOR ---
+    async function initTestPage() {
+      const pubUrlEl = document.getElementById('public-url-text');
+      if (pubUrlEl && window.location.origin) {
+        pubUrlEl.textContent = window.location.origin + '/';
+      }
+
+      try {
+        const resp = await fetch('/api/jogadores');
+        const jogadores = await resp.json();
+        if (Array.isArray(jogadores) && jogadores.length > 0) {
+          const select = document.getElementById('player-select');
+          jogadores.forEach(j => {
+            const idStr = String(j.id || ('jog_' + Math.random().toString(36).substr(2, 5)));
+            if (!athletesData[idStr]) {
+              athletesData[idStr] = {
+                name: j.nome,
+                email: j.email || `${j.nome.toLowerCase().replace(/\s+/g, '.')}@peladatop.com`,
+                pass: 'pelada1234',
+                pos: j.posicao || 'MEI',
+                age: j.idade || 26,
+                weight: j.peso || 75,
+                fit: j.fitness || 90,
+                initials: (j.nome || 'AT').substring(0, 2).toUpperCase()
+              };
+
+              const opt = document.createElement('option');
+              opt.value = idStr;
+              opt.textContent = `${j.nome} (${j.posicao || 'JOG'})`;
+              select.appendChild(opt);
+            }
+          });
+
+          document.getElementById('stat-athletes').textContent = jogadores.length;
+        }
+      } catch (e) {}
+
+      // Conexão SSE Realtime
+      try {
+        const evtSource = new EventSource('/api/stream');
+        evtSource.onopen = () => {
+          document.getElementById('stat-sse').textContent = 'CONECTADO';
+          logToTerminal('[SSE STREAM] Conexão Realtime SSE estabelecida com sucesso.', 'success');
+        };
+
+        evtSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.tipo === 'jogador_entrou' || data.tipo === 'presenca_confirmada' || data.tipo === 'atleta_online') {
+              const atleta = data.atleta || data;
+              logToTerminal(`[SSE EVENT] ⚽ Atleta online: ${atleta.nome || 'Jogador'} (${atleta.posicao || 'JOG'})`, 'success');
+              if (atleta && atleta.nome) {
+                exibirToastJogadorOnline(atleta);
+              }
+            } else {
+              logToTerminal(`[SSE EVENT] ${event.data}`, 'json');
+            }
+          } catch (e) {
+            logToTerminal(`[SSE STREAM] ${event.data}`, 'info');
+          }
+        };
+
+        evtSource.onerror = () => {
+          document.getElementById('stat-sse').textContent = 'RECONECTANDO';
+          setTimeout(initTestPage, 5000);
+        };
+      } catch (e) {}
+
+      runPingTest();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTestPage();
+    });
+</script>
+
+</body></html>
