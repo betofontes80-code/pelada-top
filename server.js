@@ -4,11 +4,10 @@ const path = require('path');
 const os = require('os');
 
 const PORT = process.env.PORT || 8080;
-// Define o diretório de dados correto para a Vercel (/tmp) ou local (__dirname)
-const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_ENV || !!process.env.AWS_REGION || !!process.env.LAMBDA_TASK_ROOT;
-const IS_VERCEL = isVercel;
+// Define o diretório de dados para persistência local ou Render Cloud
+const isRender = process.env.RENDER === 'true' || !!process.env.RENDER || !!process.env.RENDER_EXTERNAL_URL;
 const TMP_DIR = process.platform === 'win32' ? os.tmpdir() : '/tmp';
-const DATA_FILE = path.join(isVercel ? TMP_DIR : __dirname, 'pelada-dados.json');
+const DATA_FILE = path.join(__dirname, 'pelada-dados.json');
 
 // Função de leitura segura
 function loadData() {
@@ -16,11 +15,8 @@ function loadData() {
     if (fs.existsSync(DATA_FILE)) {
       return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     }
-    if (isVercel) {
-      const bundledFile = path.join(__dirname, 'pelada-dados.json');
-      if (fs.existsSync(bundledFile)) {
-        return JSON.parse(fs.readFileSync(bundledFile, 'utf8'));
-      }
+    if (!fs.existsSync(DATA_FILE) && fs.existsSync(path.join(TMP_DIR, 'pelada-dados.json'))) {
+      return JSON.parse(fs.readFileSync(path.join(TMP_DIR, 'pelada-dados.json'), 'utf8'));
     }
   } catch (e) {
     console.error("Erro ao ler dados:", e);
@@ -56,13 +52,11 @@ function isLocalDevRequest(req) {
     }
   } catch (e) {}
 
-  // Se não estiver na Vercel (ou seja, rodando no servidor local Node.js no PC do desenvolvedor)
-  // Qualquer navegador na máquina local ou rede local tem acesso liberado ao painel dev!
-  if (!isVercel && !IS_VERCEL) {
+  // Em ambiente local de desenvolvimento, libera acesso técnico
+  if (!isRender) {
     return true;
   }
-
-  // Se estiver na nuvem (Vercel), permite apenas requisições loopback locais sem proxy
+  // Em nuvem (Render), valida loopback ou token dev
   const xff = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const remote = req.socket?.remoteAddress || '';
   if (xff === '127.0.0.1' || xff === '::1' || remote === '127.0.0.1' || remote === '::1') {
@@ -123,7 +117,7 @@ let appData = {
 try {
   let carregou = false;
 
-  // 1. Tenta ler o arquivo de dados (no /tmp na Vercel ou local)
+  // 1. Tenta ler o arquivo de dados (em disco ou tmp local)
   if (fs.existsSync(DATA_FILE)) {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
@@ -140,24 +134,16 @@ try {
     carregou = true;
   }
 
-  // 2. Se na Vercel e ainda não existe em /tmp, lê o arquivo empacotado da raiz
-  if (!carregou && IS_VERCEL) {
-    const bundledFile = path.join(__dirname, 'pelada-dados.json');
-    if (fs.existsSync(bundledFile)) {
-      const raw = fs.readFileSync(bundledFile, 'utf8');
+  // Fallback para tmp se necessário
+  if (!carregou && fs.existsSync(path.join(TMP_DIR, 'pelada-dados.json'))) {
+    try {
+      const raw = fs.readFileSync(path.join(TMP_DIR, 'pelada-dados.json'), 'utf8');
       const parsed = JSON.parse(raw);
-      if (parsed.usuarios && parsed.usuarios.length) appData.usuarios = parsed.usuarios;
-      else if (parsed.jogadoresCadastrados) appData.usuarios = parsed.jogadoresCadastrados;
-
-      if (parsed.listaConfirmados && parsed.listaConfirmados.length) appData.listaConfirmados = parsed.listaConfirmados;
-      else if (parsed.atletas) appData.listaConfirmados = parsed.atletas;
-
+      if (parsed.usuarios) appData.usuarios = parsed.usuarios;
+      if (parsed.listaConfirmados) appData.listaConfirmados = parsed.listaConfirmados;
       if (parsed.peladaConfig) appData.peladaConfig = parsed.peladaConfig;
-      if (parsed.escalacaoAtiva !== undefined) appData.escalacaoAtiva = parsed.escalacaoAtiva;
-      if (parsed.partidaEstado !== undefined) appData.partidaEstado = parsed.partidaEstado;
-      if (parsed.version) appData.version = parsed.version;
       carregou = true;
-    }
+    } catch(e) {}
   }
 
   if (carregou) {
@@ -213,7 +199,7 @@ function getLocalIp() {
   return 'localhost';
 }
 
-// Helper seguro para leitura de corpo de requisição POST (suporta Vercel pre-parsed e stream nativo)
+// Helper seguro para leitura de corpo de requisição POST
 function lerCorpoRequisicao(req, callback) {
   if (req.body !== undefined && req.body !== null) {
     if (typeof req.body === 'object') {
@@ -227,7 +213,7 @@ function lerCorpoRequisicao(req, callback) {
     }
   }
 
-  // Proteção Serverless: se o stream já foi consumido pelo runtime da Vercel
+  // Proteção Serverless: se o stream já foi consumido pelo runtime
   if (req.complete || req.readableEnded) {
     return callback(null, {});
   }
@@ -270,7 +256,7 @@ function lerCorpoRequisicao(req, callback) {
   });
 }
 
-// Manipulador principal de requisições HTTP (usado tanto localmente quanto na Vercel)
+// Manipulador principal de requisições HTTP
 const requestHandler = (req, res) => {
   try {
     // CORS Headers
@@ -312,10 +298,7 @@ const requestHandler = (req, res) => {
         partidaEstado: appData.partidaEstado
       })}\n\n`);
 
-      if (IS_VERCEL) {
-        res.end();
-        return;
-      }
+      // Render mantém SSE aberto nativamente
 
       sseClients.add(res);
 
@@ -995,7 +978,7 @@ const requestHandler = (req, res) => {
 
     // 11. Arquivos estáticos
 
-    // Rotas do Painel Master - Redireciona diretamente para a aba Admin integrada no App
+    // Rotas do Painel Master - Redireciona para a aba Admin integrada no App
     if (pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html') {
       res.writeHead(302, { 'Location': '/?aba=admin' });
       res.end();
@@ -1052,7 +1035,7 @@ const requestHandler = (req, res) => {
     let reqPath = pathname;
     if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
 
-    const blockedFiles = ['/server.js', '/package.json', '/vercel.json', '/package-lock.json', '/pelada-dados.json'];
+    const blockedFiles = ['/server.js', '/package.json', '/package-lock.json', '/pelada-dados.json'];
     if (blockedFiles.includes(reqPath)) {
       if (req.method === 'GET' && !pathname.startsWith('/api')) {
         const indexPath = path.join(__dirname, 'index.html');
@@ -1119,7 +1102,7 @@ const requestHandler = (req, res) => {
 
 const server = http.createServer(requestHandler);
 
-// Porta universal para Render, Vercel ou localhost
+// Porta universal para Render ou localhost
 const SERVER_PORT = process.env.PORT || PORT;
 
 server.listen(SERVER_PORT, '0.0.0.0', () => {
