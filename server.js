@@ -556,7 +556,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 7. API Admin: Salvar Atleta
+    // 7. API Admin: Salvar Atleta (Edição Completa ou Novo Cadastro)
     if (pathname === '/api/admin/atleta/salvar' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (!err && payload) {
@@ -568,73 +568,106 @@ const requestHandler = (req, res) => {
           if (!appData.listaConfirmados) appData.listaConfirmados = [];
 
           const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const idBusca = payload.id ? String(payload.id).trim() : null;
+          const nomeOriginal = payload.nomeOriginal ? String(payload.nomeOriginal).trim().toLowerCase() : null;
+          const nomeNovo = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
+
           const idx = appData.listaConfirmados.findIndex(j => 
-            (payload.id && String(j.id) === String(payload.id)) ||
-            (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+            (idBusca && String(j.id) === idBusca) ||
+            (nomeOriginal && (j.nome || '').trim().toLowerCase() === nomeOriginal) ||
+            (nomeNovo && (j.nome || '').trim().toLowerCase() === nomeNovo)
           );
 
           let atletaSalvo;
           if (idx >= 0) {
-            const [antigo] = appData.listaConfirmados.splice(idx, 1);
+            // Edição de atleta existente
+            const antigo = appData.listaConfirmados[idx];
             atletaSalvo = {
               ...antigo,
               ...payload,
-              online: true,
-              horaOnline: horaAgora,
-              entrouEm: Date.now()
+              fitness: calcularFitnessAtleta({ ...antigo, ...payload })
             };
+            appData.listaConfirmados[idx] = atletaSalvo;
           } else {
+            // Novo atleta adicionado
             atletaSalvo = {
               id: payload.id || ('jog_' + Date.now()),
               nome: payload.nome || 'Novo Atleta',
               posicao: payload.posicao || 'ATA',
               condicao: payload.condicao || 'excelente',
               idade: payload.idade || 28,
+              peso: payload.peso || 75,
               fitness: calcularFitnessAtleta(payload),
               foto: payload.foto || '',
               online: true,
               hora: horaAgora,
               horaOnline: horaAgora,
-              statusPresenca: 'confirmado',
-              chegadaConfirmada: false,
+              statusPresenca: payload.statusPresenca || 'confirmado',
+              chegadaConfirmada: !!payload.chegadaConfirmada,
+              distanciaMetros: payload.distanciaMetros !== undefined ? payload.distanciaMetros : null,
+              distanciaTexto: payload.distanciaTexto || 'Confirmado',
+              statusAproximacao: payload.statusAproximacao || 'longe',
               entrouEm: Date.now()
             };
+            appData.listaConfirmados.unshift(atletaSalvo);
+
+            broadcastSse('JOGADOR_ONLINE', {
+              atleta: atletaSalvo,
+              mensagem: `${atletaSalvo.nome} acabou de entrar na lista da pelada!`,
+              listaConfirmados: appData.listaConfirmados,
+              version: appData.version
+            });
           }
 
-          // Coloca sempre na 1ª POSIÇÃO para os donos do app
-          appData.listaConfirmados.unshift(atletaSalvo);
           appData.version = Date.now();
           salvarDadosDisco();
-
-          broadcastSse('JOGADOR_ONLINE', {
-            atleta: atletaSalvo,
-            mensagem: `${atletaSalvo.nome} acabou de entrar na lista da pelada!`,
-            listaConfirmados: appData.listaConfirmados,
-            version: appData.version
-          });
           broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: true, atleta: atletaSalvo, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+          return;
         }
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
       });
       return;
     }
 
-    // 8. API Admin: Excluir Atleta
+    // 8. API Admin: Excluir Atleta (Por ID ou por Nome)
     if (pathname === '/api/admin/atleta/excluir' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
-        if (!err && payload && payload.id) {
+        if (!err && payload) {
           try {
             const saved = loadData();
             if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+            if (saved.usuarios) appData.usuarios = saved.usuarios;
           } catch (e) {}
-          appData.listaConfirmados = (appData.listaConfirmados || []).filter(j => String(j.id) !== String(payload.id));
-          appData.version = Date.now();
-          salvarDadosDisco();
-          broadcastSse('SYNC', appData);
+
+          const idBusca = payload.id ? String(payload.id).trim() : null;
+          const nomeBusca = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
+
+          if (idBusca || nomeBusca) {
+            appData.listaConfirmados = (appData.listaConfirmados || []).filter(j => {
+              if (idBusca && String(j.id) === idBusca) return false;
+              if (nomeBusca && j.nome && j.nome.trim().toLowerCase() === nomeBusca) return false;
+              return true;
+            });
+
+            if (appData.usuarios) {
+              appData.usuarios = (appData.usuarios || []).filter(u => {
+                if (idBusca && String(u.id) === idBusca) return false;
+                if (nomeBusca && u.nome && u.nome.trim().toLowerCase() === nomeBusca) return false;
+                return true;
+              });
+            }
+
+            appData.version = Date.now();
+            salvarDadosDisco();
+            broadcastSse('SYNC', appData);
+          }
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: true }));
+        res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados }));
       });
       return;
     }

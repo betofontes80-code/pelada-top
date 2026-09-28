@@ -10,6 +10,8 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+
+
 <script>
     tailwind.config = {
       theme: {
@@ -709,6 +711,101 @@
 </div>
 </div>
 
+<!-- MODAL: EDIÇÃO / CADASTRO DE ATLETA -->
+<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4" id="athleteModal">
+  <div class="bg-white border border-[#e2e8f0] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
+    <div class="flex items-center justify-between pb-3 border-b border-[#e2e8f0]">
+      <div>
+        <h3 class="font-display font-black text-lg text-[#131313]" id="athleteModalTitle">Editar Ficha do Atleta</h3>
+        <p class="text-xs text-[#555555]">Gerenciamento técnico, dados físicos e presença em tempo real</p>
+      </div>
+      <button type="button" class="text-gray-400 hover:text-[#131313] p-1 rounded-lg hover:bg-gray-100 transition-colors" onclick="closeAthleteModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <form id="athleteForm" onsubmit="event.preventDefault(); saveAthleteModal();" class="space-y-4">
+      <input type="hidden" id="athleteEditId">
+      <input type="hidden" id="athleteEditNomeOriginal">
+
+      <div>
+        <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">Nome do Atleta *</label>
+        <input type="text" id="athleteEditNome" required class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-sm font-semibold text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none" placeholder="Ex: Roberto Firmino">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">Posição Tática</label>
+          <select id="athleteEditPosicao" class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-sm font-medium text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none">
+            <option value="GOL">Goleiro (GOL 🧤)</option>
+            <option value="ZAG">Zagueiro (ZAG 🛡️)</option>
+            <option value="LAT">Lateral (LAT 🏃)</option>
+            <option value="VOL">Volante (VOL ⚔️)</option>
+            <option value="MEI">Meio-Campo (MEI 🎯)</option>
+            <option value="ATA">Atacante (ATA ⚡)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">Condição Física (Fitness)</label>
+          <select id="athleteEditCondicao" class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-sm font-medium text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none">
+            <option value="excelente">Excelente - 100% Fit (Titular)</option>
+            <option value="boa">Boa Forma - 80% Fit (Ritmo Normal)</option>
+            <option value="regular">Regular - 60% Fit (Físico Médio)</option>
+            <option value="recuperacao">Recuperação - 40% Fit (Transição / DM)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">Status de Presença / GPS</label>
+          <select id="athleteEditStatus" class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-sm font-medium text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none">
+            <option value="chegou">No Campo (≤ 500m / Chegada Confirmada)</option>
+            <option value="a_caminho">A Caminho (Deslocando-se para a Arena)</option>
+            <option value="confirmado">Confirmado na Lista (Aguardando)</option>
+            <option value="longe">Distante (> 1km)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">Idade</label>
+            <input type="number" id="athleteEditIdade" min="14" max="70" class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-sm font-medium text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none" placeholder="28">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">Peso (kg)</label>
+            <input type="number" id="athleteEditPeso" min="40" max="150" step="0.5" class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-sm font-medium text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none" placeholder="75">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-[#131313] mb-1 font-sans">URL da Foto / Avatar</label>
+        <input type="text" id="athleteEditFoto" class="w-full px-3.5 py-2.5 rounded-lg border border-[#e2e8f0] text-xs font-mono text-[#131313] focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none" placeholder="https://... (ou deixe vazio para avatar padrão)">
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-[#e2e8f0]">
+        <button type="button" id="btnDeleteFromModal" onclick="deleteAthleteFromModal()" class="px-3.5 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors inline-flex items-center gap-1.5">
+          <span class="material-icons text-sm">delete</span>
+          <span>Excluir Atleta</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeAthleteModal()" class="px-4 py-2.5 text-xs font-bold text-[#555555] hover:bg-gray-100 rounded-lg border border-[#e2e8f0] transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" id="btnSaveAthlete" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wider rounded-lg shadow-md shadow-red-700/20 uppercase transition-all active:scale-95 inline-flex items-center gap-1.5">
+            <span class="material-icons text-sm">save</span>
+            <span id="btnSaveAthleteText">Salvar Atleta</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
 <script>
     let isLocked = false;
     let currentFilter = 'todos';
@@ -875,53 +972,206 @@
       loadDashboardData();
     }
 
-    async function openAddAthleteModal() {
-      const nome = prompt("Nome do Atleta para Adicionar Manualmente:");
-      if (!nome) return;
-      const posicao = prompt("Posição (GOL, ZAG, LAT, MEI, ATA):", "MEI") || "MEI";
+    function openAthleteModal(atleta, isNew = false) {
+      const modal = document.getElementById('athleteModal');
+      const title = document.getElementById('athleteModalTitle');
+      const btnDelete = document.getElementById('btnDeleteFromModal');
+      const btnSaveText = document.getElementById('btnSaveAthleteText');
 
-      try {
-        const resp = await fetch('/api/admin/atleta/salvar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nome,
-            posicao,
-            idade: 25,
-            fitness: 95,
-            statusPresenca: 'chegou',
-            chegadaConfirmada: true
-          })
-        });
-        const res = await resp.json();
-        if (res.sucesso) {
-          addLog(`[MANUAL_ENTRY] Atleta '${nome}' adicionado com sucesso pelo ADM Master.`, "text-emerald-400");
-          loadDashboardData();
-        } else {
-          alert('Erro ao salvar: ' + (res.erro || 'Falha'));
-        }
-      } catch (err) {
-        addLog(`[MANUAL_ENTRY] Atleta '${nome}' inserido localmente.`, "text-emerald-400");
-        loadDashboardData();
+      if (isNew || !atleta) {
+        title.innerText = "Novo Atleta na Pelada";
+        btnSaveText.innerText = "Adicionar Atleta";
+        if (btnDelete) btnDelete.style.display = 'none';
+
+        document.getElementById('athleteEditId').value = '';
+        document.getElementById('athleteEditNomeOriginal').value = '';
+        document.getElementById('athleteEditNome').value = '';
+        document.getElementById('athleteEditPosicao').value = 'MEI';
+        document.getElementById('athleteEditCondicao').value = 'excelente';
+        document.getElementById('athleteEditStatus').value = 'chegou';
+        document.getElementById('athleteEditIdade').value = '25';
+        document.getElementById('athleteEditPeso').value = '75';
+        document.getElementById('athleteEditFoto').value = '';
+      } else {
+        title.innerText = `Editar Ficha - ${atleta.nome || 'Atleta'}`;
+        btnSaveText.innerText = "Salvar Alterações";
+        if (btnDelete) btnDelete.style.display = 'inline-flex';
+
+        document.getElementById('athleteEditId').value = atleta.id || '';
+        document.getElementById('athleteEditNomeOriginal').value = atleta.nome || '';
+        document.getElementById('athleteEditNome').value = atleta.nome || '';
+        document.getElementById('athleteEditPosicao').value = (atleta.posicao || 'ATA').toUpperCase();
+
+        let cond = 'excelente';
+        const rawCond = (atleta.condicao || '').toLowerCase();
+        if (rawCond.includes('100') || rawCond.includes('excelente')) cond = 'excelente';
+        else if (rawCond.includes('80') || rawCond.includes('boa')) cond = 'boa';
+        else if (rawCond.includes('60') || rawCond.includes('regular') || rawCond.includes('medio')) cond = 'regular';
+        else if (rawCond.includes('40') || rawCond.includes('recuperacao') || rawCond.includes('lesao') || rawCond.includes('dm')) cond = 'recuperacao';
+        document.getElementById('athleteEditCondicao').value = cond;
+
+        let st = 'confirmado';
+        if (atleta.statusPresenca === 'chegou' || atleta.chegadaConfirmada || atleta.statusAproximacao === 'campo') st = 'chegou';
+        else if (atleta.statusPresenca === 'a_caminho' || atleta.statusAproximacao === 'caminho') st = 'a_caminho';
+        else if (atleta.statusPresenca === 'longe' || atleta.statusAproximacao === 'longe') st = 'longe';
+        document.getElementById('athleteEditStatus').value = st;
+
+        document.getElementById('athleteEditIdade').value = atleta.idade || 28;
+        document.getElementById('athleteEditPeso').value = atleta.peso || 75;
+        document.getElementById('athleteEditFoto').value = atleta.foto || '';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAthleteModal() {
+      const modal = document.getElementById('athleteModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
       }
     }
 
-    function editAthlete(nome) {
-      alert(`Abrindo ficha cadastral de ${nome} para edição técnica e alteração de posição.`);
+    function openAddAthleteModal() {
+      openAthleteModal(null, true);
     }
 
-    async function removeAthlete(nome) {
-      if (!confirm(`Tem certeza que deseja remover ${nome} da lista da pelada de hoje?`)) return;
+    function editAthlete(identificador) {
+      if (!identificador) return;
+      const buscaStr = String(identificador).trim().toLowerCase();
+      let atleta = (atletasCadastrados || []).find(a => 
+        (a.id && String(a.id).trim().toLowerCase() === buscaStr) || 
+        (a.nome && a.nome.trim().toLowerCase() === buscaStr)
+      );
+
+      if (!atleta) {
+        atleta = {
+          id: '',
+          nome: identificador,
+          posicao: 'MEI',
+          condicao: 'excelente',
+          idade: 28,
+          peso: 75,
+          statusPresenca: 'chegou',
+          chegadaConfirmada: true,
+          foto: ''
+        };
+      }
+
+      openAthleteModal(atleta, false);
+    }
+
+    async function saveAthleteModal() {
+      const id = document.getElementById('athleteEditId').value.trim();
+      const nomeOriginal = document.getElementById('athleteEditNomeOriginal').value.trim();
+      const nome = document.getElementById('athleteEditNome').value.trim();
+      const posicao = document.getElementById('athleteEditPosicao').value;
+      const condicao = document.getElementById('athleteEditCondicao').value;
+      const statusPresenca = document.getElementById('athleteEditStatus').value;
+      const idade = parseInt(document.getElementById('athleteEditIdade').value) || 25;
+      const peso = parseFloat(document.getElementById('athleteEditPeso').value) || 75;
+      const foto = document.getElementById('athleteEditFoto').value.trim();
+
+      if (!nome) {
+        alert('Por favor, informe o nome do atleta.');
+        return;
+      }
+
+      const btn = document.getElementById('btnSaveAthlete');
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = `<span class="material-icons text-sm animate-spin">refresh</span><span>Salvando...</span>`;
+      btn.disabled = true;
+
       try {
-        await fetch('/api/admin/atleta/excluir', {
+        const isCampo = (statusPresenca === 'chegou');
+        const isCaminho = (statusPresenca === 'a_caminho');
+        const distMetros = isCampo ? 120 : isCaminho ? 350 : 3800;
+        const distTxt = isCampo ? 'No Campo (≤500m)' : isCaminho ? '350m A caminho' : '3.8km Longe';
+
+        const payload = {
+          id: id || undefined,
+          nomeOriginal: nomeOriginal || undefined,
+          nome,
+          posicao,
+          condicao,
+          idade,
+          peso,
+          foto,
+          statusPresenca,
+          chegadaConfirmada: isCampo,
+          distanciaMetros: distMetros,
+          distanciaTexto: distTxt,
+          statusAproximacao: isCampo ? 'campo' : isCaminho ? 'caminho' : 'longe'
+        };
+
+        const resp = await fetch('/api/admin/atleta/salvar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome })
+          body: JSON.stringify(payload)
         });
-        addLog(`[REMOVED] Atleta ${nome} foi removido da lista pelo ADM.`, "text-amber-400");
-        loadDashboardData();
+
+        const res = await resp.json();
+        if (res && res.sucesso) {
+          addLog(`[ATLETA_SALVO] ${nome} (${posicao}) atualizado com sucesso no servidor.`, "text-emerald-400");
+          closeAthleteModal();
+          await loadDashboardData();
+        } else {
+          alert('Erro ao salvar atleta: ' + (res.erro || 'Falha desconhecida'));
+        }
       } catch (err) {
-        addLog(`[REMOVED] Atleta ${nome} removido.`, "text-amber-400");
+        console.error('Erro ao salvar atleta:', err);
+        alert('Erro de comunicação com o servidor ao salvar atleta.');
+      } finally {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteAthleteFromModal() {
+      const id = document.getElementById('athleteEditId').value.trim();
+      const nomeOriginal = document.getElementById('athleteEditNomeOriginal').value.trim();
+      const nome = document.getElementById('athleteEditNome').value.trim() || nomeOriginal;
+
+      if (!nome && !id) return;
+      closeAthleteModal();
+      await removeAthlete(id || nome, nome);
+    }
+
+    async function removeAthlete(identificador, nomeExibicao) {
+      const nome = nomeExibicao || identificador;
+      if (!confirm(`Tem certeza que deseja excluir o atleta "${nome}" da pelada?`)) {
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/admin/atleta/excluir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: identificador,
+            nome: nome
+          })
+        });
+
+        const res = await resp.json();
+        if (res && res.sucesso) {
+          addLog(`[REMOVED] Atleta ${nome} foi excluído da lista com sucesso.`, "text-amber-400");
+          const idStr = String(identificador).trim().toLowerCase();
+          const nomeStr = String(nome).trim().toLowerCase();
+          atletasCadastrados = (atletasCadastrados || []).filter(a => {
+            if (a.id && String(a.id).trim().toLowerCase() === idStr) return false;
+            if (a.nome && a.nome.trim().toLowerCase() === nomeStr) return false;
+            return true;
+          });
+          renderAthletes();
+          loadDashboardData();
+        } else {
+          alert('Erro ao excluir atleta: ' + (res.erro || 'Falha no servidor'));
+        }
+      } catch (err) {
+        console.error('Erro ao excluir:', err);
+        addLog(`[ERRO] Falha ao excluir atleta ${nome}.`, "text-red-400");
       }
     }
 
@@ -1116,10 +1366,10 @@
           <div class="flex items-center gap-2.5">
             ${statusLocalHtml}
             <div class="flex items-center gap-1">
-              <button class="p-1.5 rounded bg-white hover:bg-gray-100 text-[#475569] hover:text-[#131313] border border-[#e2e8f0] transition-all shadow-sm" onclick="editAthlete('${atleta.nome}')" title="Editar Atleta">
+              <button class="p-1.5 rounded bg-white hover:bg-gray-100 text-[#475569] hover:text-[#131313] border border-[#e2e8f0] transition-all shadow-sm" onclick="editAthlete('${(atleta.id || atleta.nome).replace(/'/g, \"\\\'\")}')" title="Editar Atleta">
                 <span class="material-icons text-sm block">edit</span>
               </button>
-              <button class="p-1.5 rounded bg-white hover:bg-red-50 text-[#64748b] hover:text-red-600 border border-[#e2e8f0] transition-all shadow-sm" onclick="removeAthlete('${atleta.nome}')" title="Remover da Pelada">
+              <button class="p-1.5 rounded bg-white hover:bg-red-50 text-[#64748b] hover:text-red-600 border border-[#e2e8f0] transition-all shadow-sm" onclick="removeAthlete('${(atleta.id || atleta.nome).replace(/'/g, \"\\\'\")}', '${(atleta.nome || \'\').replace(/'/g, \"\\\'\")}')" title="Remover da Pelada">
                 <span class="material-icons text-sm block">delete</span>
               </button>
             </div>
