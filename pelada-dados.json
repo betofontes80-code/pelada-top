@@ -1482,7 +1482,11 @@
     "lng": -34.870103,
     "mapsUrl": "https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7",
     "raioMaximoMetros": 500,
-    "exigirGps": true
+    "exigirGps": true,
+    "dataPelada": "2026-09-30",
+    "diaSemana": "Quarta-feira",
+    "horaInicio": "19:30",
+    "horaFim": "21:30"
   },
   "escalacaoAtiva": {
     "ativo": false,
@@ -1494,5 +1498,5 @@
     "finalizada": false,
     "tempoRestante": 600
   },
-  "version": 1790559444646
+  "version": 1790564285023
 }

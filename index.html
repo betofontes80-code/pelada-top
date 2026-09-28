@@ -135,7 +135,7 @@
             <div class="flex items-center gap-2">
                 <div class="cursor-pointer" onclick="trocarAba('perfil')" title="Meu Perfil">
                     <img id="header-profile-avatar" alt="Foto do Perfil" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/30 shadow-sm hover:ring-primary active:scale-95 transition-all" 
-                         src="https://lh3.googleusercontent.com/aida/AP1WRLtubcc79IzzDnmAA5E-_jLY637WpPxAgZIO1lXh9li3XPAZA1lEP90LkzOtTJwo4VJycWvmudRZaW6tlWEyyyg57omxPqzztGaa_V1dQ_57ttsYnIgGJrfjidmUHEgbROup33OyCvciI8W4AxcU0J_qX0Afj3z4gJ0YnET3eXzfEkiCfHFwxjGeOaVLQM_-PCZo3jYvzxrvItB37sWK69FFR36vmy_s8TT1IaJkLKGE0d30dEQgQlQLNg"/>
+                         src="./logo-transparent.png"/>
                 </div>
                 <div id="header-role-badge" class="select-none pointer-events-none">
                 </div>
@@ -337,8 +337,8 @@
                             <span class="material-symbols-outlined text-sm">sports_soccer</span>
                             Times Formados
                         </span>
-                        <button onclick="dispararListaConfirmadosWhatsApp()" class="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[10px] font-bold flex items-center gap-1 active:scale-95 shadow-xs transition-all" title="Disparar Lista de Confirmados no WhatsApp">
-                            <span>📲 Disparar Lista Zap</span>
+                        <button onclick="copiarZapTimes()" class="px-2 py-0.5 rounded-md bg-success-green/15 text-success-green border border-success-green/30 font-mono text-[10px] font-bold flex items-center gap-1 active:scale-95">
+                            <span>📲 Copiar Zap</span>
                         </button>
                     </div>
                     <!-- BOTÃO OFICIAL DE ESCALAR NOS APPS DOS JOGADORES -->
@@ -436,64 +436,107 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Render Online</span>
-                    </span>
+                    <button onclick="abrirModalQrCodeOnline()" class="px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700 transition-all shadow-xs active:scale-95" title="Gerar e Abrir QR Code Oficial">
+                        <span class="material-symbols-outlined text-xs">qr_code_2</span>
+                        <span>Gerar QR Code</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- 2. QR CODE OFICIAL CENTRALIZADO NO MEIO DA TELA COM BOTÃO COPIAR LINK AO LADO -->
-            <div class="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 border border-surface-container-highest shadow-sm flex flex-col items-center justify-center text-center gap-3.5 w-full shrink-0">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <h3 class="font-headline-md text-xs sm:text-sm font-bold text-on-surface uppercase tracking-wider">QR Code Oficial do App (Online)</h3>
-                </div>
-                <p class="text-[11px] text-on-surface-variant font-medium max-w-md">
-                    Aponte a câmera do celular para abrir o aplicativo na nuvem e realizar o check-in na quadra.
-                </p>
-
-                <!-- CONTAINER DO QR CODE + INFORMAÇÕES LADO A LADO -->
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full bg-surface-container-low p-3.5 sm:p-4 rounded-xl border border-surface-container-highest max-w-lg mx-auto">
-                    <!-- Imagem do QR Code -->
-                    <div class="w-36 h-36 sm:w-40 sm:h-40 bg-white p-2 rounded-xl border border-surface-container-highest shadow-sm shrink-0 flex items-center justify-center cursor-pointer group relative" onclick="abrirModalQrCodeOnline()" title="Clique para ampliar o QR Code">
-                        <img id="admin-main-qrcode-img" src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=8&data=https%3A%2F%2Fpelada-top.onrender.com" alt="QR Code Pelada Top" class="w-full h-full object-contain rounded">
-                        <div class="absolute inset-0 bg-black/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span class="material-symbols-outlined text-white text-2xl">zoom_in</span>
-                        </div>
+            <!-- 2. CARD DO LINK & BOTÃO PARA GERAR QR CODE (NÃO APARECE SOLTO NA TELA) -->
+            <div class="bg-surface-container-lowest rounded-xl p-3 sm:p-4 border border-surface-container-highest shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 w-full shrink-0">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-2xl">qr_code_2</span>
                     </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h3 class="font-headline-md text-xs sm:text-sm font-bold text-on-surface">Link Oficial da Pelada (Online)</h3>
+                        </div>
+                        <p class="text-[11px] font-mono font-bold text-emerald-800 truncate mt-0.5" id="admin-cloud-url-display">https://pelada-top.onrender.com</p>
+                    </div>
+                </div>
 
-                    <!-- Informações do Servidor e Botão Copiar Link ao lado -->
-                    <div class="flex flex-col items-center sm:items-start text-center sm:text-left gap-2.5 min-w-0 flex-1">
-                        <div class="space-y-0.5 w-full">
-                            <span class="text-[10px] uppercase font-bold text-secondary font-mono tracking-wider">Servidor Online:</span>
-                            <div class="font-mono text-xs font-bold text-emerald-800 bg-white px-2.5 py-1.5 rounded-lg border border-emerald-300 truncate w-full shadow-2xs select-all">
-                                https://pelada-top.onrender.com
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button onclick="abrirModalQrCodeOnline()" class="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-sm">qr_code_2</span>
+                        <span>Gerar QR Code</span>
+                    </button>
+                    <button onclick="copiarLinkQrCodeOnline()" id="btn-copiar-banner-qr" class="px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface border border-surface-container-highest font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all" title="Copiar link do servidor">
+                        <span class="material-symbols-outlined text-sm" id="icon-copy-qr-banner">content_copy</span>
+                        <span id="label-copy-qr-banner">Copiar Link</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. GRADE PRINCIPAL: CONFIGURAÇÃO DE HORÁRIO, ARENA E ATLETAS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full items-start">
+                
+                <!-- COLUNA 1: DIA/HORA, LOCAL & TRAVA -->
+                <div class="flex flex-col gap-3">
+                    
+                    <!-- CONFIGURAÇÃO DE DIA E HORA DA PELADA -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-base">calendar_clock</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Data & Horário da Pelada</h3>
+                            </div>
+                            <span id="badge-admin-horario-status" class="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">
+                                Definido
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-secondary uppercase mb-0.5" for="input-admin-data-pelada">Data da Pelada:</label>
+                                <input type="date" id="input-admin-data-pelada" class="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-on-surface outline-none focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-secondary uppercase mb-0.5" for="input-admin-dia-semana">Dia da Semana:</label>
+                                <input type="text" id="input-admin-dia-semana" placeholder="Ex: Terça-feira / Hoje" class="w-full text-xs font-medium px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-on-surface outline-none focus:border-primary">
                             </div>
                         </div>
 
-                        <!-- Botões de Ação ao Lado do QR Code -->
-                        <div class="flex flex-wrap items-center gap-2 w-full pt-0.5">
-                            <button onclick="copiarLinkQrCodeOnline()" id="btn-copiar-banner-qr" class="flex-1 min-w-[125px] py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-sm" id="icon-copy-qr-banner">content_copy</span>
-                                <span id="label-copy-qr-banner">Copiar Link</span>
-                            </button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-secondary uppercase mb-0.5" for="input-admin-hora-inicio">Início:</label>
+                                <input type="time" id="input-admin-hora-inicio" value="19:00" class="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-on-surface outline-none focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-secondary uppercase mb-0.5" for="input-admin-hora-fim">Término:</label>
+                                <input type="time" id="input-admin-hora-fim" value="21:00" class="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-on-surface outline-none focus:border-primary">
+                            </div>
+                        </div>
 
-                            <button onclick="abrirModalQrCodeOnline()" class="py-2 px-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-xs rounded-lg border border-surface-container-highest flex items-center justify-center gap-1 active:scale-95 transition-all" title="Ampliar QR Code na tela cheia">
-                                <span class="material-symbols-outlined text-sm">fullscreen</span>
-                                <span>Ampliar</span>
+                        <button onclick="salvarConfiguracaoHorarioAdmin()" id="btn-salvar-horario-admin" class="w-full mt-0.5 py-2 bg-primary hover:bg-red-700 text-white font-headline-md text-xs uppercase tracking-wider font-bold rounded-lg flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all">
+                            <span class="material-symbols-outlined text-sm">save</span>
+                            <span>Salvar Dia & Horário da Pelada</span>
+                        </button>
+                    </div>
+
+                    <!-- LOCAL OFICIAL DA ARENA & COORDENADAS -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-1.5 shrink-0">
+                        <div class="flex items-center justify-between">
+                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider" for="input-admin-local">Local Oficial da Arena:</label>
+                            <span class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span class="material-symbols-outlined text-xs">radar</span> Raio: 500m
+                            </span>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <input type="text" id="input-admin-local" value="Arena Bola de Ouro Society - Av. das Américas, 4500" 
+                                   class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
+                            <button onclick="salvarNovoLocal()" class="px-2.5 py-1.5 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
+                                Salvar
+                            </button>
+                            <button onclick="abrirGpsMaps()" class="px-2 py-1.5 bg-gray-900 text-white rounded-lg font-label-md text-xs font-bold flex items-center gap-1 active:scale-95 shadow-sm" title="Abrir no Google Maps">
+                                <span class="material-symbols-outlined text-sm">near_me</span>
                             </button>
                         </div>
-                        <p class="text-[10px] text-gray-500 font-medium">Render Cloud Server • Acesso 4G / 5G / Wi-Fi</p>
+                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-23.550520, -46.633308</strong>. Check-in presencial restrito a 500m.</p>
                     </div>
-                </div>
-            </div>
 
-            <!-- 3. GRADE COM CONFIGURAÇÕES, STATUS DO VESTIÁRIO E GESTÃO DE ATLETAS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full items-start">
-                
-                <!-- COLUNA 1: STATUS DO VESTIÁRIO & LOCAL DA ARENA -->
-                <div class="flex flex-col gap-3">
                     <!-- STATUS DA PELADA (TRAVA) & AÇÕES CRÍTICAS -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
                         <div class="flex items-center justify-between">
@@ -519,26 +562,6 @@
                         </div>
                     </div>
 
-                    <!-- LOCAL OFICIAL DA ARENA & COORDENADAS -->
-                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-1.5 shrink-0">
-                        <div class="flex items-center justify-between">
-                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider" for="input-admin-local">Local Oficial da Arena:</label>
-                            <span class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <span class="material-symbols-outlined text-xs">radar</span> Raio: 500m
-                            </span>
-                        </div>
-                        <div class="flex gap-1.5">
-                            <input type="text" id="input-admin-local" value="Arena Bola de Ouro Society - Av. das Américas, 4500" 
-                                   class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
-                            <button onclick="salvarNovoLocal()" class="px-2.5 py-1.5 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
-                                Salvar
-                            </button>
-                            <button onclick="abrirGpsMaps()" class="px-2 py-1.5 bg-gray-900 text-white rounded-lg font-label-md text-xs font-bold flex items-center gap-1 active:scale-95 shadow-sm" title="Abrir no Google Maps">
-                                <span class="material-symbols-outlined text-sm">near_me</span>
-                            </button>
-                        </div>
-                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-23.550520, -46.633308</strong>. Check-in presencial restrito a 500m.</p>
-                    </div>
                 </div>
 
                 <!-- COLUNA 2: GERENCIAMENTO DE ATLETAS CONFIRMADOS -->
@@ -557,7 +580,7 @@
                         </div>
 
                         <!-- Lista de Atletas no Admin com Edição e Exclusão -->
-                        <div id="admin-lista-atletas-gestao" class="flex flex-col gap-1.5 max-h-[380px] overflow-y-auto pr-0.5">
+                        <div id="admin-lista-atletas-gestao" class="flex flex-col gap-1.5 max-h-[460px] overflow-y-auto pr-0.5">
                             <!-- Preenchido dinamicamente via JS -->
                         </div>
                     </div>
@@ -657,6 +680,8 @@
         <!-- RENDERIZADO DINAMICAMENTE: JOGADOR (APENAS JOGADORES E PERFIL) OU ADMIN (TODAS AS OPÇÕES) -->
         <div id="nav-buttons-container" class="flex justify-around items-center h-14 max-w-xl mx-auto">
         </div>
+    </nav>
+
     <!-- CONTAINER FLUTUANTE DE TOAST DE JOGADOR ONLINE (ALTA PRIORIDADE Z-INDEX) -->
     <div id="toast-container" class="fixed top-3 left-1/2 -translate-x-1/2 z-[200] w-full max-w-sm px-3 pointer-events-none flex flex-col gap-2 transition-all"></div>
 
@@ -1031,6 +1056,30 @@
         // ==============================================================
         // DADOS E ESTADO GERAL
         // ==============================================================
+        
+        // Foto padrão oficial da Pelada Top
+        const FOTO_PADRAO_PELADA = './logo-transparent.png';
+
+        function temFotoCustomizada(foto) {
+            if (!foto || typeof foto !== 'string') return false;
+            const f = foto.trim();
+            if (f.length < 20) return false;
+            if (f.includes('aida-public') || f.includes('AP1WRLtubcc79IzzDnmAA5E') || f.includes('placeholder')) {
+                return false;
+            }
+            return true;
+        }
+
+        function obterFotoJogador(j, ehEu) {
+            if (ehEu && temFotoCustomizada(usuarioAtual.foto)) {
+                return usuarioAtual.foto;
+            }
+            if (j && temFotoCustomizada(j.foto)) {
+                return j.foto;
+            }
+            return FOTO_PADRAO_PELADA;
+        }
+
         let usuarioAtual = JSON.parse(localStorage.getItem('pelada_usuario')) || {
             id: '',
             nome: '',
@@ -1074,6 +1123,70 @@
         const atletasConhecidosIds = new Set();
         let appSincronizacaoInicializada = false;
 
+        
+        // ==============================================================
+        // SOM DE APITO OFICIAL DO ÁRBITRO (EXECUTA QUANDO ALGUÉM ENTRA NA LISTA)
+        // ==============================================================
+        function tocarSomApito() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+
+                // Disparo de sopro do apito com modulação acústica Fox 40
+                const dispararSopro = (tInicio, duracao, volume) => {
+                    const osc1 = ctx.createOscillator();
+                    const osc2 = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc1.type = 'triangle';
+                    osc1.frequency.setValueAtTime(2620, tInicio);
+
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(2820, tInicio);
+
+                    // Efeito trinado/bolinha de apito (~26Hz)
+                    const lfo = ctx.createOscillator();
+                    const lfoGain = ctx.createGain();
+                    lfo.frequency.setValueAtTime(26, tInicio);
+                    lfoGain.gain.setValueAtTime(110, tInicio);
+                    lfo.connect(osc1.frequency);
+                    lfo.connect(osc2.frequency);
+
+                    gain.gain.setValueAtTime(0.001, tInicio);
+                    gain.gain.linearRampToValueAtTime(volume || 0.35, tInicio + 0.02);
+                    gain.gain.setValueAtTime(volume || 0.32, tInicio + duracao - 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.001, tInicio + duracao);
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    lfo.start(tInicio);
+                    osc1.start(tInicio);
+                    osc2.start(tInicio);
+
+                    lfo.stop(tInicio + duracao);
+                    osc1.stop(tInicio + duracao);
+                    osc2.stop(tInicio + duracao);
+                };
+
+                const now = ctx.currentTime;
+                // Apito duplo de entrada em campo: Pi-Piiii!
+                dispararSopro(now, 0.11, 0.35);
+                dispararSopro(now + 0.15, 0.28, 0.38);
+
+                if ('vibrate' in navigator) {
+                    try { navigator.vibrate([70, 40, 140]); } catch(e) {}
+                }
+            } catch(e) {
+                console.warn('Erro ao tocar apito:', e);
+            }
+        }
+
         function tocarSomOnline() {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1107,7 +1220,7 @@
             if (!container) return;
 
             // Toca som suave e vibra
-            tocarSomOnline();
+            tocarSomApito();
             if ('vibrate' in navigator) {
                 try { navigator.vibrate([40, 60, 40]); } catch(e) {}
             }
@@ -2539,6 +2652,58 @@
             }
         }
 
+        async 
+        async function salvarConfiguracaoHorarioAdmin() {
+            const dataInp = document.getElementById('input-admin-data-pelada');
+            const diaInp = document.getElementById('input-admin-dia-semana');
+            const inicioInp = document.getElementById('input-admin-hora-inicio');
+            const fimInp = document.getElementById('input-admin-hora-fim');
+            const btn = document.getElementById('btn-salvar-horario-admin');
+
+            const payload = {
+                dataPelada: dataInp ? dataInp.value : '',
+                diaSemana: diaInp ? diaInp.value.trim() : '',
+                horaInicio: inicioInp ? inicioInp.value : '19:00',
+                horaFim: fimInp ? fimInp.value : '21:00'
+            };
+
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">refresh</span><span>Salvando...</span>';
+
+            try {
+                const resp = await fetch('/api/admin/config/horario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await resp.json();
+                if (res && res.sucesso) {
+                    peladaConfig = res.peladaConfig;
+                    atualizarCamposHorarioUi();
+                    alert('✅ Dia e horário da pelada atualizados com sucesso!');
+                } else {
+                    alert('Erro ao salvar horário.');
+                }
+            } catch(e) {
+                alert('Erro de conexão ao salvar horário.');
+            } finally {
+                if (btn) btn.innerHTML = orig;
+            }
+        }
+
+        function atualizarCamposHorarioUi() {
+            if (!peladaConfig) return;
+            const dataInp = document.getElementById('input-admin-data-pelada');
+            const diaInp = document.getElementById('input-admin-dia-semana');
+            const inicioInp = document.getElementById('input-admin-hora-inicio');
+            const fimInp = document.getElementById('input-admin-hora-fim');
+
+            if (dataInp && peladaConfig.dataPelada) dataInp.value = peladaConfig.dataPelada;
+            if (diaInp && peladaConfig.diaSemana) diaInp.value = peladaConfig.diaSemana;
+            if (inicioInp && peladaConfig.horaInicio) inicioInp.value = peladaConfig.horaInicio;
+            if (fimInp && peladaConfig.horaFim) fimInp.value = peladaConfig.horaFim;
+        }
+
         async function salvarNovoLocal() {
             const val = document.getElementById('input-admin-local').value.trim();
             if (val) {
@@ -2723,7 +2888,7 @@
                 if (ehUsuarioLogado && usuarioAtual.foto && !j.foto) {
                     j.foto = usuarioAtual.foto;
                 }
-                const fotoSrc = (ehUsuarioLogado && usuarioAtual.foto) ? usuarioAtual.foto : (j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_');
+                const fotoSrc = obterFotoJogador(j, ehUsuarioLogado);
 
                 // CÁLCULO DO OVERALL REAL (0 A 100%) COM BASE NOS DADOS/ATRIBUTOS REAIS DO ATLETA
                 const overallReal = calcularOverallAtleta(j, ehUsuarioLogado ? usuarioAtual : null);

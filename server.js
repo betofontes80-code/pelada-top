@@ -98,7 +98,11 @@ const DEFAULT_CONFIG = {
   lng: -34.870103,
   mapsUrl: 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7',
   raioMaximoMetros: 500,
-  exigirGps: true
+  exigirGps: true,
+  diaSemana: 'Terça-feira',
+  dataPelada: new Date().toISOString().split('T')[0],
+  horaInicio: '19:00',
+  horaFim: '21:00'
 };
 
 const DEFAULT_CONFIRMADOS = [];
@@ -969,6 +973,32 @@ const requestHandler = (req, res) => {
     }
 
 
+
+    // 18. API Admin: Configurar Dia e Horário da Pelada
+    if (pathname === '/api/admin/config/horario' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (!err && payload) {
+          if (!appData.peladaConfig) appData.peladaConfig = {};
+          if (payload.dataPelada !== undefined) appData.peladaConfig.dataPelada = payload.dataPelada;
+          if (payload.diaSemana !== undefined) appData.peladaConfig.diaSemana = payload.diaSemana;
+          if (payload.horaInicio !== undefined) appData.peladaConfig.horaInicio = payload.horaInicio;
+          if (payload.horaFim !== undefined) appData.peladaConfig.horaFim = payload.horaFim;
+
+          appData.version = Date.now();
+          salvarDadosDisco();
+          broadcastSse('CONFIG_UPDATE', appData.peladaConfig);
+          broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: true, peladaConfig: appData.peladaConfig }));
+          return;
+        }
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
+      });
+      return;
+    }
+
     // 10. Fallback para rotas de API não reconhecidas
     if (pathname.startsWith('/api')) {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -978,11 +1008,14 @@ const requestHandler = (req, res) => {
 
     // 11. Arquivos estáticos
 
-    // Rotas do Painel Master - Redireciona para a aba Admin integrada no App
+    // Rotas do Painel Master e Painel de Testes
     if (pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html') {
-      res.writeHead(302, { 'Location': '/?aba=admin' });
-      res.end();
-      return;
+      const painelPath = path.join(__dirname, 'public_admin', 'index.html');
+      if (fs.existsSync(painelPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(painelPath));
+        return;
+      }
     }
 
     if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
