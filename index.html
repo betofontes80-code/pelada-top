@@ -453,6 +453,10 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button onclick="abrirModalQrCodeOnline()" id="btn-gerar-qr-admin" class="w-full sm:w-auto px-3.5 py-2 bg-primary hover:bg-red-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs" title="Gerar QR Code de acesso">
+                        <span class="material-symbols-outlined text-sm">qr_code_2</span>
+                        <span>Gerar QR Code</span>
+                    </button>
                     <button onclick="copiarLinkQrCodeOnline()" id="btn-copiar-banner-qr" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs" title="Copiar link do servidor">
                         <span class="material-symbols-outlined text-sm" id="icon-copy-qr-banner">content_copy</span>
                         <span id="label-copy-qr-banner">Copiar Link</span>
@@ -653,6 +657,44 @@
     </main>
 
 
+
+    
+    <!-- BALÃO FLUTUANTE DE AVISO PARA INSTALAR O APP (PWA) -->
+    <div id="balao-instalar-app" class="fixed bottom-16 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:w-96 z-[95] transition-all duration-300 transform translate-y-32 opacity-0 pointer-events-none">
+        <div class="bg-surface-container-lowest text-on-surface rounded-2xl p-3.5 shadow-2xl border border-primary/20 flex flex-col gap-2.5 backdrop-blur-md relative">
+            <button onclick="fecharBalaoInstalacao(true)" class="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Fechar aviso">
+                <span class="material-symbols-outlined text-sm">close</span>
+            </button>
+            <div class="flex items-center gap-3 pr-6">
+                <div class="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                    <img src="./logo-transparent.png" alt="Pelada Top" class="w-9 h-9 object-contain" onerror="this.src='./icon-192.png'">
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5">
+                        <h4 class="font-headline-md text-xs font-bold text-on-surface">Instalar Pelada Top</h4>
+                        <span class="text-[8px] font-black uppercase px-1.5 py-0.2 bg-emerald-500/15 text-emerald-700 rounded-full border border-emerald-500/30">APP</span>
+                    </div>
+                    <p class="text-[10px] text-on-surface-variant leading-tight mt-0.5" id="balao-instalar-subtitulo">
+                        Instale na sua tela inicial para acesso rápido, apito sonoro e GPS em tempo real!
+                    </p>
+                </div>
+            </div>
+            
+            <div id="balao-instalar-instrucao-ios" class="hidden text-[10px] bg-amber-500/10 text-amber-900 border border-amber-500/20 p-2 rounded-lg leading-tight">
+                No Safari do iPhone: toque em <strong>Compartilhar</strong> <span class="font-bold">⎋</span> e depois em <strong>'Adicionar à Tela de Início' ⊞</strong>.
+            </div>
+
+            <div class="flex items-center gap-2 pt-0.5">
+                <button onclick="dispensarBalaoInstalacao()" class="flex-1 py-1.5 px-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-[11px] font-bold active:scale-95 transition-all text-center">
+                    Agora não
+                </button>
+                <button onclick="acionarInstalacaoApp()" id="btn-instalar-app-balao" class="flex-1 py-1.5 px-2 rounded-xl bg-primary hover:bg-red-700 text-white text-[11px] font-bold active:scale-95 transition-all shadow-xs flex items-center justify-center gap-1">
+                    <span class="material-symbols-outlined text-xs">download</span>
+                    <span>Instalar App</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- BARRA DE NAVEGAÇÃO INFERIOR OFICIAL DO STITCH (DINÂMICA POR PAPEL) -->
     <nav id="bottom-navbar" style="display: none;" class="w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl shrink-0 bg-surface/95 backdrop-blur-xl pb-safe shadow-[0_-1px_6px_rgba(0,0,0,0.04)] border-t border-surface-container-highest z-40 transition-all duration-200">
@@ -1490,15 +1532,18 @@
         }
 
         function buscarDadosServidor() {
-            if (!window.location.protocol.startsWith('http')) return;
-            fetch('/api/pelada?t=' + Date.now())
+            if (!window.location.protocol.startsWith('http')) return Promise.resolve();
+            return fetch('/api/pelada?t=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
                     if (data && (data.listaConfirmados || data.peladaConfig || data.partidaEstado)) {
                         aplicarSincronizacaoRemota(data);
                     }
+                    return data;
                 })
-                .catch(() => {});
+                .catch(err => {
+                    console.warn('[Sync] Erro ao sincronizar dados com o servidor:', err);
+                });
         }
 
                 function iniciarSse() {
@@ -1612,7 +1657,10 @@
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
                     renderizarListaGestaoAdmin();
-                    buscarDadosServidor();
+                    buscarDadosServidor().then(() => {
+                        renderizarListaGestaoAdmin();
+                        renderizarStatusCheckin();
+                    });
                     atualizarLocalizacaoGps(false);
                 } else if (aba === 'equipes') {
                     realizarSorteioStitch(true);
@@ -3908,17 +3956,25 @@
         function renderizarListaGestaoAdmin() {
             const container = document.getElementById('admin-lista-atletas-gestao');
             const badgeCount = document.getElementById('admin-contador-atletas');
-            if (badgeCount) badgeCount.innerText = `${listaConfirmados.length} atleta${listaConfirmados.length !== 1 ? 's' : ''}`;
+
+            if (!Array.isArray(listaConfirmados)) {
+                listaConfirmados = [];
+            }
+            const atletasValidos = listaConfirmados.filter(j => j && typeof j === 'object' && j.nome);
+
+            if (badgeCount) {
+                badgeCount.innerText = `${atletasValidos.length} atleta${atletasValidos.length !== 1 ? 's' : ''}`;
+            }
             if (!container) return;
 
-            if (listaConfirmados.length === 0) {
+            if (atletasValidos.length === 0) {
                 // Tenta puxar do servidor imediatamente se ainda não populou localmente
                 if (window.location.protocol.startsWith('http')) {
                     fetch('/api/pelada?t=' + Date.now())
                         .then(r => r.json())
                         .then(data => {
                             if (data && Array.isArray(data.listaConfirmados) && data.listaConfirmados.length > 0) {
-                                listaConfirmados = data.listaConfirmados;
+                                listaConfirmados = data.listaConfirmados.filter(j => j && typeof j === 'object' && j.nome);
                                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                                 renderizarListaGestaoAdmin();
                                 renderizarListaJogadores();
@@ -3937,11 +3993,16 @@
                 return;
             }
 
+            const uNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
+            const uId = (usuarioAtual && usuarioAtual.id) ? String(usuarioAtual.id) : '';
+
             let html = '';
-            listaConfirmados.forEach((j, idx) => {
-                const ehEu = (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
-                             (usuarioAtual.id && String(j.id) === String(usuarioAtual.id));
-                if (ehEu && usuarioAtual.foto && !j.foto) {
+            atletasValidos.forEach((j, idx) => {
+                if (!j || !j.nome) return;
+                const jNome = (j.nome || '').trim();
+                const jId = j.id ? String(j.id) : ('jog_' + idx);
+                const ehEu = (uId && jId === uId) || (uNome && jNome.toLowerCase() === uNome);
+                if (ehEu && usuarioAtual && usuarioAtual.foto && !j.foto) {
                     j.foto = usuarioAtual.foto;
                 }
                 const fotoSrc = obterFotoJogador(j, ehEu);
@@ -3950,7 +4011,6 @@
                 const chegou = j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
                 const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? j.distanciaMetros : null;
                 const proximo = !chegou && ((distMetros !== null && distMetros <= 1500) || j.statusAproximacao === 'proximo');
-                const longe = !chegou && !proximo;
 
                 let corBadge, borderLeft, labelStatus, distTxt;
                 if (chegou) {
@@ -3971,7 +4031,7 @@
                 }
 
                 const btnConfirmarAdmin = !chegou
-                    ? `<button onclick="confirmarChegadaAtletaAdmin('${j.id}')" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-300 flex items-center gap-0.5 active:scale-95 shadow-xs shrink-0" title="Confirmar Chegada no Campo">
+                    ? `<button onclick="confirmarChegadaAtletaAdmin('${jId}')" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-300 flex items-center gap-0.5 active:scale-95 shadow-xs shrink-0" title="Confirmar Chegada no Campo">
                            <span class="material-symbols-outlined text-xs">sports_score</span>
                            <span>Chegou</span>
                        </button>`
@@ -3987,24 +4047,24 @@
                     <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} ${bgAdminCard}">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
                             <span class="w-4 text-center font-bold ${ehPrimeiro ? 'text-emerald-600 font-black text-sm' : 'text-secondary text-xs'} shrink-0">${idx + 1}</span>
-                            <img src="${fotoSrc}" class="w-8 h-8 rounded-full object-cover ${ehPrimeiro ? 'border-2 border-emerald-500 ring-1 ring-emerald-400' : 'border border-primary/20'} shrink-0" alt="${j.nome}">
+                            <img src="${fotoSrc}" class="w-8 h-8 rounded-full object-cover ${ehPrimeiro ? 'border-2 border-emerald-500 ring-1 ring-emerald-400' : 'border border-primary/20'} shrink-0" alt="${jNome}">
                             <div class="flex flex-col min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5 truncate">
-                                    <span class="font-bold text-xs ${ehPrimeiro ? 'text-emerald-950 font-black' : 'text-on-surface'} truncate">${j.nome}</span>
+                                    <span class="font-bold text-xs ${ehPrimeiro ? 'text-emerald-950 font-black' : 'text-on-surface'} truncate">${jNome}</span>
                                     ${badgePrimeiroAdmin}
                                     <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${corBadge} shrink-0">${labelStatus}</span>
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant flex items-center gap-1">
-                                    <strong class="text-primary">${j.posicao}</strong> • <span>${distTxt}</span> • ${j.idade || 25}a
+                                    <strong class="text-primary">${j.posicao || 'ATA'}</strong> • <span>${distTxt}</span> • ${j.idade || 25}a
                                 </span>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             ${btnConfirmarAdmin}
-                            <button onclick="abrirModalEditarAtleta('${j.id}')" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Editar Atleta">
+                            <button onclick="abrirModalEditarAtleta('${jId}')" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Editar Atleta">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
-                            <button onclick="excluirJogadorAdmin('${j.id}')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Excluir Jogador">
+                            <button onclick="excluirJogadorAdmin('${jId}')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Excluir Jogador">
                                 <span class="material-symbols-outlined text-sm">delete</span>
                             </button>
                         </div>
@@ -4171,6 +4231,101 @@
         }
 
         // ==============================================================
+        
+        // ==============================================================
+        // CONTROLE DO BALÃO DE INSTALAÇÃO DO APP (PWA PROMPT)
+        // ==============================================================
+        let deferredInstallPrompt = null;
+
+        function verificarStatusInstalacao() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone === true ||
+                   document.referrer.includes('android-app://');
+        }
+
+        function exibirBalaoInstalacao() {
+            if (verificarStatusInstalacao()) return;
+            if (sessionStorage.getItem('pelada_pwa_dismissed') === 'true') return;
+
+            const balao = document.getElementById('balao-instalar-app');
+            if (!balao) return;
+
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const isInStandalone = window.navigator.standalone === true;
+            const instrucaoIos = document.getElementById('balao-instalar-instrucao-ios');
+            const btnInstalar = document.getElementById('btn-instalar-app-balao');
+
+            if (isIos && !isInStandalone) {
+                if (instrucaoIos) instrucaoIos.classList.remove('hidden');
+                if (btnInstalar) {
+                    btnInstalar.innerHTML = '<span class="material-symbols-outlined text-xs">ios_share</span><span>Como Instalar</span>';
+                }
+            } else {
+                if (instrucaoIos) instrucaoIos.classList.add('hidden');
+            }
+
+            balao.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+            balao.classList.add('translate-y-0', 'opacity-100');
+        }
+
+        function fecharBalaoInstalacao(permanente = false) {
+            const balao = document.getElementById('balao-instalar-app');
+            if (balao) {
+                balao.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+                balao.classList.remove('translate-y-0', 'opacity-100');
+            }
+            if (permanente) {
+                sessionStorage.setItem('pelada_pwa_dismissed', 'true');
+            }
+        }
+
+        function dispensarBalaoInstalacao() {
+            fecharBalaoInstalacao(true);
+        }
+
+        async function acionarInstalacaoApp() {
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const instrucaoIos = document.getElementById('balao-instalar-instrucao-ios');
+
+            if (deferredInstallPrompt) {
+                try {
+                    deferredInstallPrompt.prompt();
+                    const choiceResult = await deferredInstallPrompt.userChoice;
+                    if (choiceResult && choiceResult.outcome === 'accepted') {
+                        fecharBalaoInstalacao(true);
+                    }
+                    deferredInstallPrompt = null;
+                } catch(e) {
+                    console.warn('Erro ao abrir prompt nativo:', e);
+                }
+            } else if (isIos) {
+                if (instrucaoIos) {
+                    instrucaoIos.classList.remove('hidden');
+                    instrucaoIos.scrollIntoView({ behavior: 'smooth' });
+                }
+            } else {
+                alert('Para instalar o Pelada Top no celular ou computador:\nToque nos três pontinhos (⋮) ou botão Compartilhar do navegador e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".');
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            exibirBalaoInstalacao();
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            fecharBalaoInstalacao(true);
+            exibirToastJogadorOnline({ nome: 'Pelada Top', posicao: 'SYS' }, '🎉 Aplicativo instalado com sucesso na sua tela inicial!');
+        });
+
+        setTimeout(() => {
+            if (!verificarStatusInstalacao()) {
+                exibirBalaoInstalacao();
+            }
+        }, 2000);
+
         // INICIALIZAÇÃO SEGURA DO APP (GARANTE CARREGAMENTO DAS TELAS)
         // ==============================================================
         function inicializarApp() {
@@ -4275,7 +4430,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=6.4')
+                navigator.serviceWorker.register('./sw.js?v=6.5')
                     .then(reg => {
                         console.log('PWA ServiceWorker v6.4 ativo com sucesso! Escopo:', reg.scope);
                         reg.update();
