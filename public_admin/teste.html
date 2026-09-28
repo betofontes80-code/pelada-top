@@ -447,29 +447,52 @@
 <span class="material-icons text-emerald-600 text-lg">verified</span>
 </div>
 </div>
-<!-- Target Athlete Selector & Status Bar -->
-<div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-<div class="flex items-center gap-3 w-full md:w-auto">
-<div class="w-10 h-10 rounded-full bg-white border border-slate-300 flex items-center justify-center text-sm font-black text-slate-800 shrink-0 shadow-xs">
-<span id="target-athlete-avatar">LS</span>
-</div>
-<div>
-<div class="flex items-center gap-2">
-<span class="text-xs font-extrabold text-slate-900" id="target-athlete-name">Lucas Silva (Meio-Campo)</span>
-<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300" id="target-live-badge">
-                No Campo (≤ 500m)
-              </span>
-</div>
-<p class="text-[11px] text-slate-500 font-mono mt-0.5">
-              Distância atual calculada: <span class="text-slate-900 font-extrabold" id="target-distance-text">120 metros</span>
-</p>
-</div>
-</div>
-<!-- 1st Confirmation Button -->
-<button class="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-xs" id="btn-first-confirm" onclick="execFirstConfirmation()">
-<span class="material-icons text-base">how_to_reg</span>
-<span>1. Executar 1ª Confirmação (Entrar na Lista)</span>
-</button>
+<!-- Target Athlete Selector & Status Bar (Lista de Seleção de Jogadores) -->
+<div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <label for="gps-player-select" class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+      <span class="material-icons text-base text-emerald-600">how_to_reg</span>
+      <span>Escolher Jogador para Simulação de Presença &amp; GPS:</span>
+    </label>
+    <span class="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-bold" id="gps-total-athletes-badge">
+      Carregando atletas...
+    </span>
+  </div>
+
+  <div class="relative">
+    <select id="gps-player-select" onchange="onGpsPlayerSelectChange()" class="w-full bg-white border-2 border-emerald-500/60 hover:border-emerald-600 rounded-xl px-4 py-3 text-sm text-slate-900 font-extrabold focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 appearance-none font-sans transition-all shadow-xs cursor-pointer pr-10">
+      <!-- Opções preenchidas dinamicamente com os atletas reais da pelada -->
+    </select>
+    <div class="absolute inset-y-0 right-0 flex items-center px-3.5 pointer-events-none text-emerald-700">
+      <span class="material-icons text-2xl">arrow_drop_down</span>
+    </div>
+  </div>
+
+  <!-- Status Bar do Atleta Selecionado -->
+  <div class="pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <div class="w-11 h-11 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center text-sm font-black text-slate-800 shrink-0 shadow-xs ring-2 ring-slate-100" id="target-athlete-avatar-wrap">
+        <span id="target-athlete-avatar">LS</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-extrabold text-slate-900" id="target-athlete-name">Lucas Silva (Meio-Campo)</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300" id="target-live-badge">
+            No Campo (≤ 500m)
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 font-mono mt-0.5">
+          Distância atual calculada: <span class="text-slate-900 font-extrabold" id="target-distance-text">120 metros</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 1st Confirmation Button -->
+    <button class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-xs shrink-0" id="btn-first-confirm" onclick="execFirstConfirmation()">
+      <span class="material-icons text-base">how_to_reg</span>
+      <span>1. Executar 1ª Confirmação</span>
+    </button>
+  </div>
 </div>
 <!-- Unified 4-button GPS simulation grid -->
 <div>
@@ -743,6 +766,96 @@
       terminal.innerHTML = `<div class="text-slate-400">[${getTimestamp()}] [SYSTEM] Terminal limpo pelo operador.</div>`;
     }
 
+    
+    // --- GESTÃO DA LISTA DE SELEÇÃO DE JOGADORES (SEÇÃO 4 - GPS) ---
+    function onGpsPlayerSelectChange() {
+      const gpsSelect = document.getElementById('gps-player-select');
+      if (!gpsSelect) return;
+      const athleteId = gpsSelect.value;
+      const athlete = athletesData[athleteId];
+      if (!athlete) return;
+
+      // Sincroniza com a Seção 2 (#player-select) sem loop
+      const mainSelect = document.getElementById('player-select');
+      if (mainSelect && mainSelect.value !== athleteId) {
+        mainSelect.value = athleteId;
+        document.getElementById('p-name').value = athlete.name;
+        document.getElementById('p-email').value = athlete.email;
+        document.getElementById('p-pass').value = athlete.pass || 'pelada1234';
+        document.getElementById('p-pos').value = athlete.pos;
+        document.getElementById('p-age').value = athlete.age || 25;
+        document.getElementById('p-weight').value = athlete.weight || 75;
+        document.getElementById('p-fit').value = athlete.fit || 90;
+        document.getElementById('adm-selected-label').textContent = `${athlete.name} (ID #${athleteId})`;
+      }
+
+      // Atualiza Avatar e Nome na Seção 4
+      document.getElementById('target-athlete-name').textContent = `${athlete.name} (${athlete.pos})`;
+      document.getElementById('target-athlete-avatar').textContent = athlete.initials || athlete.name.substring(0, 2).toUpperCase();
+
+      // Atualiza os chips visuais de acordo com o estado gravado do atleta
+      if (athlete.lastGpsMode === 'atPitch' || athlete.chegadaConfirmada || (athlete.distanciaMetros && athlete.distanciaMetros <= 500)) {
+        updateVisualChips('atPitch', athlete.distanciaMetros ? `${athlete.distanciaMetros} metros (Dentro do Raio Oficial)` : '120 metros (Dentro do Raio Oficial)');
+      } else if (athlete.lastGpsMode === 'close' || (athlete.distanciaMetros && athlete.distanciaMetros <= 1500)) {
+        updateVisualChips('close', `${athlete.distanciaMetros || 850} metros`);
+      } else if (athlete.lastGpsMode === 'far' || (athlete.distanciaMetros && athlete.distanciaMetros > 1500)) {
+        updateVisualChips('far', `${(athlete.distanciaMetros ? (athlete.distanciaMetros/1000).toFixed(1) : '3.8')} km`);
+      } else {
+        updateVisualChips('reset', '-- (Aguardando Sinal GPS)');
+      }
+
+      logToTerminal(`[SELEÇÃO GPS] Atleta alvo alterado para: "${athlete.name}" (${athlete.pos}) | Fit: ${athlete.fit || 90}%`, 'info');
+    }
+
+    function updateVisualChips(mode, distanceText) {
+      const liveBadge = document.getElementById('target-live-badge');
+      const distText = document.getElementById('target-distance-text');
+      const chipRed = document.getElementById('chip-red');
+      const chipYellow = document.getElementById('chip-yellow');
+      const chipGreen = document.getElementById('chip-green');
+      if (!liveBadge || !distText || !chipRed || !chipYellow || !chipGreen) return;
+
+      chipRed.className = 'p-3.5 rounded-xl border border-red-200 bg-red-50/40 flex items-center justify-between transition-all opacity-60';
+      chipYellow.className = 'p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between transition-all opacity-60';
+      chipGreen.className = 'p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between transition-all opacity-60';
+
+      
+      // Atualiza texto da opção selecionada na lista de seleção da Seção 4
+      if (gpsSelect && gpsSelect.selectedOptions && gpsSelect.selectedOptions[0]) {
+        let tag = '⚪ Aguardando';
+        if (mode === 'atPitch') tag = '🟢 No Campo (≤500m)';
+        else if (mode === 'close') tag = '🟡 Próximo (850m)';
+        else if (mode === 'far') tag = '🔴 Longe (>1.5km)';
+        gpsSelect.selectedOptions[0].textContent = `${athleteName} (${athlete.pos || 'JOG'}) — [ ${tag} ]`;
+      }
+
+      if (mode === 'far') {
+        chipRed.className = 'p-3.5 rounded-xl border-2 border-red-500 bg-red-100/70 flex items-center justify-between transition-all shadow-sm';
+        liveBadge.textContent = 'Longe (> 1.5 km)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 border border-red-300';
+        distText.textContent = distanceText || '3.820 metros (3.8 km)';
+        distText.className = 'text-red-700 font-extrabold';
+      } else if (mode === 'close') {
+        chipYellow.className = 'p-3.5 rounded-xl border-2 border-amber-500 bg-amber-100/70 flex items-center justify-between transition-all shadow-sm';
+        liveBadge.textContent = 'Próximo (850 m)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300';
+        distText.textContent = distanceText || '850 metros';
+        distText.className = 'text-amber-800 font-extrabold';
+      } else if (mode === 'atPitch') {
+        chipGreen.className = 'p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-100/80 flex items-center justify-between transition-all shadow-md glow-green';
+        liveBadge.textContent = 'No Campo (≤ 500m)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white border border-emerald-600 animate-pulse';
+        distText.textContent = distanceText || '120 metros (Dentro do Raio Oficial)';
+        distText.className = 'text-emerald-700 font-extrabold';
+      } else {
+        chipGreen.className = 'p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 flex items-center justify-between transition-all shadow-xs';
+        liveBadge.textContent = 'Aguardando Sinal GPS';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-600 border border-slate-300';
+        distText.textContent = distanceText || '-- (Não calculado)';
+        distText.className = 'text-slate-500 font-extrabold';
+      }
+    }
+
     function onAthleteSelectChange() {
       const select = document.getElementById('player-select');
       const athlete = athletesData[select.value];
@@ -757,6 +870,10 @@
       document.getElementById('p-fit').value = athlete.fit || 90;
 
       // Update Section 3 label & Section 4 target
+      const gpsSelect = document.getElementById('gps-player-select');
+      if (gpsSelect && gpsSelect.value !== select.value) {
+        gpsSelect.value = select.value;
+      }
       document.getElementById('adm-selected-label').textContent = `${athlete.name} (ID #${select.value})`;
       document.getElementById('target-athlete-name').textContent = athlete.name;
       document.getElementById('target-athlete-avatar').textContent = athlete.initials || athlete.name.substring(0, 2).toUpperCase();
@@ -936,12 +1053,14 @@
     }
 
     async function simulateGPS(mode) {
-      const athleteName = document.getElementById('p-name').value;
-      const select = document.getElementById('player-select');
-      const athleteId = select ? select.value : '1';
+      const gpsSelect = document.getElementById('gps-player-select');
+      const athleteId = gpsSelect ? gpsSelect.value : (document.getElementById('player-select')?.value || '1');
+      const athlete = athletesData[athleteId] || {};
+      const athleteName = athlete.name || document.getElementById('p-name')?.value || 'Atleta';
+      athlete.lastGpsMode = mode;
+
       const liveBadge = document.getElementById('target-live-badge');
       const distText = document.getElementById('target-distance-text');
-
       const chipRed = document.getElementById('chip-red');
       const chipYellow = document.getElementById('chip-yellow');
       const chipGreen = document.getElementById('chip-green');
@@ -1045,32 +1164,72 @@
       }
 
       try {
-        const resp = await fetch('/api/jogadores');
-        const jogadores = await resp.json();
+        const resp = await fetch('/api/pelada');
+        const peladaJson = await resp.json();
+        let jogadores = (peladaJson && peladaJson.listaConfirmados) ? peladaJson.listaConfirmados : [];
+
+        if (!jogadores.length) {
+          const respJog = await fetch('/api/jogadores');
+          jogadores = await respJog.json();
+        }
+
         if (Array.isArray(jogadores) && jogadores.length > 0) {
-          const select = document.getElementById('player-select');
+          const selectSec2 = document.getElementById('player-select');
+          const selectGps = document.getElementById('gps-player-select');
+          if (selectGps) selectGps.innerHTML = '';
+          if (selectSec2) selectSec2.innerHTML = '';
+
           jogadores.forEach(j => {
             const idStr = String(j.id || ('jog_' + Math.random().toString(36).substr(2, 5)));
-            if (!athletesData[idStr]) {
-              athletesData[idStr] = {
-                name: j.nome,
-                email: j.email || `${j.nome.toLowerCase().replace(/\s+/g, '.')}@peladatop.com`,
-                pass: 'pelada1234',
-                pos: j.posicao || 'MEI',
-                age: j.idade || 26,
-                weight: j.peso || 75,
-                fit: calcularFitnessAtleta(j),
-                initials: (j.nome || 'AT').substring(0, 2).toUpperCase()
-              };
+            const fitCalc = calcularFitnessAtleta(j);
+            const dist = j.distanciaMetros;
 
-              const opt = document.createElement('option');
-              opt.value = idStr;
-              opt.textContent = `${j.nome} (${j.posicao || 'JOG'})`;
-              select.appendChild(opt);
+            let tag = '⚪ Aguardando';
+            if (j.chegadaConfirmada || j.statusPresenca === 'chegou' || (dist && dist <= 500)) {
+              tag = '🟢 No Campo (≤500m)';
+            } else if (dist && dist <= 1500) {
+              tag = `🟡 Próximo (${dist}m)`;
+            } else if (dist && dist > 1500) {
+              tag = '🔴 Longe (>1.5km)';
+            }
+
+            athletesData[idStr] = {
+              id: idStr,
+              name: j.nome,
+              email: j.email || `${j.nome.toLowerCase().replace(/\s+/g, '.')}@peladatop.com`,
+              pass: 'pelada1234',
+              pos: j.posicao || 'MEI',
+              age: j.idade || 26,
+              weight: j.peso || 75,
+              fit: fitCalc,
+              distanciaMetros: dist,
+              distanciaTexto: j.distanciaTexto,
+              chegadaConfirmada: j.chegadaConfirmada,
+              initials: (j.nome || 'AT').substring(0, 2).toUpperCase()
+            };
+
+            // Opção para a Seção 4 (Lista de Seleção GPS)
+            if (selectGps) {
+              const optGps = document.createElement('option');
+              optGps.value = idStr;
+              optGps.textContent = `${j.nome} (${j.posicao || 'JOG'}) — [ ${tag} ]`;
+              selectGps.appendChild(optGps);
+            }
+
+            // Opção para a Seção 2 (Jogador)
+            if (selectSec2) {
+              const optSec2 = document.createElement('option');
+              optSec2.value = idStr;
+              optSec2.textContent = `${j.nome} (${j.posicao || 'JOG'}) — ★ ${fitCalc}% Fit`;
+              selectSec2.appendChild(optSec2);
             }
           });
 
           document.getElementById('stat-athletes').textContent = jogadores.length;
+          const badge = document.getElementById('gps-total-athletes-badge');
+          if (badge) badge.textContent = `${jogadores.length} atletas disponíveis`;
+
+          onGpsPlayerSelectChange();
         }
       } catch (e) {}
 
