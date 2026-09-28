@@ -1266,7 +1266,7 @@
             const pos = atleta.posicao || 'MEI';
             const nome = atleta.nome;
             const hora = atleta.horaOnline || atleta.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const subtexto = mensagemCustomizada || 'Acabou de entrar na lista da pelada!';
+            const subtexto = mensagemCustomizada || 'Entrou e se escalou na pelada! ⚽';
 
             const toastEl = document.createElement('div');
             toastEl.id = toastId;
@@ -4430,7 +4430,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=6.5')
+                navigator.serviceWorker.register('./sw.js?v=6.6')
                     .then(reg => {
                         console.log('PWA ServiceWorker v6.4 ativo com sucesso! Escopo:', reg.scope);
                         reg.update();

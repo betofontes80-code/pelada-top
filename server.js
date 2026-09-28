@@ -283,7 +283,14 @@ function verificarResetMeiaNoite() {
           listaConfirmados: [],
           version: appData.version
         });
-        broadcastSse('SYNC', appData);
+        broadcastSse('APITO_COLETIVO', {
+            atleta: novoAtleta || payload,
+            mensagem: `${(novoAtleta && novoAtleta.nome) || payload.nome || 'Jogador'} entrou e se escalou na pelada! ⚽`,
+            listaConfirmados: appData.listaConfirmados,
+            tocarApito: true,
+            version: appData.version
+          });
+          broadcastSse('SYNC', appData);
       }
     }
   } catch (err) {
