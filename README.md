@@ -54,7 +54,39 @@ cd pelada-top
 # 3. Inicie o servidor
 node server.js
 ```
-Abra no navegador em: `http://localhost:8080` (ou acesse pelo IP local no celular conectado ao mesmo Wi-Fi).
+Abra no navegador em: `http://localhost:3000` ou `http://localhost:8080`.
+
+---
+
+## 🧪 Página de Teste & Diagnóstico do Servidor (Tema Claro)
+
+Painel técnico e sandbox com suporte completo a Server-Sent Events (SSE), Geofencing de 500m, simulação de presença de atletas e telemetria em tempo real.
+
+### Estrutura de Arquivos:
+```
+├── server.js (Node.js + SSE stream + REST API v2)
+├── public/
+│   ├── index.html (Página de Teste & Diagnóstico High-Energy Athletic Light)
+│   ├── css/style.css (Design tokens e fontes oficiais)
+│   └── js/app.js (SSE stream, Geofence 500m, ping RTT e cadastro de atletas)
+└── README.md
+```
+
+### Execução e Acesso:
+```bash
+# Instalação e execução
+npm install express cors
+node server.js
+```
+- **Acesso ao Painel de Testes**: [http://localhost:3000/teste](http://localhost:3000/teste)
+- **App Principal**: [http://localhost:3000/](http://localhost:3000/)
+- **Painel Master Admin**: [http://localhost:3000/painel](http://localhost:3000/painel)
+
+### Endpoints da API de Teste:
+- `GET /api/v2/ping`: Verificação de status e RTT de latência.
+- `GET /events/match-stream`: Endpoint de streaming SSE em tempo real.
+- `POST /api/v2/athletes`: Cadastro de novos atletas na base.
+- `POST /api/v2/geofence-test`: Validação da regra de proximidade de 500 metros.
 
 ---
 

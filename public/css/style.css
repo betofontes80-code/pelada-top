@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-page: #f9f9f9;
+  --surface-card: #ffffff;
+  --surface-card-low: #f3f3f4;
+  --surface-card-hover: #f8fafc;
+  --surface-border: #e2e8f0;
+  
+  --brand-red: #dd0000;
+  --brand-red-hover: #b50000;
+  --brand-red-deep: #af0000;
+  
+  --emerald-live: #10b981;
+  --emerald-dark: #008542;
+  --emerald-bg: rgba(16, 185, 129, 0.12);
+  
+  --amber-warning: #f59e0b;
+  --amber-dark: #d97706;
+  --amber-bg: rgba(245, 158, 11, 0.12);
+  
+  --text-main: #131313;
+  --text-muted: #475569;
+  --terminal-bg: #0a0a0a;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  font-family: 'Hanken Grotesk', sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display, button, .btn {
+  font-family: 'Anybody', sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom Scrollbars */
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Terminal Scroll */
+.terminal-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.terminal-scroll::-webkit-scrollbar-track {
+  background: #111;
+}
+.terminal-scroll::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+.terminal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Pulses & Glows */
+@keyframes pulseGlowEmerald {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+  }
+}
+
+@keyframes pulseGlowRed {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(221, 0, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(221, 0, 0, 0.6);
+  }
+}
+
+.pulse-emerald {
+  animation: pulseGlowEmerald 2s infinite ease-in-out;
+}
+
+.pulse-red {
+  animation: pulseGlowRed 2s infinite ease-in-out;
+}
+
+/* Dot pulse */
+@keyframes liveDot {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.live-indicator {
+  animation: liveDot 1.6s infinite ease-in-out;
+}

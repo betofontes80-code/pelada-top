@@ -435,21 +435,126 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // 0.1 Rota leve e isolada para testes locais: GET /teste
-    if (pathname === '/teste' || pathname === '/teste.html') {
-      const testePath = path.join(__dirname, 'teste.html');
-      if (fs.existsSync(testePath)) {
+    // 0.1 Rota oficial para Página de Teste e Diagnóstico do Servidor: GET /teste
+    if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
+      const publicIndexPath = path.join(__dirname, 'public', 'index.html');
+      if (fs.existsSync(publicIndexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Access-Control-Allow-Origin': '*'
         });
-        res.end(fs.readFileSync(testePath));
+        res.end(fs.readFileSync(publicIndexPath));
         return;
       }
     }
 
-    // 1. API: Realtime SSE (/api/stream ou /api/realtime)
-    const isStreamRoute = pathname === '/api/stream' ||
+    // 0.2 API v2: Ping & Diagnóstico de Conexão
+    if (pathname === '/api/v2/ping' && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(JSON.stringify({ status: "ok", rtt: "12ms", time: Date.now() }));
+      return;
+    }
+
+    // 0.3 API v2: Teste de Geofencing 500m
+    if (pathname === '/api/v2/geofence-test' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: err.message }));
+          return;
+        }
+
+        const athleteId = payload.athleteId;
+        const distanceMeters = payload.distanceMeters !== undefined && payload.distanceMeters !== null
+          ? Number(payload.distanceMeters)
+          : null;
+        const dentroRaio = distanceMeters !== null && distanceMeters <= 500;
+
+        broadcastSse('GEOFENCE', {
+          athleteId,
+          distanceMeters,
+          dentroRaio
+        });
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({
+          success: true,
+          athleteId,
+          distanceMeters,
+          dentroRaio,
+          status: dentroRaio ? 'liberado' : 'bloqueado',
+          mensagem: dentroRaio
+            ? 'Dentro do raio de 500m. Check-in autorizado!'
+            : 'Fora do raio de 500m. Check-in bloqueado.'
+        }));
+      });
+      return;
+    }
+
+    // 0.4 API v2: Cadastro de Atleta
+    if (pathname === '/api/v2/athletes' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err || !payload) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Payload inválido' }));
+          return;
+        }
+
+        try {
+          const dados = lerDados();
+          if (!Array.isArray(dados.atletas)) dados.atletas = [];
+
+          const novoAtleta = {
+            id: payload.id || Date.now(),
+            nome: payload.nome || 'Novo Atleta',
+            apelido: payload.apelido || payload.nome || '',
+            posicao: payload.posicao || 'MEI',
+            email: payload.email || '',
+            idade: payload.idade || 25,
+            peso: payload.peso || 75,
+            condicaoFisica: payload.condicaoFisica || '100% Fit',
+            statusPresenca: payload.statusPresenca || 'pendente',
+            distanciaMetros: payload.distanciaMetros || null,
+            fitness: 100
+          };
+
+          dados.atletas.push(novoAtleta);
+          if (Array.isArray(dados.listaConfirmados)) {
+            dados.listaConfirmados.push(novoAtleta);
+          }
+          salvarDados(dados);
+
+          appData.atletas = dados.atletas;
+          appData.listaConfirmados = dados.listaConfirmados || dados.atletas;
+          appData.version = Date.now();
+          salvarDadosDisco();
+
+          broadcastSse('ATHLETE_ADDED', novoAtleta);
+
+          res.writeHead(201, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({ success: true, atleta: novoAtleta }));
+        } catch (innerErr) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: innerErr.message }));
+        }
+      });
+      return;
+    }
+
+    // 1. API: Realtime SSE (/events/match-stream, /api/stream ou /api/realtime)
+    const isStreamRoute = pathname === '/events/match-stream' ||
+                          pathname === '/api/stream' ||
                           pathname === '/api/realtime' ||
                           pathname === '/api/stream.js' ||
                           pathname === '/api/realtime.js';
@@ -1405,7 +1510,13 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    const filePath = path.join(__dirname, reqPath);
+    let filePath = path.join(__dirname, reqPath);
+    if (!fs.existsSync(filePath)) {
+      const publicPath = path.join(__dirname, 'public', reqPath.replace(/^\/public\//, ''));
+      if (fs.existsSync(publicPath)) {
+        filePath = publicPath;
+      }
+    }
 
     if (fs.existsSync(filePath)) {
       try {

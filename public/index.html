@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Pelada Top - Diagnóstico do Servidor &amp; Testes</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  
+  <!-- Google Fonts: Anybody, Hanken Grotesk, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+
+  <!-- Config Tailwind Custom -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Anybody', 'sans-serif'],
+            body: ['"Hanken Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              red: '#dd0000',
+              redHover: '#b50000',
+              redDeep: '#af0000',
+              emerald: '#008542',
+              emeraldLight: '#10b981',
+              amber: '#ffbf00',
+              amberDark: '#d97706',
+            },
+            surface: {
+              base: '#f9f9f9',
+              card: '#ffffff',
+              cardLow: '#f3f3f4',
+              cardHover: '#f8fafc',
+              border: '#e2e8f0',
+              input: '#ffffff',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Folha de Estilos Oficial -->
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body class="bg-[#f9f9f9] text-[#131313] min-h-screen flex flex-col font-body">
+
+  <!-- A. CABEÇALHO (Sticky Top Bar) -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#e2e8f0] px-4 lg:px-8 py-3.5 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <!-- Logo e Identificação -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-[#dd0000] flex items-center justify-center text-white font-sans font-black text-xl shadow-md">
+          ⚽
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-sans font-extrabold text-lg tracking-tight text-[#131313]">PELADA TOP</span>
+            <span class="px-2 py-0.5 text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full flex items-center gap-1.5 shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 live-indicator"></span>
+              v2.0
+            </span>
+          </div>
+          <p class="text-xs text-[#475569] font-medium hidden sm:block">Painel de Diagnóstico em Tempo Real, SSE &amp; Simulação Geofence 500m</p>
+        </div>
+      </div>
+
+      <!-- Ações do Cabeçalho -->
+      <div class="flex items-center gap-2">
+        <a href="/" target="_blank" class="px-3.5 py-1.5 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#131313] text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-xs">
+          <span class="material-icons text-sm text-[#475569]">smartphone</span>
+          Abrir App
+        </a>
+        <a href="/painel" target="_blank" class="px-3.5 py-1.5 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#131313] text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-xs">
+          <span class="material-icons text-sm text-[#475569]">admin_panel_settings</span>
+          Painel Admin
+        </a>
+        <button id="btnAtualizarStatus" class="px-4 py-1.5 rounded-lg bg-[#dd0000] hover:bg-[#b50000] text-white text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm">
+          <span class="material-icons text-sm">refresh</span>
+          Atualizar Status
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+    <!-- B. LINHA DE KPIS DO SISTEMA (4 Cartões) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 1. Status Servidor -->
+      <div class="bg-white border border-[#e2e8f0] rounded-lg p-4 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-[#475569] font-medium">
+          <span>Status do Servidor</span>
+          <span class="font-mono text-[10px] text-slate-400">Node/Go API</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-500 live-indicator"></span>
+          <span class="font-sans font-black text-2xl text-emerald-600 tracking-tight">ONLINE</span>
+        </div>
+        <div class="mt-1 text-xs text-[#475569]">
+          Uptime: <span class="font-mono font-semibold text-slate-700">99.98%</span>
+        </div>
+      </div>
+
+      <!-- 2. Latência Ping -->
+      <div class="bg-white border border-[#e2e8f0] rounded-lg p-4 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-[#475569] font-medium">
+          <span>Latência Ping</span>
+          <span class="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">Ótimo</span>
+        </div>
+        <div class="mt-2">
+          <span id="kpiPingDisplay" class="font-mono font-bold text-2xl text-[#131313]">12 ms avg</span>
+        </div>
+        <div class="mt-1 text-xs text-[#475569]">
+          Jitter: <span id="kpiJitterDisplay" class="font-mono font-semibold text-slate-700">&lt;1.2ms</span>
+        </div>
+      </div>
+
+      <!-- 3. SSE Realtime -->
+      <div class="bg-white border border-[#e2e8f0] rounded-lg p-4 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-[#475569] font-medium">
+          <span>SSE Realtime</span>
+          <span id="sseStatusBadge" class="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-300">CONECTADO</span>
+        </div>
+        <div class="mt-2">
+          <span id="sseChannels" class="font-sans font-black text-xl text-[#131313] tracking-tight">Canais: 4 ativos</span>
+        </div>
+        <div class="mt-1 text-xs text-emerald-600 font-medium flex items-center gap-1">
+          <span class="material-icons text-xs">bolt</span>
+          Push OK &bull; Keep-Alive Ativo
+        </div>
+      </div>
+
+      <!-- 4. Atletas Cadastrados -->
+      <div class="bg-white border border-[#e2e8f0] rounded-lg p-4 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-[#475569] font-medium">
+          <span>Atletas Cadastrados</span>
+          <span class="text-[10px] font-mono text-slate-500 font-semibold">PostgreSQL Synced</span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpiTotalAtletas" class="font-sans font-black text-2xl text-[#131313]">24</span>
+          <span id="kpiConfirmados" class="text-xs text-[#475569] font-medium font-mono">/ 12 Confirmados</span>
+        </div>
+        <div class="mt-1 text-xs text-[#475569]">
+          Base: <span class="font-mono font-medium text-slate-700">database.json &bull; Realtime</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- C. BANNER DE LINK DE ACESSO PÚBLICO -->
+    <section class="bg-white border border-[#e2e8f0] rounded-lg p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+          <span class="material-icons">qr_code_2</span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-[#475569] uppercase tracking-wider">Link de Acesso Público da Pelada (Convite)</div>
+          <div class="text-sm font-semibold text-[#131313]">Acesse no celular para testar o check-in presencial</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full md:w-auto">
+        <input id="inputPublicLink" type="text" readonly value="https://peladatop.app/live/test-sandbox-society-01" class="font-mono text-xs bg-slate-50 border border-[#e2e8f0] text-slate-700 rounded-lg px-3 py-2 w-full md:w-80 select-all focus:outline-none"/>
+        <button id="btnCopiarLink" class="relative px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1.5 shrink-0 shadow-xs">
+          <span class="material-icons text-sm">content_copy</span>
+          Copiar Link p/ Celular
+          <span id="toastCopiado" class="absolute -top-8 right-0 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow transition-all duration-200 opacity-0 pointer-events-none">
+            Copiado!
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- D. GRID MODULAR DE 4 SEÇÕES OPERACIONAIS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- SEÇÃO 1: Teste de Conexão & Ping (/api/v2/ping) -->
+      <section class="bg-white border border-[#e2e8f0] rounded-lg p-5 shadow-xs flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b border-[#e2e8f0]">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded bg-red-100 text-[#dd0000] flex items-center justify-center font-bold text-xs font-mono">01</span>
+            <h2 class="font-sans font-bold text-base text-[#131313]">Teste de Conexão &amp; Ping (/api/v2/ping)</h2>
+          </div>
+          <span class="text-xs font-mono text-slate-400">RTT &bull; Latência</span>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Host de Teste</label>
+              <input type="text" readonly value="api-edge.peladatop.internal" class="w-full bg-slate-50 border border-[#e2e8f0] text-slate-700 text-xs rounded-lg px-2.5 py-1.5 font-mono"/>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Protocolo</label>
+              <input type="text" readonly value="HTTP/2 + TLS 1.3 + SSE" class="w-full bg-slate-50 border border-[#e2e8f0] text-slate-700 text-xs rounded-lg px-2.5 py-1.5 font-mono"/>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Status Gateway</label>
+              <input type="text" readonly value="200 OK (Keep-Alive)" class="w-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg px-2.5 py-1.5 font-mono font-semibold"/>
+            </div>
+          </div>
+
+          <button id="btnTestarPing" class="w-full py-2.5 px-4 bg-[#dd0000] hover:bg-[#b50000] text-white font-sans font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5">
+            <span class="material-icons text-sm">speed</span>
+            TESTAR PING AGORA
+          </button>
+
+          <!-- Terminal Monospace Interno de RTT -->
+          <div class="mt-2">
+            <div class="text-[11px] font-mono text-slate-500 mb-1 flex items-center justify-between">
+              <span>Relatório de Latência RTT</span>
+              <span class="text-slate-400">0% packet loss</span>
+            </div>
+            <div id="pingTerminalLog" class="h-28 bg-[#0a0a0a] text-slate-200 font-mono text-xs rounded-lg p-2.5 overflow-y-auto terminal-scroll border border-slate-800 space-y-1">
+              <div class="text-slate-400">// Pings recentes e métricas do Gateway</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 2: Espaço do Jogador (Testes & Atletas) -->
+      <section class="bg-white border border-[#e2e8f0] rounded-lg p-5 shadow-xs flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b border-[#e2e8f0]">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs font-mono">02</span>
+            <h2 class="font-sans font-bold text-base text-[#131313]">Espaço do Jogador (Testes &amp; Atletas)</h2>
+          </div>
+          <span class="text-xs font-mono text-slate-400">Atletas &bull; Auth</span>
+        </div>
+
+        <div class="mt-4 space-y-3 text-xs">
+          <!-- Dropdown Dinâmico -->
+          <div>
+            <label class="block text-[#475569] font-medium mb-1">Selecionar Atleta Pré-Cadastrado</label>
+            <select id="selectAtleta" class="w-full bg-white border border-[#e2e8f0] text-[#131313] text-xs rounded-lg px-2.5 py-2 font-medium focus:ring-1 focus:ring-[#dd0000] focus:border-[#dd0000]">
+              <option value="">Carregando atletas...</option>
+            </select>
+          </div>
+
+          <!-- Campos do Jogador -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="sm:col-span-2">
+              <label class="block text-[#475569] font-medium mb-1">Nome Completo</label>
+              <input id="inputNome" type="text" placeholder="Nome do Jogador" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-[#dd0000]"/>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Apelido</label>
+              <input id="inputApelido" type="text" placeholder="Apelido" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-[#dd0000]"/>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Posição</label>
+              <select id="selectPosicao" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2 py-1.5">
+                <option value="MEI">MEI (Meio)</option>
+                <option value="ATA">ATA (Ataque)</option>
+                <option value="ZAG">ZAG (Zaga)</option>
+                <option value="LAT">LAT (Lateral)</option>
+                <option value="GOL">GOL (Goleiro)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Idade</label>
+              <input id="inputIdade" type="number" value="24" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2 py-1.5"/>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Peso (kg)</label>
+              <input id="inputPeso" type="number" value="76" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2 py-1.5"/>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Condição</label>
+              <select id="selectCondicao" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2 py-1.5 font-medium">
+                <option value="100% Fit">100% Fit</option>
+                <option value="80% Boa">80% Boa</option>
+                <option value="60% Regular">60% Regular</option>
+                <option value="40% Recupera">40% Recupera</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">E-mail de Acesso</label>
+              <input id="inputEmail" type="email" placeholder="atleta@peladatop.internal" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2.5 py-1.5"/>
+            </div>
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">Senha (Mock)</label>
+              <input id="inputSenha" type="password" value="pelada123" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2.5 py-1.5"/>
+            </div>
+          </div>
+
+          <!-- Ações do Jogador -->
+          <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button id="btnLoginJogador" class="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center justify-center gap-1">
+              <span class="material-icons text-sm">key</span>
+              1. TESTAR LOGIN COMO JOGADOR
+            </button>
+            <button id="btnCadastrarJogador" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center justify-center gap-1">
+              <span class="material-icons text-sm">person_add</span>
+              2. CADASTRAR NOVO JOGADOR
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 3: Espaço do Administrador (Top ADM & Gestão de Partida) -->
+      <section class="bg-white border border-[#e2e8f0] rounded-lg p-5 shadow-xs flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b border-[#e2e8f0]">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs font-mono">03</span>
+            <h2 class="font-sans font-bold text-base text-[#131313]">Espaço do Administrador (Top ADM &amp; Gestão)</h2>
+          </div>
+          <span class="px-2 py-0.5 text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 rounded">Superadmin Role #1</span>
+        </div>
+
+        <div class="mt-4 space-y-3 text-xs">
+          <!-- Credenciais Master -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[#475569] font-medium mb-1">E-mail Master ADM</label>
+              <input id="adminEmail" type="email" value="admin@peladatop.internal" class="w-full bg-slate-50 border border-[#e2e8f0] text-xs rounded-lg px-2.5 py-1.5 font-mono"/>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-[#475569] font-medium">Chave Mestra / Token ADM</label>
+                <span id="adminAuthStatus" class="text-[10px] font-mono text-slate-500">PENDENTE</span>
+              </div>
+              <input id="adminToken" type="password" value="adm_master_top_2026" class="w-full bg-white border border-[#e2e8f0] text-xs rounded-lg px-2.5 py-1.5 font-mono"/>
+            </div>
+          </div>
+
+          <button id="btnAutenticarAdmin" class="w-full py-2.5 px-4 bg-[#f59e0b] hover:bg-[#d97706] text-white font-sans font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5">
+            <span class="material-icons text-sm">verified_user</span>
+            AUTENTICAR COMO TOP ADMIN
+          </button>
+
+          <!-- Controles Globais da Partida -->
+          <div class="pt-2 border-t border-[#e2e8f0]">
+            <div class="text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-2">Controles Globais da Partida</div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-slate-50 p-2 rounded-lg border border-[#e2e8f0] text-center">
+                <div class="text-[10px] text-slate-500 mb-1">Check-in GPS</div>
+                <button id="btnToggleGps" class="w-full px-2 py-1 text-xs font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  ATIVO (500m)
+                </button>
+              </div>
+              <div class="bg-slate-50 p-2 rounded-lg border border-[#e2e8f0] text-center">
+                <div class="text-[10px] text-slate-500 mb-1">Partida Ao Vivo</div>
+                <button id="btnToggleMatch" class="w-full px-2 py-1 text-xs font-bold rounded bg-amber-100 text-amber-800 border border-amber-300">
+                  EM ESPERA
+                </button>
+              </div>
+              <div class="bg-slate-50 p-2 rounded-lg border border-[#e2e8f0] text-center">
+                <div class="text-[10px] text-slate-500 mb-1">Algoritmo</div>
+                <button id="btnSortearTimes" class="w-full px-2 py-1 text-xs font-bold rounded bg-slate-900 text-white hover:bg-black">
+                  SORTEAR TIMES
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edição Rápida do Atleta -->
+          <div class="pt-2 flex items-center gap-2">
+            <button id="btnSalvarAtleta" class="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-sans font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1">
+              <span class="material-icons text-sm">save</span>
+              Salvar Alterações
+            </button>
+            <button id="btnExcluirAtleta" class="py-2 px-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-sans font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1">
+              <span class="material-icons text-sm">delete_outline</span>
+              Excluir Atleta
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 4: Simulação de GPS & Regra de Presença (Raio de 500m) -->
+      <section class="bg-white border border-[#e2e8f0] rounded-lg p-5 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-[#e2e8f0]">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs font-mono">04</span>
+              <h2 class="font-sans font-bold text-base text-[#131313]">Simulação de GPS &amp; Regra de Presença (500m)</h2>
+            </div>
+            <span class="px-2 py-0.5 text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded">Raio Oficial: 500m</span>
+          </div>
+
+          <!-- Chips informativos das 3 faixas -->
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+            <div class="p-2 rounded bg-red-50 border border-red-200 text-red-700">
+              <span class="font-bold">🔴 Faixa 1: Longe</span><br/>&gt; 1.5 km (Bloqueado)
+            </div>
+            <div class="p-2 rounded bg-amber-50 border border-amber-200 text-amber-800">
+              <span class="font-bold">🟡 Faixa 2: Próximo</span><br/>501m - 1500m (A caminho)
+            </div>
+            <div class="p-2 rounded bg-emerald-50 border border-emerald-300 text-emerald-800 font-semibold shadow-xs">
+              <span class="font-bold">🟢 Faixa 3: No Campo</span><br/>&le; 500m (Liberado!)
+            </div>
+          </div>
+
+          <!-- Atleta Ativo na Simulação e Status -->
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center justify-between text-xs text-[#475569]">
+              <span>Atleta Selecionado:</span>
+              <span id="simAtletaLabel" class="font-bold text-[#131313]">Lucas Silva (Meio-Campo) — 120 metros</span>
+            </div>
+            <div id="simFaixaBadge" class="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold shadow-xs">
+              🟢 FAIXA 3: NO CAMPO (&le; 500m) — Chegada Autorizada!
+            </div>
+          </div>
+
+          <!-- Botões de Simulação de Distância -->
+          <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <button id="btnGpsLonge" class="py-2 px-2 bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 hover:border-red-300 rounded-lg font-bold transition-all text-center">
+              🔴 Longe<br/><span class="text-[10px] font-mono font-normal">3.8 km</span>
+            </button>
+            <button id="btnGpsProximo" class="py-2 px-2 bg-slate-100 hover:bg-amber-50 hover:text-amber-800 border border-slate-200 hover:border-amber-300 rounded-lg font-bold transition-all text-center">
+              🟡 Próximo<br/><span class="text-[10px] font-mono font-normal">850 m</span>
+            </button>
+            <button id="btnGpsChegou" class="py-2 px-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 rounded-lg font-bold transition-all text-center shadow-xs">
+              🟢 Chegou ⚽<br/><span class="text-[10px] font-mono font-semibold">120 m (Campo)</span>
+            </button>
+            <button id="btnGpsReset" class="py-2 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg font-bold transition-all text-center">
+              ⚪ Desfazer<br/><span class="text-[10px] font-mono font-normal">Resetar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Botão Azul de Execução do Check-in -->
+        <div class="mt-4 pt-3 border-t border-[#e2e8f0]">
+          <button id="btnExecutarConfirmacao" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md flex items-center justify-center gap-2">
+            <span class="material-icons text-base">how_to_reg</span>
+            ⚽ 1. EXECUTAR 1ª CONFIRMAÇÃO (ENTRAR NA LISTA)
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- E. CONSOLE TERMINAL SSE LIVE & TELEMETRIA JSON -->
+    <section class="bg-[#0a0a0a] rounded-lg border border-slate-800 shadow-xl overflow-hidden">
+      <!-- Barra de cabeçalho do Terminal -->
+      <div class="bg-[#141414] px-4 py-2.5 flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <!-- Botões estilo macOS / Linux -->
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
+          </div>
+          <span class="font-mono text-xs font-semibold text-slate-300 ml-2">TERMINAL DE TELEMETRIA SSE &bull; PELADA TOP</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 live-indicator"></span>
+            STREAMING SSE: /events/match-stream
+          </div>
+          <button id="btnLimparTerminal" class="px-2.5 py-1 text-[11px] font-mono font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-all">
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <!-- Área de Logs com scroll automático -->
+      <div id="terminalLog" class="p-4 h-64 overflow-y-auto terminal-scroll font-mono text-xs text-slate-300 space-y-1">
+        <div class="text-slate-500">// Terminal de Diagnóstico em tempo real inicializado. Aguardando eventos...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- RODAPÉ -->
+  <footer class="bg-white border-t border-[#e2e8f0] px-4 py-4 text-center text-xs text-[#475569] font-medium">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>Pelada Top &bull; Plataforma Oficial de Gestão e Realtime de Peladas Society & Campo</div>
+      <div class="font-mono text-[11px] text-slate-500">Desenvolvido com Node.js + SSE + Geofencing 500m</div>
+    </div>
+  </footer>
+
+  <!-- Script da Aplicação -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
