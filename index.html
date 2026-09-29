@@ -1617,13 +1617,13 @@
                         cadastroGeralAtletas = atletasValidos;
                         localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
 
-                        // 2. Se listaConfirmados estiver vazia, sincroniza
-                        if (!Array.isArray(listaConfirmados) || listaConfirmados.length === 0) {
+                        // 2. Apenas inicializa listaConfirmados se for nula
+                        if (!Array.isArray(listaConfirmados)) {
                             listaConfirmados = [...cadastroGeralAtletas];
                             localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                         }
 
-                        // Renderiza e sincroniza instantaneamente todas as abas
+                        // Renderiza e sincroniza instantaneamente todas as abas (admin e jogadores)
                         aplicarDadosAtualizados();
                         return;
                     }
@@ -1766,8 +1766,8 @@
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
                     renderizarListaGestaoAdmin();
-                    // Consome GET /api/atletas e atualiza os atletas confirmados no admin
-                    consumirApiAtletasAdmin();
+                    // Consome imediatamente GET /api/atletas para garantir que o painel admin exiba todos os cadastros atualizados da nuvem
+                    carregarListaOficialAtletas();
                     buscarDadosServidor();
                     atualizarLocalizacaoGps(false);
                 } else if (aba === 'equipes') {
@@ -3017,21 +3017,38 @@
                 );
 
                 if (!atletaLogado || !presencaConfirmada) {
-                    // ESTADO 1: Ainda não confirmou presença na lista (1ª Confirmação)
-                    bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
-                    bannerPrompt.innerHTML = `
-                        <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
-                            <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
-                            <div>
-                                <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
-                                <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
+                    if (!peladaConfig.listaAberta) {
+                        // Lista Fechada / Bloqueada pelo Admin (Controle do Vestiário)
+                        bannerPrompt.className = 'shrink-0 bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                        bannerPrompt.innerHTML = `
+                            <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
+                                <span class="material-symbols-outlined text-amber-600 text-xl">lock</span>
+                                <div>
+                                    <span class="block leading-tight text-amber-800">Check-in Temporariamente Fechado</span>
+                                    <span class="text-[10px] text-on-surface-variant font-normal">Aguarde o administrador abrir a lista no vestiário</span>
+                                </div>
                             </div>
-                        </div>
-                        <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
-                            <span>Confirmar Presença</span>
-                            <span class="material-symbols-outlined text-xs">arrow_forward</span>
-                        </button>
-                    `;
+                            <span class="px-2.5 py-1 bg-amber-500/20 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                Bloqueada
+                            </span>
+                        `;
+                    } else {
+                        // ESTADO 1: Ainda não confirmou presença na lista (1ª Confirmação)
+                        bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                        bannerPrompt.innerHTML = `
+                            <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
+                                <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
+                                <div>
+                                    <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
+                                    <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
+                                </div>
+                            </div>
+                            <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
+                                <span>Confirmar Presença</span>
+                                <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                            </button>
+                        `;
+                    }
                 } else {
                     const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou';
                     const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
