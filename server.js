@@ -224,16 +224,6 @@ function salvarDadosDisco() {
   saveData(dadosCompletos);
 }
 
-// Base de dados de atletas sincronizada com banco/memória para a aba de teste e simulação
-let athletesDatabase = [
-  { id: 1, name: "Lucas Silva", position: "MEI", age: 24, weight: 76, fit: 100, distance: 120, status: "campo", checkedIn: true },
-  { id: 2, name: "Marcos Vinicius", position: "GOL", age: 28, weight: 82, fit: 92, distance: 45, status: "campo", checkedIn: true },
-  { id: 3, name: "Diego Costa", position: "ATA", age: 26, weight: 79, fit: 100, distance: 210, status: "campo", checkedIn: true },
-  { id: 4, name: "Rodrigo Pires", position: "VOL", age: 25, weight: 74, fit: 88, distance: 850, status: "proximo", checkedIn: false },
-  { id: 5, name: "Gabriel Santos", position: "ZAG", age: 27, weight: 83, fit: 80, distance: 3800, status: "longe", checkedIn: false },
-  { id: 6, name: "Felipe Melo", position: "VOL", age: 29, weight: 85, fit: 95, distance: 740, status: "proximo", checkedIn: false }
-];
-
 // Retorna todos os atletas cadastrados no banco real database.json formatados para v1 e v2
 function obterAtletasCompletos() {
   const dados = lerDados();
@@ -249,12 +239,8 @@ function obterAtletasCompletos() {
     lista = appData.listaConfirmados;
   }
 
-  if (lista.length === 0) {
-    return athletesDatabase;
-  }
-
   return lista.map((a, idx) => {
-    const id = a.id !== undefined && a.id !== null ? a.id : (idx + 1);
+    const id = a.id !== undefined && a.id !== null ? String(a.id) : String(idx + 1);
     const name = a.nome || a.name || `Atleta ${idx + 1}`;
     const position = a.posicao || a.position || 'MEI';
     const age = parseInt(a.idade || a.age || 28, 10);
@@ -270,7 +256,7 @@ function obterAtletasCompletos() {
 
     let status = a.status || a.statusAproximacao;
     if (!status) {
-      if (distance === null) status = 'desconhecido';
+      if (distance === null) status = 'longe';
       else if (distance <= 500) status = 'campo';
       else if (distance <= 1500) status = 'proximo';
       else status = 'longe';
@@ -299,6 +285,9 @@ function obterAtletasCompletos() {
     };
   });
 }
+
+// Base de dados de atletas sincronizada com banco/memória para a aba de teste e simulação
+let athletesDatabase = obterAtletasCompletos();
 
 // Conexões ativas de Server-Sent Events (SSE) para transmissão em tempo real
 const sseClients = new Set();
@@ -1700,6 +1689,10 @@ const requestHandler = (req, res) => {
 
           res.writeHead(200, {
             'Content-Type': contentType,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Access-Control-Allow-Origin': '*',
             'Service-Worker-Allowed': '/'
           });
           res.end(fileData);
