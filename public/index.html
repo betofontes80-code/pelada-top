@@ -74,19 +74,20 @@
         </div>
       </div>
 
-      <!-- Ações do Cabeçalho -->
-      <div class="flex items-center gap-2">
-        <a href="/" target="_blank" class="px-3.5 py-1.5 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#131313] text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-xs">
-          <span class="material-icons text-sm text-[#475569]">smartphone</span>
-          Abrir App
-        </a>
-        <a href="/painel" target="_blank" class="px-3.5 py-1.5 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#131313] text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-xs">
-          <span class="material-icons text-sm text-[#475569]">admin_panel_settings</span>
-          Painel Admin
-        </a>
-        <button id="btnAtualizarStatus" class="px-4 py-1.5 rounded-lg bg-[#dd0000] hover:bg-[#b50000] text-white text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm">
+      <!-- Servidor Alvo & Ações -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-50 border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 shadow-xs">
+          <span class="text-[10px] font-bold font-sans text-slate-500 uppercase tracking-wider">Conectar a:</span>
+          <select id="serverTargetSelect" class="bg-transparent text-xs font-bold text-[#131313] focus:outline-none cursor-pointer">
+            <option value="https://pelada-top.onrender.com" selected>🌐 Servidor Online (Render)</option>
+            <option value="http://localhost:3000">💻 Servidor Local (Porta 3000)</option>
+            <option value="http://192.168.1.100:3000">📱 Celular / Wi-Fi</option>
+          </select>
+        </div>
+
+        <button id="btnAtualizarStatus" class="px-4 py-2 rounded-lg bg-[#dd0000] hover:bg-[#b50000] text-white text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm">
           <span class="material-icons text-sm">refresh</span>
-          Atualizar Status
+          Sincronizar
         </button>
       </div>
     </div>
@@ -100,15 +101,15 @@
       <!-- 1. Status Servidor -->
       <div class="bg-white border border-[#e2e8f0] rounded-lg p-4 shadow-xs">
         <div class="flex items-center justify-between text-xs text-[#475569] font-medium">
-          <span>Status do Servidor</span>
-          <span class="font-mono text-[10px] text-slate-400">Node/Go API</span>
+          <span>Servidor Ativo</span>
+          <span id="kpiServerHost" class="font-mono text-[10px] text-slate-400">pelada-top.onrender.com</span>
         </div>
         <div class="mt-2 flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-emerald-500 live-indicator"></span>
-          <span class="font-sans font-black text-2xl text-emerald-600 tracking-tight">ONLINE</span>
+          <span id="kpiServerIndicator" class="w-3 h-3 rounded-full bg-emerald-500 live-indicator"></span>
+          <span id="kpiServerStatus" class="font-sans font-black text-2xl text-emerald-600 tracking-tight">ONLINE</span>
         </div>
         <div class="mt-1 text-xs text-[#475569]">
-          Uptime: <span class="font-mono font-semibold text-slate-700">99.98%</span>
+          Conexão: <span id="kpiServerConnection" class="font-mono font-semibold text-slate-700">Nuvem (Render)</span>
         </div>
       </div>
 
@@ -197,7 +198,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
               <label class="block text-[#475569] font-medium mb-1">Host de Teste</label>
-              <input type="text" readonly value="api-edge.peladatop.internal" class="w-full bg-slate-50 border border-[#e2e8f0] text-slate-700 text-xs rounded-lg px-2.5 py-1.5 font-mono"/>
+              <input id="inputTestHost" type="text" readonly value="pelada-top.onrender.com" class="w-full bg-slate-50 border border-[#e2e8f0] text-slate-700 text-xs rounded-lg px-2.5 py-1.5 font-mono"/>
             </div>
             <div>
               <label class="block text-[#475569] font-medium mb-1">Protocolo</label>

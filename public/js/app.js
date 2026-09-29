@@ -1,5 +1,40 @@
 // Pelada Top - Painel de Diagnóstico do Servidor, SSE & Simulação Geofence 500m
 
+// Servidor Alvo Oficial (Padrão: Nuvem Render)
+let apiBase = 'https://pelada-top.onrender.com';
+
+// Retorna URL completa para chamadas de API e EventSource
+function getApiUrl(path) {
+  if (!path) return apiBase;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  return `${apiBase}${cleanPath}`;
+}
+
+// Alterna o servidor alvo (Render vs Localhost) dinamicamente
+function setTargetServer(newBase) {
+  apiBase = newBase.replace(/\/+$/, '');
+  const cleanHost = apiBase.replace('https://', '').replace('http://', '');
+
+  const hostInput = document.getElementById('inputTestHost');
+  if (hostInput) hostInput.value = cleanHost;
+
+  const kpiHost = document.getElementById('kpiServerHost');
+  if (kpiHost) kpiHost.textContent = cleanHost;
+
+  const kpiConn = document.getElementById('kpiServerConnection');
+  if (kpiConn) {
+    kpiConn.textContent = apiBase.includes('render') ? 'Nuvem (Render)' : 'Localhost';
+  }
+
+  logTerminal('SERVIDOR', `Conectando ao alvo: ${apiBase}`, 'warning');
+
+  // Reconecta SSE e atualiza dados em tempo real
+  initSSE();
+  testarPing();
+  carregarAtletas();
+}
+
 // ID do Atleta atualmente selecionado na aba de simulação de GPS
 let currentAthleteId = 1; // Padrão: Lucas Silva (ID 1)
 
@@ -54,7 +89,7 @@ function initSSE() {
   const sseChannels = document.getElementById('sseChannels');
 
   try {
-    const sseUrl = '/events/match-stream';
+    const sseUrl = getApiUrl('/events/match-stream');
     state.eventSource = new EventSource(sseUrl);
 
     state.eventSource.onopen = () => {
@@ -157,7 +192,7 @@ function handleSSEEvent(data) {
 // Carregar lista de atletas da API v2
 async function carregarAtletas() {
   try {
-    const res = await fetch('/api/v2/athletes');
+    const res = await fetch(getApiUrl('/api/v2/athletes'));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
@@ -348,8 +383,28 @@ function atualizarDisplayAtleta(athleteId) {
 
 // 2. Dispara a simulação de distância para o atleta selecionado (POST /api/v2/geofence-test)
 async function dispararSimulacaoGPS(distancia, statusTag) {
+  // Atualização otimista imediata na interface para feedback instantâneo
+  const localAthlete = state.athletes.find(a => a.id === currentAthleteId);
+  if (localAthlete) {
+    if (statusTag === 'reset') {
+      localAthlete.status = 'reset';
+      localAthlete.distance = 0;
+      localAthlete.distanciaMetros = 0;
+      localAthlete.checkedIn = false;
+      localAthlete.canCheckIn = false;
+    } else {
+      localAthlete.distance = distancia;
+      localAthlete.distanciaMetros = distancia;
+      localAthlete.status = statusTag;
+      localAthlete.canCheckIn = distancia <= 500;
+    }
+    atualizarDisplayAtleta(currentAthleteId);
+    renderListaAtletasGPS();
+    renderGpsSelect();
+  }
+
   try {
-    const response = await fetch('/api/v2/geofence-test', {
+    const response = await fetch(getApiUrl('/api/v2/geofence-test'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -377,8 +432,30 @@ async function dispararSimulacaoGPS(distancia, statusTag) {
 
 // 3. Executar o check-in do atleta ativo (POST /api/v2/checkin)
 async function executarCheckinAtivo() {
+  const localAthlete = state.athletes.find(a => a.id === currentAthleteId);
+  if (!localAthlete) return;
+
+  if (localAthlete.distance > 500) {
+    logTerminal('CHECK-IN NEGADO', `${localAthlete.name || localAthlete.nome}: Fora do raio de 500m (${localAthlete.distance}m)`, 'error');
+    alert('Check-in bloqueado: Você está fora do raio de 500 metros do campo!');
+    return;
+  }
+
+  // Atualização otimista imediata
+  localAthlete.checkedIn = true;
+  localAthlete.status = 'campo';
+  atualizarDisplayAtleta(currentAthleteId);
+  renderListaAtletasGPS();
+  renderGpsSelect();
+  atualizarKpis();
+
+  const btn = document.getElementById('btnExecutarConfirmacao');
+  if (btn) {
+    btn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> CONFIRMANDO CHECK-IN...';
+  }
+
   try {
-    const response = await fetch('/api/v2/checkin', {
+    const response = await fetch(getApiUrl('/api/v2/checkin'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ athleteId: currentAthleteId })
@@ -394,13 +471,19 @@ async function executarCheckinAtivo() {
       renderGpsSelect();
       atualizarKpis();
       logTerminal('CHECK-IN SUCESSO', `${result.athlete.name || result.athlete.nome} confirmado na lista!`, 'success');
+      if (btn) {
+        btn.innerHTML = '✓ CHECK-IN CONFIRMADO COM SUCESSO!';
+        setTimeout(() => { atualizarDisplayAtleta(currentAthleteId); }, 2000);
+      }
     } else {
       logTerminal('CHECK-IN NEGADO', result.message || 'Bloqueado fora dos 500m', 'error');
       alert(result.message || 'Check-in bloqueado.');
+      atualizarDisplayAtleta(currentAthleteId);
     }
   } catch (error) {
     console.error("Erro ao executar check-in:", error);
     logTerminal('CHECKIN_ERR', error.message, 'error');
+    atualizarDisplayAtleta(currentAthleteId);
   }
 }
 
@@ -483,7 +566,7 @@ async function testarPing() {
 
   const start = performance.now();
   try {
-    const res = await fetch('/api/v2/ping?t=' + Date.now());
+    const res = await fetch(getApiUrl('/api/v2/ping?t=' + Date.now()));
     const rtt = Math.round(performance.now() - start);
     const data = await res.json();
 
@@ -582,7 +665,7 @@ async function cadastrarNovoJogador() {
   }
 
   try {
-    const res = await fetch('/api/v2/athletes', {
+    const res = await fetch(getApiUrl('/api/v2/athletes'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -757,6 +840,15 @@ function bootApp() {
   const publicLinkEl = document.getElementById('inputPublicLink');
   if (publicLinkEl && window.location && window.location.origin) {
     publicLinkEl.value = `${window.location.origin}/teste`;
+  }
+
+  // Seletor de Servidor Alvo (Render vs Localhost)
+  const serverTargetSelect = document.getElementById('serverTargetSelect');
+  if (serverTargetSelect) {
+    serverTargetSelect.value = apiBase;
+    serverTargetSelect.addEventListener('change', (e) => {
+      setTargetServer(e.target.value);
+    });
   }
 
   // Inicializa componentes
