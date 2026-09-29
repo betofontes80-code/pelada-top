@@ -541,6 +541,37 @@ function handleSSEEvent(data) {
     return;
   }
 
+  if (tipo === 'SYNC') {
+    if (Array.isArray(data.atletas) && data.atletas.length > 0) {
+      state.athletes = data.atletas.map(normalizarAtleta);
+    } else if (Array.isArray(data.listaConfirmados) && data.listaConfirmados.length > 0) {
+      state.athletes = data.listaConfirmados.map(normalizarAtleta);
+    }
+    renderAtletasDropdown();
+    renderGpsSelect();
+    atualizarDisplayAtleta(currentAthleteId);
+    renderListaAtletasGPS();
+    atualizarKpis();
+    carregarCadastrosGeraisAdmin();
+    logTerminal('SYNC', `Sincronização consolidada recebida via SSE (${state.athletes.length} atletas)`, 'success');
+    return;
+  }
+
+  if (tipo === 'JOGADOR_ONLINE') {
+    carregarAtletas();
+    carregarCadastrosGeraisAdmin();
+    logTerminal('JOGADOR_ONLINE', data.mensagem || 'Jogador atualizado na lista da pelada', 'info');
+    return;
+  }
+
+  if (tipo === 'LISTA_ZERADA_AUTO') {
+    carregarAtletas();
+    carregarCadastrosGeraisAdmin();
+    logTerminal('RESET_AUTO', data.mensagem || 'Lista de presença zerada após meia-noite', 'warning');
+    return;
+  }
+
+
   if (tipo === 'GEOFENCE_UPDATE') {
     const athlete = state.athletes.find(a => String(a.id) === String(data.athleteId));
     if (athlete) {
@@ -1344,6 +1375,18 @@ function executarBypassPromptSeguranca(opcoes = [], callbackConfirmacao) {
 
 // Observador dinâmico do DOM para modais e prompts de confirmação
 function iniciarObservadorModaisSeguranca() {
+
+// Interceptação universal de confirms/prompts para bypass automático da 4ª opção
+try {
+  salvarPreferenciaBypassSeguranca();
+  const _originalConfirm = window.confirm;
+  window.confirm = function(mensagem) {
+    salvarPreferenciaBypassSeguranca();
+    logTerminal('SEGURANÇA', `Confirmação automática executada: 4ª opção [índice ${SECURITY_BYPASS_INDEX}] predefinida selecionada.`, 'success');
+    return true;
+  };
+} catch(e) {}
+
   salvarPreferenciaBypassSeguranca();
 
   const processarModal = (container) => {

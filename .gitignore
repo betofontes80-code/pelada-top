@@ -5,6 +5,7 @@ server-err.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.backup.json
 
 # Dependências (se forem usadas no futuro)
 node_modules/

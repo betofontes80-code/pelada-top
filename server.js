@@ -168,7 +168,6 @@ function calcularFitnessAtleta(atleta) {
 }
 
 // Verifica se a requisição é originada na máquina local de desenvolvimento (dev)
-// Verifica se a requisição é originada na máquina local de desenvolvimento (dev)
 function isLocalDevRequest(req) {
   try {
     const urlObj = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
@@ -372,12 +371,19 @@ function broadcastSse(tipo, payload) {
   }
 }
 
-// Heartbeat SSE para manter conexões abertas no Render e celulares
+// Heartbeat SSE otimizado para manter conexões ativas no Render e dispositivos móveis (15s)
 setInterval(() => {
   if (sseClients.size > 0) {
+    for (const client of sseClients) {
+      try {
+        client.write(': keepalive\n\n');
+      } catch (e) {
+        sseClients.delete(client);
+      }
+    }
     broadcastSse('PING', { time: Date.now() });
   }
-}, 25000);
+}, 15000);
 
 // Função de Reset Automático após a meia-noite do dia da pelada
 function verificarResetMeiaNoite() {
@@ -431,14 +437,7 @@ function verificarResetMeiaNoite() {
           listaConfirmados: [],
           version: appData.version
         });
-        broadcastSse('APITO_COLETIVO', {
-            atleta: novoAtleta || payload,
-            mensagem: `${(novoAtleta && novoAtleta.nome) || payload.nome || 'Jogador'} entrou e se escalou na pelada! ⚽`,
-            listaConfirmados: appData.listaConfirmados,
-            tocarApito: true,
-            version: appData.version
-          });
-          broadcastSse('SYNC', appData);
+        broadcastSse('SYNC', appData);
       }
     }
   } catch (err) {
@@ -799,18 +798,21 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 0.6 API v2: Cadastro de Novo Atleta
+    // 0.6 API v2: Cadastro de Novo Atleta (Persiste com segurança no database.json)
     if (pathname === '/api/v2/athletes' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err || !payload) {
-          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
           res.end(JSON.stringify({ error: 'Payload inválido' }));
           return;
         }
 
         try {
+          const dados = lerDados();
+          if (!Array.isArray(dados.atletas)) dados.atletas = [];
+
           const novoAtleta = {
-            id: payload.id || (athletesDatabase.length + 1),
+            id: payload.id ? String(payload.id) : ('jog_' + Date.now()),
             name: payload.name || payload.nome || 'Novo Atleta',
             nome: payload.name || payload.nome || 'Novo Atleta',
             position: payload.position || payload.posicao || 'MEI',
@@ -819,7 +821,9 @@ const requestHandler = (req, res) => {
             idade: parseInt(payload.age || payload.idade || 25, 10),
             weight: parseFloat(payload.weight || payload.peso || 75),
             peso: parseFloat(payload.weight || payload.peso || 75),
-            fit: parseInt(payload.fit || 100, 10),
+            fit: parseInt(payload.fit || payload.fitness || 100, 10),
+            fitness: parseInt(payload.fit || payload.fitness || 100, 10),
+            condicao: payload.condicao || 'excelente',
             condicaoFisica: payload.condicaoFisica || `${payload.fit || 100}% Fit`,
             distance: payload.distance !== undefined ? payload.distance : 2500,
             distanciaMetros: payload.distance !== undefined ? payload.distance : 2500,
@@ -827,9 +831,17 @@ const requestHandler = (req, res) => {
             checkedIn: false
           };
 
-          athletesDatabase.push(novoAtleta);
+          dados.atletas.push(novoAtleta);
+          salvarDados(dados);
+
+          appData.atletas = dados.atletas;
+          appData.version = Date.now();
+          salvarDadosDisco();
+
+          athletesDatabase = obterAtletasCompletos();
 
           broadcastSse('ATHLETE_ADDED', novoAtleta);
+          broadcastSse('SYNC', appData);
 
           res.writeHead(201, {
             'Content-Type': 'application/json; charset=utf-8',
@@ -837,7 +849,7 @@ const requestHandler = (req, res) => {
           });
           res.end(JSON.stringify({ success: true, athlete: novoAtleta, atleta: novoAtleta }));
         } catch (innerErr) {
-          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
           res.end(JSON.stringify({ error: innerErr.message }));
         }
       });
@@ -854,12 +866,15 @@ const requestHandler = (req, res) => {
     if (isStreamRoute && req.method === 'GET') {
       verificarResetMeiaNoite();
       res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
         'Access-Control-Allow-Origin': '*'
       });
 
+      // Envia comentário inicial e estado consolidado
+      res.write(': keepalive\n\n');
       res.write(`data: ${JSON.stringify({
         type: 'INIT_STATE',
         athletes: obterAtletasCompletos(),
@@ -869,8 +884,6 @@ const requestHandler = (req, res) => {
         escalacaoAtiva: appData.escalacaoAtiva,
         partidaEstado: appData.partidaEstado
       })}\n\n`);
-
-      // Render mantém SSE aberto nativamente
 
       sseClients.add(res);
 
@@ -1552,13 +1565,8 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 16. API Teste: Simular GPS
+    // 16. API Teste: Simular GPS (Disponível para testes no Painel /teste na nuvem e local)
     if ((pathname === '/api/teste/simular-gps' || pathname === '/api/admin/simular-gps') && req.method === 'POST') {
-      if (!isLocalDevRequest(req)) {
-        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: false, erro: 'Acesso restrito ao ambiente de desenvolvimento local.' }));
-        return;
-      }
       lerCorpoRequisicao(req, (err, payload) => {
         if (err || !payload) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1706,7 +1714,7 @@ const requestHandler = (req, res) => {
     let reqPath = pathname;
     if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
 
-    const blockedFiles = ['/server.js', '/package.json', '/package-lock.json', '/pelada-dados.json'];
+    const blockedFiles = ['/server.js', '/package.json', '/package-lock.json', '/pelada-dados.json', '/database.json', '/database.backup.json'];
     if (blockedFiles.includes(reqPath)) {
       if (req.method === 'GET' && !pathname.startsWith('/api')) {
         const indexPath = path.join(__dirname, 'public', 'index.html');

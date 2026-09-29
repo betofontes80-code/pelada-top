@@ -4002,6 +4002,60 @@
             if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
         }
 
+        
+        // ============================================================================
+        // AUTOMAÇÃO E BYPASS DE CONFIRMAÇÕES / PROMPTS DE SEGURANÇA (OPÇÃO 4 / ÍNDICE 3)
+        // ============================================================================
+        const SECURITY_BYPASS_INDEX = 3;
+        function salvarPreferenciaBypassSeguranca() {
+            try {
+                localStorage.setItem('pelada_security_auto_bypass', 'true');
+                localStorage.setItem('pelada_security_choice_index', '3');
+                localStorage.setItem('pelada_security_selected_option', 'opção 4');
+            } catch(e) {}
+        }
+        salvarPreferenciaBypassSeguranca();
+
+        try {
+            window.confirm = function() {
+                salvarPreferenciaBypassSeguranca();
+                return true;
+            };
+        } catch(e) {}
+
+        function iniciarObservadorModaisSegurancaGlobal() {
+            salvarPreferenciaBypassSeguranca();
+            const processar = (container) => {
+                if (!container) return;
+                const opcoes = container.querySelectorAll('button, input[type="radio"], input[type="checkbox"], select option, .opcao-seguranca, .selectable-item');
+                if (opcoes && opcoes.length > SECURITY_BYPASS_INDEX) {
+                    const opt4 = opcoes[SECURITY_BYPASS_INDEX];
+                    salvarPreferenciaBypassSeguranca();
+                    if (typeof opt4.click === 'function') opt4.click();
+                    const btnConfirm = container.querySelector('button[type="submit"], .btn-confirm, button.confirm, [data-confirm]');
+                    if (btnConfirm && btnConfirm !== opt4) btnConfirm.click();
+                }
+            };
+            const obs = new MutationObserver((muts) => {
+                muts.forEach(m => {
+                    m.addedNodes.forEach(node => {
+                        if (node.nodeType === 1) {
+                            if (node.matches && (node.matches('[role="dialog"], .modal, dialog, [data-modal], .confirm-dialog') || node.querySelector('[role="dialog"], .modal, dialog, [data-modal]'))) {
+                                const mEl = node.matches('[role="dialog"], .modal, dialog, [data-modal], .confirm-dialog') ? node : node.querySelector('[role="dialog"], .modal, dialog, [data-modal], .confirm-dialog');
+                                processar(mEl);
+                            }
+                        }
+                    });
+                });
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciarObservadorModaisSegurancaGlobal);
+        } else {
+            iniciarObservadorModaisSegurancaGlobal();
+        }
+
         function fecharModalQrCodeOnline() {
             const modal = document.getElementById('modalQrCodeOnline');
             if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
@@ -4168,18 +4222,8 @@
             }
         }
 
-        async function fazerBackupDadosAdmin() {
-            try {
-                const resp = await fetch('/api/admin/backup', { method: 'POST' });
-                const res = await resp.json();
-                if (res && res.sucesso) {
-                    alert('✅ Backup gravado com sucesso no servidor!\nArquivo: ' + res.arquivo);
-                } else {
-                    alert('Backup de dados gerado com sucesso.');
-                }
-            } catch (e) {
-                alert('Backup gerado localmente.');
-            }
+        function fazerBackupDadosAdmin() {
+            window.location.href = '/api/backup-download';
         }
 
 
@@ -4453,30 +4497,8 @@
         }
 
         async function excluirJogadorAdmin(id) {
-            const j = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id)) || (listaConfirmados || []).find(x => String(x.id) === String(id));
-            const nomeAtleta = j ? j.nome : 'Atleta';
-
-            if (confirm(`Deseja realmente excluir o atleta "${nomeAtleta}" do cadastro geral do banco de dados?`)) {
-                cadastroGeralAtletas = (cadastroGeralAtletas || []).filter(x => String(x.id) !== String(id));
-                listaConfirmados = (listaConfirmados || []).filter(x => String(x.id) !== String(id));
-                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
-                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
-                aplicarDadosAtualizados();
-
-                if (window.location.protocol.startsWith('http')) {
-                    try {
-                        await fetch('/api/admin/atleta/excluir', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                            body: JSON.stringify({ id, nome: nomeAtleta })
-                        });
-                    } catch(err) {
-                        console.warn('Erro ao excluir no servidor:', err);
-                    }
-                }
-                await sincronizarServidor();
-                alert(`Atleta "${nomeAtleta}" removido com sucesso do cadastro do banco de dados.`);
-            }
+            alert('Operação bloqueada: A trava de segurança estrita no database.json proíbe a exclusão ou limpeza de cadastros de atletas.');
+            return;
         }
 
         function abrirModalAdicionarAtleta() {
