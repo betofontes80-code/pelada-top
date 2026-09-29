@@ -1,10 +1,19 @@
 // Pelada Top - Painel de Diagnóstico do Servidor, SSE & Simulação Geofence 500m
 
+// ID do Atleta atualmente selecionado na aba de simulação de GPS
+let currentAthleteId = 1; // Padrão: Lucas Silva (ID 1)
+
 // Estado da Aplicação
 const state = {
-  athletes: [],
-  selectedAthleteId: null,
-  activeDistance: 120, // metros inicial
+  athletes: [
+    { id: 1, name: "Lucas Silva", position: "MEI", age: 24, weight: 76, fit: 100, distance: 120, status: "campo", checkedIn: true },
+    { id: 2, name: "Marcos Vinicius", position: "GOL", age: 28, weight: 82, fit: 92, distance: 45, status: "campo", checkedIn: true },
+    { id: 3, name: "Diego Costa", position: "ATA", age: 26, weight: 79, fit: 100, distance: 210, status: "campo", checkedIn: true },
+    { id: 4, name: "Rodrigo Pires", position: "VOL", age: 25, weight: 74, fit: 88, distance: 850, status: "proximo", checkedIn: false },
+    { id: 5, name: "Gabriel Santos", position: "ZAG", age: 27, weight: 83, fit: 80, distance: 3800, status: "longe", checkedIn: false },
+    { id: 6, name: "Felipe Melo", position: "VOL", age: 29, weight: 85, fit: 95, distance: 740, status: "proximo", checkedIn: false }
+  ],
+  selectedAthleteId: 1,
   isAdminAuthenticated: false,
   gpsRuleActive: true,
   matchStatus: 'EM ESPERA',
@@ -12,15 +21,6 @@ const state = {
   pingHistory: [],
   eventSource: null
 };
-
-// Atletas mockados padrão para caso a API esteja vazia
-const DEFAULT_MOCK_ATHLETES = [
-  { id: 1, nome: 'Lucas Silva', apelido: 'Lucas', posicao: 'MEI', idade: 24, peso: 76, condicaoFisica: '100% Fit', email: 'lucas.silva@peladatop.internal', statusPresenca: 'confirmado', distanciaMetros: 120 },
-  { id: 2, nome: 'Matheus Santos', apelido: 'Theus', posicao: 'ATA', idade: 26, peso: 80, condicaoFisica: '100% Fit', email: 'matheus.santos@peladatop.internal', statusPresenca: 'pendente', distanciaMetros: 1800 },
-  { id: 3, nome: 'Rodrigo Faro', apelido: 'Faro', posicao: 'ZAG', idade: 29, peso: 84, condicaoFisica: '80% Boa', email: 'rodrigo.faro@peladatop.internal', statusPresenca: 'confirmado', distanciaMetros: 350 },
-  { id: 4, nome: 'Gabriel Medina', apelido: 'Biel', posicao: 'LAT', idade: 23, peso: 72, condicaoFisica: '100% Fit', email: 'gabriel.medina@peladatop.internal', statusPresenca: 'pendente', distanciaMetros: 2200 },
-  { id: 5, nome: 'Diego Cavalieri', apelido: 'Diego', posicao: 'GOL', idade: 31, peso: 88, condicaoFisica: '100% Fit', email: 'diego.cav@peladatop.internal', statusPresenca: 'confirmado', distanciaMetros: 80 }
-];
 
 // Helper de log no terminal
 function logTerminal(source, message, type = 'info') {
@@ -44,10 +44,10 @@ function logTerminal(source, message, type = 'info') {
   terminalEl.scrollTop = terminalEl.scrollHeight;
 }
 
-// Inicialização da conexão SSE
+// Inicialização da conexão SSE com suporte a reconnect e INIT_STATE
 function initSSE() {
   if (state.eventSource) {
-    state.eventSource.close();
+    try { state.eventSource.close(); } catch (e) {}
   }
 
   const sseBadge = document.getElementById('sseStatusBadge');
@@ -76,7 +76,7 @@ function initSSE() {
       }
     };
 
-    state.eventSource.onerror = (err) => {
+    state.eventSource.onerror = () => {
       state.sseConnected = false;
       if (sseBadge) {
         sseBadge.textContent = 'RECONECTANDO';
@@ -90,68 +90,321 @@ function initSSE() {
   }
 }
 
-// Manipulador de eventos recebidos via SSE
+// Manipulador de eventos SSE
 function handleSSEEvent(data) {
   if (!data) return;
   const tipo = data.type || 'EVENT';
 
-  if (tipo === 'PING') {
-    // Heartbeat silencioso
+  if (tipo === 'PING') return;
+
+  if (tipo === 'INIT_STATE') {
+    if (Array.isArray(data.athletes) && data.athletes.length > 0) {
+      state.athletes = data.athletes;
+    }
+    renderAtletasDropdown();
+    renderGpsSelect();
+    atualizarDisplayAtleta(currentAthleteId);
+    renderListaAtletasGPS();
+    atualizarKpis();
+    logTerminal('INIT_STATE', `Sincronização inicial: ${state.athletes.length} atletas recebidos via SSE`, 'sse');
     return;
   }
 
-  if (tipo === 'CONNECTED') {
-    logTerminal('SSE', `Handshake de sincronização recebido (versão: ${data.version || Date.now()})`, 'sse');
+  if (tipo === 'GEOFENCE_UPDATE') {
+    const athlete = state.athletes.find(a => a.id === parseInt(data.athleteId));
+    if (athlete) {
+      athlete.distance = data.distance;
+      athlete.status = data.status;
+      athlete.canCheckIn = data.canCheckIn;
+    }
+    atualizarDisplayAtleta(currentAthleteId);
+    renderListaAtletasGPS();
+    renderGpsSelect();
+    const isOk = data.status === 'campo';
+    logTerminal('GEOFENCE', `Atleta #${data.athleteId} (${data.athleteName}) -> ${data.distance}m | Status: ${(data.status || '').toUpperCase()}`, isOk ? 'success' : 'warning');
     return;
   }
 
-  if (tipo === 'GEOFENCE') {
-    const statusText = data.dentroRaio ? 'DENTRO DO RAIO (≤500m)' : 'FORA DO RAIO (>500m)';
-    const statusColor = data.dentroRaio ? 'success' : 'error';
-    logTerminal('GEOFENCE', `Atleta ID #${data.athleteId} registrou ${data.distanceMeters}m -> ${statusText}`, statusColor);
+  if (tipo === 'CHECKIN_CONFIRMED') {
+    const athlete = state.athletes.find(a => a.id === parseInt(data.athleteId));
+    if (athlete) {
+      athlete.checkedIn = true;
+      athlete.status = 'campo';
+      athlete.distance = data.distance;
+    }
+    atualizarDisplayAtleta(currentAthleteId);
+    renderListaAtletasGPS();
+    renderGpsSelect();
+    atualizarKpis();
+    logTerminal('CHECK-IN SUCESSO', `${data.athleteName} confirmado na lista! Distância: ${data.distance}m`, 'success');
     return;
   }
 
-  if (tipo === 'CHECK_IN') {
-    logTerminal('CHECK_IN', `Check-in confirmado com sucesso para ${data.atleta || 'Atleta'}! Distância: ${data.distanciaMetros || 0}m`, 'success');
-    carregarAtletas();
+  if (tipo === 'CHECKIN_REJECTED') {
+    logTerminal('CHECK-IN NEGADO', `${data.athleteName}: ${data.reason}`, 'error');
     return;
   }
 
   if (tipo === 'ATHLETE_ADDED' || tipo === 'ATHLETE_UPDATED') {
-    logTerminal('DB_SYNC', `Base de atletas atualizada: ${data.nome || 'Atleta'}`, 'info');
     carregarAtletas();
+    logTerminal('DB_SYNC', `Base de atletas atualizada: ${data.name || data.nome || 'Atleta'}`, 'info');
     return;
   }
 
   logTerminal('SSE', `Evento [${tipo}]: ${JSON.stringify(data)}`, 'sse');
 }
 
-// Carregar lista de atletas da API
+// Carregar lista de atletas da API v2
 async function carregarAtletas() {
   try {
-    const res = await fetch('/api/atletas');
+    const res = await fetch('/api/v2/athletes');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    
     if (Array.isArray(data) && data.length > 0) {
       state.athletes = data;
-    } else {
-      // Usa atletas mockados padrão se o banco estiver vazio
-      state.athletes = DEFAULT_MOCK_ATHLETES;
     }
   } catch (err) {
     console.warn('Usando atletas mockados de fallback:', err.message);
-    if (!state.athletes.length) {
-      state.athletes = DEFAULT_MOCK_ATHLETES;
-    }
   }
 
   renderAtletasDropdown();
+  renderGpsSelect();
+  atualizarDisplayAtleta(currentAthleteId);
+  renderListaAtletasGPS();
   atualizarKpis();
 }
 
-// Renderiza dropdown de atletas
+// Renderiza seletor de atletas da Seção 4 de GPS
+function renderGpsSelect() {
+  const select = document.getElementById('gps-athlete-select');
+  if (!select) return;
+
+  const currentVal = select.value;
+  select.innerHTML = '';
+
+  state.athletes.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    const nome = a.name || a.nome;
+    const pos = a.position || a.posicao || 'MEI';
+    const dist = a.distance !== undefined ? a.distance + 'm' : '';
+    const st = (a.status || 'longe').toUpperCase();
+    const check = a.checkedIn ? '⚽ OK' : '⏳ Pend';
+    opt.textContent = `#${a.id} ${nome} (${pos}) — ${dist} [${st}] [${check}]`;
+    select.appendChild(opt);
+  });
+
+  if (currentVal && state.athletes.some(a => String(a.id) === String(currentVal))) {
+    select.value = currentVal;
+    currentAthleteId = parseInt(currentVal);
+  } else if (state.athletes.length > 0) {
+    select.value = state.athletes[0].id;
+    currentAthleteId = state.athletes[0].id;
+  }
+}
+
+// Renderiza lista/tabela de atletas com configurações individuais na Seção 4
+function renderListaAtletasGPS() {
+  const tbody = document.getElementById('gpsAthletesListTable');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  state.athletes.forEach(a => {
+    const isSelected = a.id === currentAthleteId;
+    const tr = document.createElement('tr');
+    tr.className = `cursor-pointer transition-all hover:bg-slate-50 ${isSelected ? 'bg-emerald-50/70 font-bold border-l-4 border-emerald-500' : ''}`;
+
+    let statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-red-100 text-red-800">Longe</span>';
+    if (a.status === 'campo' || (a.distance !== undefined && a.distance <= 500 && a.status !== 'reset')) {
+      statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-emerald-100 text-emerald-800 font-bold">No Campo</span>';
+    } else if (a.status === 'proximo' || (a.distance > 500 && a.distance <= 1500)) {
+      statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-amber-100 text-amber-800">Próximo</span>';
+    } else if (a.status === 'reset') {
+      statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-slate-100 text-slate-700">Reset</span>';
+    }
+
+    const checkBadge = a.checkedIn
+      ? '<span class="text-emerald-600 font-bold">⚽ Sim</span>'
+      : '<span class="text-slate-400">⏳ Não</span>';
+
+    tr.innerHTML = `
+      <td class="px-2.5 py-1.5 flex items-center gap-1.5">
+        <span>${a.name || a.nome}</span>
+      </td>
+      <td class="px-2 py-1.5 text-center font-mono text-[10px] text-slate-600">${a.position || a.posicao || 'MEI'}</td>
+      <td class="px-2 py-1.5 text-right font-mono font-semibold">${a.distance !== undefined ? a.distance + 'm' : '-'}</td>
+      <td class="px-2 py-1.5 text-center">${statusBadge}</td>
+      <td class="px-2 py-1.5 text-center text-[10px]">${checkBadge}</td>
+    `;
+
+    tr.addEventListener('click', () => {
+      currentAthleteId = a.id;
+      const selectGps = document.getElementById('gps-athlete-select');
+      if (selectGps) selectGps.value = a.id;
+      atualizarDisplayAtleta(currentAthleteId);
+      renderListaAtletasGPS();
+      logTerminal('SELETOR', `Atleta ativo selecionado: ${a.name || a.nome} (ID #${a.id})`);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+// Atualiza o card de configuração individual do atleta ativo na Seção 4
+function atualizarDisplayAtleta(athleteId) {
+  const athlete = state.athletes.find(a => a.id === parseInt(athleteId)) || state.athletes[0];
+  if (!athlete) return;
+
+  const nomeEl = document.getElementById('selectedAthleteName');
+  const posEl = document.getElementById('selectedAthletePos');
+  const distEl = document.getElementById('selectedAthleteDistance');
+  const tagEl = document.getElementById('selectedAthleteStatusTag');
+  const fitEl = document.getElementById('selectedAthleteFit');
+  const checkinBadge = document.getElementById('selectedAthleteCheckinBadge');
+  const faixaBadge = document.getElementById('simFaixaBadge');
+  const btnCheckin = document.getElementById('btnExecutarConfirmacao');
+
+  const nome = athlete.name || athlete.nome || 'Atleta';
+  const pos = athlete.position || athlete.posicao || 'MEI';
+  const dist = athlete.distance !== undefined ? athlete.distance : 0;
+  const fit = athlete.fit !== undefined ? athlete.fit : 100;
+  const status = athlete.status || 'longe';
+
+  if (nomeEl) nomeEl.textContent = nome;
+  if (posEl) posEl.textContent = pos;
+  if (distEl) distEl.textContent = dist + ' m';
+  if (fitEl) fitEl.textContent = fit + '% Fit';
+
+  // Badge de Check-in
+  if (checkinBadge) {
+    if (athlete.checkedIn) {
+      checkinBadge.textContent = '⚽ Check-in OK';
+      checkinBadge.className = 'px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-300';
+    } else {
+      checkinBadge.textContent = '⏳ Pendente';
+      checkinBadge.className = 'px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-100 text-amber-800 border border-amber-300';
+    }
+  }
+
+  // Regra de Faixa e Botão de Check-in
+  if (status === 'reset' || dist === 0) {
+    if (tagEl) {
+      tagEl.textContent = 'RESETADO';
+      tagEl.className = 'font-mono font-bold text-xs text-slate-500';
+    }
+    if (faixaBadge) {
+      faixaBadge.textContent = '⚪ STATUS RESETADO: Posição desfeita';
+      faixaBadge.className = 'p-2.5 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold';
+    }
+    if (btnCheckin) {
+      btnCheckin.disabled = true;
+      btnCheckin.className = 'w-full py-2.5 px-4 bg-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider rounded-lg cursor-not-allowed';
+      btnCheckin.textContent = '1. CHECK-IN BLOQUEADO (RESETADO / SEM DISTÂNCIA)';
+    }
+  } else if (dist <= 500) {
+    if (tagEl) {
+      tagEl.textContent = 'NO CAMPO (≤500m)';
+      tagEl.className = 'font-mono font-bold text-xs text-emerald-700';
+    }
+    if (faixaBadge) {
+      faixaBadge.textContent = '🟢 FAIXA 3: NO CAMPO (≤ 500m) — Chegada Autorizada!';
+      faixaBadge.className = 'p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold shadow-xs';
+    }
+    if (btnCheckin) {
+      btnCheckin.disabled = false;
+      btnCheckin.className = 'w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md';
+      btnCheckin.textContent = `⚽ 1. EXECUTAR CHECK-IN DE ${nome.toUpperCase()}`;
+    }
+  } else if (dist <= 1500) {
+    if (tagEl) {
+      tagEl.textContent = 'PRÓXIMO (850m)';
+      tagEl.className = 'font-mono font-bold text-xs text-amber-700';
+    }
+    if (faixaBadge) {
+      faixaBadge.textContent = '🟡 FAIXA 2: PRÓXIMO (501m - 1500m) — A caminho da Arena';
+      faixaBadge.className = 'p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-bold';
+    }
+    if (btnCheckin) {
+      btnCheckin.disabled = true;
+      btnCheckin.className = 'w-full py-2.5 px-4 bg-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider rounded-lg cursor-not-allowed';
+      btnCheckin.textContent = '1. CHECK-IN BLOQUEADO (A CAMINHO DA ARENA)';
+    }
+  } else {
+    if (tagEl) {
+      tagEl.textContent = 'LONGE (>1.5km)';
+      tagEl.className = 'font-mono font-bold text-xs text-red-700';
+    }
+    if (faixaBadge) {
+      faixaBadge.textContent = '🔴 FAIXA 1: LONGE (> 1.5 km) — Check-in bloqueado';
+      faixaBadge.className = 'p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-bold';
+    }
+    if (btnCheckin) {
+      btnCheckin.disabled = true;
+      btnCheckin.className = 'w-full py-2.5 px-4 bg-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider rounded-lg cursor-not-allowed';
+      btnCheckin.textContent = '1. CHECK-IN BLOQUEADO (FORA DO RAIO DE 500m)';
+    }
+  }
+}
+
+// 2. Dispara a simulação de distância para o atleta selecionado (POST /api/v2/geofence-test)
+async function dispararSimulacaoGPS(distancia, statusTag) {
+  try {
+    const response = await fetch('/api/v2/geofence-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        athleteId: currentAthleteId,
+        distanceMeters: distancia,
+        customStatus: statusTag
+      })
+    });
+    const result = await response.json();
+    if (result.success && result.athlete) {
+      const idx = state.athletes.findIndex(a => a.id === result.athlete.id);
+      if (idx !== -1) {
+        state.athletes[idx] = { ...state.athletes[idx], ...result.athlete };
+      }
+      atualizarDisplayAtleta(currentAthleteId);
+      renderListaAtletasGPS();
+      renderGpsSelect();
+      logTerminal('GEOFENCE', `Atleta #${result.athlete.id} (${result.athlete.name || result.athlete.nome}) -> ${result.athlete.distance}m | Status: ${(result.athlete.status || '').toUpperCase()}`, result.allowed ? 'success' : 'warning');
+    }
+  } catch (error) {
+    console.error("Erro na simulação:", error);
+    logTerminal('GEOFENCE_ERR', error.message, 'error');
+  }
+}
+
+// 3. Executar o check-in do atleta ativo (POST /api/v2/checkin)
+async function executarCheckinAtivo() {
+  try {
+    const response = await fetch('/api/v2/checkin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ athleteId: currentAthleteId })
+    });
+    const result = await response.json();
+    if (result.success && result.athlete) {
+      const idx = state.athletes.findIndex(a => a.id === result.athlete.id);
+      if (idx !== -1) {
+        state.athletes[idx] = { ...state.athletes[idx], ...result.athlete };
+      }
+      atualizarDisplayAtleta(currentAthleteId);
+      renderListaAtletasGPS();
+      renderGpsSelect();
+      atualizarKpis();
+      logTerminal('CHECK-IN SUCESSO', `${result.athlete.name || result.athlete.nome} confirmado na lista!`, 'success');
+    } else {
+      logTerminal('CHECK-IN NEGADO', result.message || 'Bloqueado fora dos 500m', 'error');
+      alert(result.message || 'Check-in bloqueado.');
+    }
+  } catch (error) {
+    console.error("Erro ao executar check-in:", error);
+    logTerminal('CHECKIN_ERR', error.message, 'error');
+  }
+}
+
+// Renderiza dropdown de atletas da Seção 2 (Espaço do Jogador)
 function renderAtletasDropdown() {
   const select = document.getElementById('selectAtleta');
   if (!select) return;
@@ -159,17 +412,15 @@ function renderAtletasDropdown() {
   const currentVal = select.value;
   select.innerHTML = '';
 
-  state.athletes.forEach((atleta, idx) => {
+  state.athletes.forEach(atleta => {
     const opt = document.createElement('option');
-    const id = atleta.id || (idx + 1);
-    opt.value = id;
-    
-    const cond = atleta.condicaoFisica || atleta.condicao || '100% Fit';
-    const pos = atleta.posicao || 'MEI';
-    const idade = atleta.idade || 25;
-    const peso = atleta.peso || 75;
-    
-    opt.textContent = `${atleta.nome || atleta.apelido} — ${pos} | ${idade} anos, ${peso}kg (${cond})`;
+    opt.value = atleta.id;
+    const nome = atleta.name || atleta.nome;
+    const pos = atleta.position || atleta.posicao || 'MEI';
+    const idade = atleta.age || atleta.idade || 25;
+    const peso = atleta.weight || atleta.peso || 75;
+    const cond = atleta.fit ? `${atleta.fit}% Fit` : (atleta.condicaoFisica || '100% Fit');
+    opt.textContent = `${nome} — ${pos} | ${idade} anos, ${peso}kg (${cond})`;
     select.appendChild(opt);
   });
 
@@ -177,31 +428,31 @@ function renderAtletasDropdown() {
     select.value = currentVal;
     state.selectedAthleteId = currentVal;
   } else if (state.athletes.length > 0) {
-    select.value = state.athletes[0].id || 1;
-    state.selectedAthleteId = select.value;
+    select.value = state.athletes[0].id;
+    state.selectedAthleteId = state.athletes[0].id;
   }
 
   preencherFormularioAtleta();
 }
 
-// Preenche formulário com dados do atleta selecionado
+// Preenche formulário da Seção 2 com dados do atleta selecionado
 function preencherFormularioAtleta() {
-  const atleta = getAtletaSelecionado();
+  const select = document.getElementById('selectAtleta');
+  const selId = select ? select.value : state.selectedAthleteId;
+  const atleta = state.athletes.find(a => String(a.id) === String(selId)) || state.athletes[0];
   if (!atleta) return;
 
-  document.getElementById('inputNome').value = atleta.nome || '';
-  document.getElementById('inputApelido').value = atleta.apelido || atleta.nome || '';
-  document.getElementById('selectPosicao').value = atleta.posicao || 'MEI';
-  document.getElementById('inputEmail').value = atleta.email || `${(atleta.nome || 'atleta').toLowerCase().replace(/\s+/g, '.')}@peladatop.internal`;
-  document.getElementById('inputIdade').value = atleta.idade || 25;
-  document.getElementById('inputPeso').value = atleta.peso || 75;
-  document.getElementById('selectCondicao').value = atleta.condicaoFisica || atleta.condicao || '100% Fit';
-
-  // Atualiza banner de simulação de presença
-  atualizarSimulacaoView();
+  const nome = atleta.name || atleta.nome || '';
+  document.getElementById('inputNome').value = nome;
+  document.getElementById('inputApelido').value = atleta.apelido || nome.split(' ')[0] || nome;
+  document.getElementById('selectPosicao').value = atleta.position || atleta.posicao || 'MEI';
+  document.getElementById('inputEmail').value = atleta.email || `${nome.toLowerCase().replace(/\s+/g, '.')}@peladatop.internal`;
+  document.getElementById('inputIdade').value = atleta.age || atleta.idade || 24;
+  document.getElementById('inputPeso').value = atleta.weight || atleta.peso || 76;
+  document.getElementById('selectCondicao').value = atleta.fit ? `${atleta.fit}% Fit` : (atleta.condicaoFisica || '100% Fit');
 }
 
-// Retorna atleta atualmente selecionado no select
+// Retorna atleta atualmente selecionado no select da Seção 2
 function getAtletaSelecionado() {
   const select = document.getElementById('selectAtleta');
   const selId = select ? select.value : state.selectedAthleteId;
@@ -214,7 +465,7 @@ function atualizarKpis() {
   const confirmadosEl = document.getElementById('kpiConfirmados');
   if (totalEl) totalEl.textContent = state.athletes.length;
 
-  const confirmados = state.athletes.filter(a => a.statusPresenca === 'confirmado' || a.chegadaConfirmada === true).length;
+  const confirmados = state.athletes.filter(a => a.checkedIn === true || a.statusPresenca === 'confirmado' || a.chegadaConfirmada === true).length;
   if (confirmadosEl) confirmadosEl.textContent = `/ ${confirmados} Confirmados`;
 }
 
@@ -249,7 +500,7 @@ async function testarPing() {
 
     const logEntry = document.createElement('div');
     logEntry.className = 'py-0.5 text-xs font-mono';
-    logEntry.innerHTML = `<span class="text-emerald-400">HTTP/2 200 OK</span> | RTT: <span class="font-bold text-white">${rtt}ms</span> | min/avg/max: ${min}/${avg}/${max}ms | server_time: ${data.time || Date.now()}`;
+    logEntry.innerHTML = `<span class="text-emerald-400">HTTP/2 200 OK</span> | RTT: <span class="font-bold text-white">${rtt}ms</span> | min/avg/max: ${min}/${avg}/${max}ms`;
     if (pingTerminal) {
       pingTerminal.appendChild(logEntry);
       pingTerminal.scrollTop = pingTerminal.scrollHeight;
@@ -273,16 +524,15 @@ function testarLoginJogador() {
 
   const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + btoa(JSON.stringify({
     sub: atleta.id || 1,
-    nome: atleta.nome,
-    posicao: atleta.posicao,
+    nome: atleta.name || atleta.nome,
+    posicao: atleta.position || atleta.posicao,
     role: 'jogador',
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 3600
   })) + '.simulatedSignatureMockKey';
 
-  logTerminal('JWT_AUTH', `Token emitido para Jogador [${atleta.nome}]: Bearer ${mockToken.slice(0, 32)}...`, 'success');
+  logTerminal('JWT_AUTH', `Token emitido para Jogador [${atleta.name || atleta.nome}]: Bearer ${mockToken.slice(0, 32)}...`, 'success');
   
-  // Feedback visual no botão
   const btn = document.getElementById('btnLoginJogador');
   if (btn) {
     const originalText = btn.innerHTML;
@@ -307,15 +557,22 @@ async function cadastrarNovoJogador() {
   }
 
   const payload = {
+    name: nome,
     nome,
     apelido,
+    position: posicao,
     posicao,
     email,
+    age: idade,
     idade,
+    weight: peso,
     peso,
+    fit: 100,
     condicaoFisica,
-    statusPresenca: 'pendente',
-    distanciaMetros: 2500
+    distance: 2500,
+    distanciaMetros: 2500,
+    status: 'longe',
+    checkedIn: false
   };
 
   const btn = document.getElementById('btnCadastrarJogador');
@@ -332,17 +589,9 @@ async function cadastrarNovoJogador() {
     });
 
     const data = await res.json();
-    logTerminal('CADASTRO', `Atleta [${nome} (${posicao})] cadastrado com sucesso! ID: ${data.id || data.atleta?.id || 'Novo'}`, 'success');
+    logTerminal('CADASTRO', `Atleta [${nome} (${posicao})] cadastrado com sucesso! ID #${data.athlete?.id || data.id || 'Novo'}`, 'success');
 
-    // Recarrega lista
     await carregarAtletas();
-
-    // Seleciona o novo atleta cadastrado
-    const select = document.getElementById('selectAtleta');
-    if (select && select.lastChild) {
-      select.value = select.lastChild.value;
-      preencherFormularioAtleta();
-    }
   } catch (err) {
     logTerminal('CADASTRO_ERRO', 'Erro ao cadastrar atleta: ' + err.message, 'error');
   } finally {
@@ -421,7 +670,7 @@ function sortearTimes() {
 }
 
 // Salvar alterações rápidas do atleta
-async function salvarAlteracoesAtleta() {
+function salvarAlteracoesAtleta() {
   const atleta = getAtletaSelecionado();
   if (!atleta) return;
 
@@ -433,16 +682,23 @@ async function salvarAlteracoesAtleta() {
   const peso = parseFloat(document.getElementById('inputPeso').value) || atleta.peso;
   const condicaoFisica = document.getElementById('selectCondicao').value;
 
+  atleta.name = nome;
   atleta.nome = nome;
   atleta.apelido = apelido;
+  atleta.position = posicao;
   atleta.posicao = posicao;
   atleta.email = email;
+  atleta.age = idade;
   atleta.idade = idade;
+  atleta.weight = peso;
   atleta.peso = peso;
   atleta.condicaoFisica = condicaoFisica;
 
   logTerminal('ATLETA_UPDATE', `Dados de [${nome}] atualizados com sucesso.`, 'success');
   renderAtletasDropdown();
+  renderGpsSelect();
+  renderListaAtletasGPS();
+  atualizarDisplayAtleta(currentAthleteId);
 }
 
 // Excluir atleta
@@ -450,122 +706,16 @@ function excluirAtleta() {
   const atleta = getAtletaSelecionado();
   if (!atleta) return;
 
-  if (confirm(`Deseja remover ${atleta.nome} da base de testes?`)) {
+  if (confirm(`Deseja remover ${atleta.name || atleta.nome} da base de testes?`)) {
     state.athletes = state.athletes.filter(a => a !== atleta);
-    logTerminal('ATLETA_DELETE', `Atleta [${atleta.nome}] removido da base de dados.`, 'warning');
+    logTerminal('ATLETA_DELETE', `Atleta [${atleta.name || atleta.nome}] removido da base de dados.`, 'warning');
     renderAtletasDropdown();
-  }
-}
-
-// Simulação de Geofence: Envia POST /api/v2/geofence-test
-async function simularDistancia(metros, label) {
-  state.activeDistance = metros;
-  const atleta = getAtletaSelecionado();
-  const athleteId = atleta ? (atleta.id || 1) : 1;
-
-  logTerminal('SIMULACAO_GPS', `Alterando posição do atleta #${athleteId} para: ${metros === null ? 'Reset' : metros + 'm'} (${label})`, 'info');
-
-  try {
-    const res = await fetch('/api/v2/geofence-test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ athleteId, distanceMeters: metros })
-    });
-
-    const data = await res.json();
-    if (atleta) {
-      atleta.distanciaMetros = metros;
+    renderGpsSelect();
+    renderListaAtletasGPS();
+    if (state.athletes.length > 0) {
+      currentAthleteId = state.athletes[0].id;
+      atualizarDisplayAtleta(currentAthleteId);
     }
-  } catch (err) {
-    console.warn('Erro ao disparar simulação no backend:', err);
-  }
-
-  atualizarSimulacaoView();
-}
-
-// Atualiza a visualização do card de Simulação GPS
-function atualizarSimulacaoView() {
-  const atleta = getAtletaSelecionado();
-  const nomeAtleta = atleta ? (atleta.nome || 'Atleta') : 'Atleta';
-  const posAtleta = atleta ? (atleta.posicao || 'MEI') : 'MEI';
-  const dist = state.activeDistance;
-
-  const labelAtletaEl = document.getElementById('simAtletaLabel');
-  const badgeFaixaEl = document.getElementById('simFaixaBadge');
-  const btnConfirmarEl = document.getElementById('btnExecutarConfirmacao');
-
-  if (labelAtletaEl) {
-    labelAtletaEl.textContent = `${nomeAtleta} (${posAtleta}) — ${dist === null ? 'Sem GPS' : dist + ' metros'}`;
-  }
-
-  // Avaliação das 3 Faixas
-  if (dist === null || dist > 1500) {
-    // Faixa 1: Longe (> 1.5 km)
-    if (badgeFaixaEl) {
-      badgeFaixaEl.textContent = '🔴 FAIXA 1: LONGE (> 1.5 km) — Check-in bloqueado';
-      badgeFaixaEl.className = 'p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-bold';
-    }
-    if (btnConfirmarEl) {
-      btnConfirmarEl.disabled = true;
-      btnConfirmarEl.className = 'w-full py-3 px-4 bg-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider rounded-lg cursor-not-allowed';
-      btnConfirmarEl.textContent = '1. EXECUTAR 1ª CONFIRMAÇÃO (BLOQUEADO: FORA DO RAIO DE 500m)';
-    }
-  } else if (dist > 500) {
-    // Faixa 2: Próximo (501m - 1500m)
-    if (badgeFaixaEl) {
-      badgeFaixaEl.textContent = '🟡 FAIXA 2: PRÓXIMO (501m - 1500m) — A caminho da Arena';
-      badgeFaixaEl.className = 'p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-bold';
-    }
-    if (btnConfirmarEl) {
-      btnConfirmarEl.disabled = true;
-      btnConfirmarEl.className = 'w-full py-3 px-4 bg-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider rounded-lg cursor-not-allowed';
-      btnConfirmarEl.textContent = '1. EXECUTAR 1ª CONFIRMAÇÃO (BLOQUEADO: A CAMINHO DA ARENA)';
-    }
-  } else {
-    // Faixa 3: No Campo (≤ 500m)
-    if (badgeFaixaEl) {
-      badgeFaixaEl.textContent = '🟢 FAIXA 3: NO CAMPO (≤ 500m) — Chegada Autorizada!';
-      badgeFaixaEl.className = 'p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold shadow-sm';
-    }
-    if (btnConfirmarEl) {
-      btnConfirmarEl.disabled = false;
-      btnConfirmarEl.className = 'w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md';
-      btnConfirmarEl.textContent = '⚽ 1. EXECUTAR 1ª CONFIRMAÇÃO (ENTRAR NA LISTA)';
-    }
-  }
-}
-
-// Executar confirmação de presença (Check-in)
-async function executarConfirmacaoPresenca() {
-  const atleta = getAtletaSelecionado();
-  if (!atleta) return;
-
-  if (state.activeDistance > 500) {
-    alert('Check-in bloqueado: Você está fora do raio de 500 metros do campo!');
-    return;
-  }
-
-  const btn = document.getElementById('btnExecutarConfirmacao');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> PROCESSANDO CHECK-IN...';
-  }
-
-  try {
-    atleta.statusPresenca = 'confirmado';
-    atleta.chegadaConfirmada = true;
-    atleta.distanciaMetros = state.activeDistance;
-
-    logTerminal('CHECK_IN', `Check-in confirmado com sucesso para [${atleta.nome}]! Registrado na lista oficial de presença.`, 'success');
-    atualizarKpis();
-    renderAtletasDropdown();
-
-    if (btn) {
-      btn.innerHTML = '✓ CONFIRMAÇÃO REALIZADA COM SUCESSO!';
-      setTimeout(() => { atualizarSimulacaoView(); }, 2500);
-    }
-  } catch (e) {
-    logTerminal('CHECK_IN_ERROR', 'Falha ao confirmar presença: ' + e.message, 'error');
   }
 }
 
@@ -584,7 +734,7 @@ function copiarLinkPublico() {
         toast.classList.add('opacity-0', 'pointer-events-none');
       }, 2000);
     }
-    logTerminal('CLIPBOARD', 'Link de acesso à pelada copiado para área de transferência: ' + input.value, 'info');
+    logTerminal('CLIPBOARD', 'Link de acesso à pelada copiado: ' + input.value, 'info');
   }).catch(() => {
     input.select();
     document.execCommand('copy');
@@ -601,7 +751,7 @@ function limparTerminal() {
   }
 }
 
-// Event Listeners e Inicialização Robusta
+// Event Listeners e Inicialização
 function bootApp() {
   // Ajusta o link de acesso público para o host atual da máquina / rede
   const publicLinkEl = document.getElementById('inputPublicLink');
@@ -614,51 +764,48 @@ function bootApp() {
   carregarAtletas();
   testarPing();
 
-  // Dropdown de atleta
+  // 1. Escuta a troca de atleta no seletor da aba GPS
+  const gpsSelect = document.getElementById('gps-athlete-select');
+  if (gpsSelect) {
+    gpsSelect.addEventListener('change', (e) => {
+      currentAthleteId = parseInt(e.target.value);
+      atualizarDisplayAtleta(currentAthleteId);
+      renderListaAtletasGPS();
+      logTerminal('SELETOR', `Atleta ativo alterado para ID #${currentAthleteId}`);
+    });
+  }
+
+  // Dropdown de atleta (Espaço do Jogador)
   const selectAtleta = document.getElementById('selectAtleta');
   if (selectAtleta) {
     selectAtleta.addEventListener('change', preencherFormularioAtleta);
   }
 
   // Ping button
-  const btnPing = document.getElementById('btnTestarPing');
-  if (btnPing) btnPing.addEventListener('click', testarPing);
+  document.getElementById('btnTestarPing')?.addEventListener('click', testarPing);
 
   // Login Jogador
-  const btnLogin = document.getElementById('btnLoginJogador');
-  if (btnLogin) btnLogin.addEventListener('click', testarLoginJogador);
+  document.getElementById('btnLoginJogador')?.addEventListener('click', testarLoginJogador);
 
   // Cadastro Jogador
-  const btnCadastrar = document.getElementById('btnCadastrarJogador');
-  if (btnCadastrar) btnCadastrar.addEventListener('click', cadastrarNovoJogador);
+  document.getElementById('btnCadastrarJogador')?.addEventListener('click', cadastrarNovoJogador);
 
   // Superadmin
-  const btnAdmin = document.getElementById('btnAutenticarAdmin');
-  if (btnAdmin) btnAdmin.addEventListener('click', autenticarAdmin);
+  document.getElementById('btnAutenticarAdmin')?.addEventListener('click', autenticarAdmin);
+  document.getElementById('btnToggleGps')?.addEventListener('click', toggleGpsRule);
+  document.getElementById('btnToggleMatch')?.addEventListener('click', toggleMatchStatus);
+  document.getElementById('btnSortearTimes')?.addEventListener('click', sortearTimes);
+  document.getElementById('btnSalvarAtleta')?.addEventListener('click', salvarAlteracoesAtleta);
+  document.getElementById('btnExcluirAtleta')?.addEventListener('click', excluirAtleta);
 
-  const btnToggleGps = document.getElementById('btnToggleGps');
-  if (btnToggleGps) btnToggleGps.addEventListener('click', toggleGpsRule);
+  // Botões de Simulação de GPS conectando à função dispararSimulacaoGPS:
+  document.getElementById('btnGpsLonge')?.addEventListener('click', () => dispararSimulacaoGPS(3800, 'longe'));
+  document.getElementById('btnGpsProximo')?.addEventListener('click', () => dispararSimulacaoGPS(850, 'proximo'));
+  document.getElementById('btnGpsChegou')?.addEventListener('click', () => dispararSimulacaoGPS(120, 'campo'));
+  document.getElementById('btnGpsReset')?.addEventListener('click', () => dispararSimulacaoGPS(0, 'reset'));
 
-  const btnToggleMatch = document.getElementById('btnToggleMatch');
-  if (btnToggleMatch) btnToggleMatch.addEventListener('click', toggleMatchStatus);
-
-  const btnSortear = document.getElementById('btnSortearTimes');
-  if (btnSortear) btnSortear.addEventListener('click', sortearTimes);
-
-  const btnSalvar = document.getElementById('btnSalvarAtleta');
-  if (btnSalvar) btnSalvar.addEventListener('click', salvarAlteracoesAtleta);
-
-  const btnExcluir = document.getElementById('btnExcluirAtleta');
-  if (btnExcluir) btnExcluir.addEventListener('click', excluirAtleta);
-
-  // Simulação de GPS
-  document.getElementById('btnGpsLonge')?.addEventListener('click', () => simularDistancia(3800, 'Longe 3.8 km'));
-  document.getElementById('btnGpsProximo')?.addEventListener('click', () => simularDistancia(850, 'Próximo 850 m'));
-  document.getElementById('btnGpsChegou')?.addEventListener('click', () => simularDistancia(120, 'No Campo 120 m'));
-  document.getElementById('btnGpsReset')?.addEventListener('click', () => simularDistancia(null, 'Resetar GPS'));
-
-  // Confirmação
-  document.getElementById('btnExecutarConfirmacao')?.addEventListener('click', executarConfirmacaoPresenca);
+  // Botão de Check-in Ativo
+  document.getElementById('btnExecutarConfirmacao')?.addEventListener('click', executarCheckinAtivo);
 
   // Copiar link
   document.getElementById('btnCopiarLink')?.addEventListener('click', copiarLinkPublico);

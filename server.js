@@ -224,11 +224,22 @@ function salvarDadosDisco() {
   saveData(dadosCompletos);
 }
 
+// Base de dados de atletas sincronizada com banco/memória para a aba de teste e simulação
+let athletesDatabase = [
+  { id: 1, name: "Lucas Silva", position: "MEI", age: 24, weight: 76, fit: 100, distance: 120, status: "campo", checkedIn: true },
+  { id: 2, name: "Marcos Vinicius", position: "GOL", age: 28, weight: 82, fit: 92, distance: 45, status: "campo", checkedIn: true },
+  { id: 3, name: "Diego Costa", position: "ATA", age: 26, weight: 79, fit: 100, distance: 210, status: "campo", checkedIn: true },
+  { id: 4, name: "Rodrigo Pires", position: "VOL", age: 25, weight: 74, fit: 88, distance: 850, status: "proximo", checkedIn: false },
+  { id: 5, name: "Gabriel Santos", position: "ZAG", age: 27, weight: 83, fit: 80, distance: 3800, status: "longe", checkedIn: false },
+  { id: 6, name: "Felipe Melo", position: "VOL", age: 29, weight: 85, fit: 95, distance: 740, status: "proximo", checkedIn: false }
+];
+
 // Conexões ativas de Server-Sent Events (SSE) para transmissão em tempo real
 const sseClients = new Set();
 
 function broadcastSse(tipo, payload) {
-  const dataString = `data: ${JSON.stringify({ type: tipo, ...payload })}\n\n`;
+  const timestamp = new Date().toLocaleTimeString('pt-BR');
+  const dataString = `data: ${JSON.stringify({ type: tipo, timestamp, ...payload })}\n\n`;
   for (const client of sseClients) {
     try {
       client.write(dataString);
@@ -435,9 +446,8 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // 0.1 Rota única oficial: Página de Teste e Diagnóstico do Servidor (exclusiva para /, /teste, /painel)
-    if (pathname === '/' || pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html' ||
-        pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html' || pathname === '/index.html') {
+    // 0.1 Rota oficial para Página de Teste e Diagnóstico do Servidor: GET /teste
+    if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
       const publicIndexPath = path.join(__dirname, 'public', 'index.html');
       if (fs.existsSync(publicIndexPath)) {
         res.writeHead(200, {
@@ -461,25 +471,65 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 0.3 API v2: Teste de Geofencing 500m
+    // 0.3 API v2: Listagem de Atletas
+    if (pathname === '/api/v2/athletes' && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(JSON.stringify(athletesDatabase));
+      return;
+    }
+
+    // 0.4 API v2: Teste de Geofencing 500m Individual
     if (pathname === '/api/v2/geofence-test' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
-        if (err) {
-          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ error: err.message }));
+        if (err || !payload) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'Payload inválido' }));
           return;
         }
 
-        const athleteId = payload.athleteId;
-        const distanceMeters = payload.distanceMeters !== undefined && payload.distanceMeters !== null
-          ? Number(payload.distanceMeters)
-          : null;
-        const dentroRaio = distanceMeters !== null && distanceMeters <= 500;
+        const athleteId = parseInt(payload.athleteId);
+        const distanceMeters = Number(payload.distanceMeters || 0);
+        const customStatus = payload.customStatus;
+        const athlete = athletesDatabase.find(a => a.id === athleteId);
 
-        broadcastSse('GEOFENCE', {
-          athleteId,
-          distanceMeters,
-          dentroRaio
+        if (!athlete) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ success: false, message: "Atleta não encontrado." }));
+          return;
+        }
+
+        athlete.distance = distanceMeters;
+        athlete.distanciaMetros = distanceMeters;
+
+        // Regra de Negócio: Geofence de 500 metros
+        if (customStatus === 'reset') {
+          athlete.status = 'reset';
+          athlete.checkedIn = false;
+          athlete.distance = 0;
+          athlete.distanciaMetros = 0;
+          athlete.canCheckIn = false;
+        } else if (distanceMeters <= 500) {
+          athlete.status = 'campo';
+          athlete.canCheckIn = true;
+        } else if (distanceMeters <= 1500) {
+          athlete.status = 'proximo';
+          athlete.canCheckIn = false;
+        } else {
+          athlete.status = 'longe';
+          athlete.canCheckIn = false;
+        }
+
+        // Notifica painel e celulares conectados via SSE
+        broadcastSse('GEOFENCE_UPDATE', {
+          athleteId: athlete.id,
+          athleteName: athlete.name || athlete.nome,
+          distance: athlete.distance,
+          status: athlete.status,
+          canCheckIn: athlete.status === 'campo'
         });
 
         res.writeHead(200, {
@@ -488,19 +538,62 @@ const requestHandler = (req, res) => {
         });
         res.end(JSON.stringify({
           success: true,
-          athleteId,
-          distanceMeters,
-          dentroRaio,
-          status: dentroRaio ? 'liberado' : 'bloqueado',
-          mensagem: dentroRaio
-            ? 'Dentro do raio de 500m. Check-in autorizado!'
-            : 'Fora do raio de 500m. Check-in bloqueado.'
+          athlete,
+          allowed: athlete.distance <= 500 && athlete.status !== 'reset'
         }));
       });
       return;
     }
 
-    // 0.4 API v2: Cadastro de Atleta
+    // 0.5 API v2: Confirmação de Check-in individual
+    if (pathname === '/api/v2/checkin' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err || !payload) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'Payload inválido' }));
+          return;
+        }
+
+        const athleteId = parseInt(payload.athleteId);
+        const athlete = athletesDatabase.find(a => a.id === athleteId);
+
+        if (!athlete) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: "Atleta não encontrado" }));
+          return;
+        }
+
+        if (athlete.distance > 500) {
+          broadcastSse('CHECKIN_REJECTED', {
+            athleteId: athlete.id,
+            athleteName: athlete.name || athlete.nome,
+            distance: athlete.distance,
+            reason: "Bloqueado: Fora do raio de 500m"
+          });
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ success: false, message: "Bloqueado: Fora do raio de 500m" }));
+          return;
+        }
+
+        athlete.checkedIn = true;
+        athlete.status = 'campo';
+
+        broadcastSse('CHECKIN_CONFIRMED', {
+          athleteId: athlete.id,
+          athleteName: athlete.name || athlete.nome,
+          distance: athlete.distance
+        });
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({ success: true, message: "Check-in confirmado com sucesso!", athlete }));
+      });
+      return;
+    }
+
+    // 0.6 API v2: Cadastro de Novo Atleta
     if (pathname === '/api/v2/athletes' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err || !payload) {
@@ -510,33 +603,25 @@ const requestHandler = (req, res) => {
         }
 
         try {
-          const dados = lerDados();
-          if (!Array.isArray(dados.atletas)) dados.atletas = [];
-
           const novoAtleta = {
-            id: payload.id || Date.now(),
-            nome: payload.nome || 'Novo Atleta',
-            apelido: payload.apelido || payload.nome || '',
-            posicao: payload.posicao || 'MEI',
-            email: payload.email || '',
-            idade: payload.idade || 25,
-            peso: payload.peso || 75,
-            condicaoFisica: payload.condicaoFisica || '100% Fit',
-            statusPresenca: payload.statusPresenca || 'pendente',
-            distanciaMetros: payload.distanciaMetros || null,
-            fitness: 100
+            id: payload.id || (athletesDatabase.length + 1),
+            name: payload.name || payload.nome || 'Novo Atleta',
+            nome: payload.name || payload.nome || 'Novo Atleta',
+            position: payload.position || payload.posicao || 'MEI',
+            posicao: payload.position || payload.posicao || 'MEI',
+            age: parseInt(payload.age || payload.idade || 25, 10),
+            idade: parseInt(payload.age || payload.idade || 25, 10),
+            weight: parseFloat(payload.weight || payload.peso || 75),
+            peso: parseFloat(payload.weight || payload.peso || 75),
+            fit: parseInt(payload.fit || 100, 10),
+            condicaoFisica: payload.condicaoFisica || `${payload.fit || 100}% Fit`,
+            distance: payload.distance !== undefined ? payload.distance : 2500,
+            distanciaMetros: payload.distance !== undefined ? payload.distance : 2500,
+            status: payload.status || 'longe',
+            checkedIn: false
           };
 
-          dados.atletas.push(novoAtleta);
-          if (Array.isArray(dados.listaConfirmados)) {
-            dados.listaConfirmados.push(novoAtleta);
-          }
-          salvarDados(dados);
-
-          appData.atletas = dados.atletas;
-          appData.listaConfirmados = dados.listaConfirmados || dados.atletas;
-          appData.version = Date.now();
-          salvarDadosDisco();
+          athletesDatabase.push(novoAtleta);
 
           broadcastSse('ATHLETE_ADDED', novoAtleta);
 
@@ -544,7 +629,7 @@ const requestHandler = (req, res) => {
             'Content-Type': 'application/json; charset=utf-8',
             'Access-Control-Allow-Origin': '*'
           });
-          res.end(JSON.stringify({ success: true, atleta: novoAtleta }));
+          res.end(JSON.stringify({ success: true, athlete: novoAtleta, atleta: novoAtleta }));
         } catch (innerErr) {
           res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: innerErr.message }));
@@ -570,7 +655,8 @@ const requestHandler = (req, res) => {
       });
 
       res.write(`data: ${JSON.stringify({
-        type: 'CONNECTED',
+        type: 'INIT_STATE',
+        athletes: athletesDatabase,
         version: appData.version,
         listaConfirmados: appData.listaConfirmados,
         peladaConfig: appData.peladaConfig,
@@ -1434,7 +1520,6 @@ const requestHandler = (req, res) => {
     }
 
     // 11. Arquivos estáticos e dashboard admin compatibilidade
-
     if (pathname === '/dashboard.js' || pathname === '/painel/dashboard.js') {
       const dashPath = path.join(__dirname, 'public_admin', 'dashboard.js');
       if (fs.existsSync(dashPath)) {
@@ -1542,9 +1627,7 @@ if (String(SERVER_PORT) !== '8080') {
     server8080.listen(8080, () => {
       console.log(`Porta espelho ativa: http://localhost:8080/teste`);
     });
-    server8080.on('error', () => {
-      // Porta 8080 ocupada silenciosamente
-    });
+    server8080.on('error', () => {});
   } catch (e) {}
 }
 
