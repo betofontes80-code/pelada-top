@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Painel de Testes - Pelada Top</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #475569;
+            --primary: #dc2626;
+            --primary-hover: #b91c1c;
+            --emerald: #10b981;
+            --emerald-bg: rgba(16, 185, 129, 0.15);
+            --amber: #f59e0b;
+            --amber-bg: rgba(245, 158, 11, 0.15);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.15);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 1.5rem; min-height: 100vh; }
+        .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+        
+        /* Header */
+        header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-b: 1px solid var(--border); padding-bottom: 1rem; }
+        .logo-area h1 { font-size: 1.4rem; font-weight: 800; display: flex; items-center; gap: 0.5rem; }
+        .logo-area p { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem; }
+        .header-actions { display: flex; gap: 0.5rem; align-items: center; }
+        .badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-live { background: var(--emerald-bg); color: var(--emerald); border: 1px solid var(--emerald); }
+        .link-app { color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: 700; padding: 0.4rem 0.8rem; background: rgba(220,38,38,0.1); border: 1px solid var(--primary); border-radius: 6px; }
+        .link-app:hover { background: var(--primary); color: white; }
+
+        /* Metrics */
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .metric-title { font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .metric-value { font-size: 1.8rem; font-weight: 800; }
+        
+        /* Toolbar */
+        .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        button { cursor: pointer; border: none; font-weight: 700; font-size: 0.8rem; border-radius: 6px; padding: 0.5rem 0.9rem; transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 0.4rem; }
+        button:active { transform: scale(0.97); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-emerald { background: var(--emerald); color: white; }
+        .btn-emerald:hover { opacity: 0.9; }
+        .btn-amber { background: var(--amber); color: #000; }
+        .btn-amber:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+
+        /* Main Content */
+        .card-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
+        .card-header h2 { font-size: 1.1rem; font-weight: 700; }
+
+        /* Table */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th { padding: 0.6rem 0.75rem; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        .pos-badge { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.1); }
+        .status-pill { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.3rem; }
+        .status-chegou { background: var(--emerald-bg); color: var(--emerald); border: 1px solid var(--emerald); }
+        .status-confirmado { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue); }
+        .status-pendente { background: rgba(148,163,184,0.1); color: var(--text-dim); border: 1px solid var(--border); }
+
+        /* Logs & JSON */
+        .console-box { background: #000; border: 1px solid #334155; border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 0.75rem; color: #10b981; max-height: 180px; overflow-y: auto; white-space: pre-wrap; }
+        pre.json-view { background: #050b14; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 0.75rem; max-height: 250px; overflow-y: auto; color: #93c5fd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="logo-area">
+                <h1>⚽ Pelada Top - Painel de Testes Local</h1>
+                <p>Ambiente isolado consumindo diretamente database.json via server.js</p>
+            </div>
+            <div class="header-actions">
+                <span id="badge-status-servidor" class="badge badge-live">● Servidor Ativo</span>
+                <a href="/" class="link-app">Ir para o App Principal &rarr;</a>
+            </div>
+        </header>
+
+        <!-- CARDS DE MÉTRICAS -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-title">Cadastro Fixo (database.json)</span>
+                <span id="metric-total-cadastrados" class="metric-value">0</span>
+                <span class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Lista permanente de atletas</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-title">Presença Confirmada</span>
+                <span id="metric-total-confirmados" class="metric-value" style="color: var(--blue);">0</span>
+                <span class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Atletas na lista de hoje</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-title">Chegadas no Campo</span>
+                <span id="metric-total-chegaram" class="metric-value" style="color: var(--emerald);">0</span>
+                <span class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Check-in físico realizado</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-title">Trava do Vestiário</span>
+                <span id="metric-lista-status" class="metric-value" style="font-size: 1.3rem; color: var(--emerald);">ABERTA</span>
+                <span id="metric-lista-sub" class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Check-ins liberados</span>
+            </div>
+        </div>
+
+        <!-- BARRA DE AÇÕES DE TESTE -->
+        <div class="toolbar">
+            <div class="btn-group">
+                <button onclick="carregarDadosServidor()" class="btn-secondary">
+                    <span>🔄 Recarregar Dados</span>
+                </button>
+                <button id="btn-toggle-lista" onclick="alternarListaAberta()" class="btn-emerald">
+                    <span>🔓 Alternar Trava de Lista</span>
+                </button>
+                <button onclick="testarResetPartida()" class="btn-amber">
+                    <span>🧹 Testar Reset de Partida</span>
+                </button>
+                <button onclick="adicionarAtletaTeste()" class="btn-primary">
+                    <span>➕ Novo Atleta de Teste</span>
+                </button>
+            </div>
+            <div>
+                <button onclick="toggleJsonView()" class="btn-secondary">
+                    <span>📄 Ver database.json</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- LISTA GERAL DE ATLETAS (CADASTRO FIXO + PRESENÇA) -->
+        <div class="card-panel">
+            <div class="card-header">
+                <h2>Lista Permanente de Atletas Cadastrados (<span id="count-tabela">0</span>)</h2>
+                <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-dim);">Sincronizado com GET /api/atletas</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nome do Atleta</th>
+                            <th>Posição</th>
+                            <th>Condição / Fitness</th>
+                            <th>Status Presença</th>
+                            <th>Ações Rápidas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-atletas-corpo">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">Carregando dados de database.json...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CONSOLE DE LOGS EM TEMPO REAL -->
+        <div class="card-panel">
+            <div class="card-header">
+                <h2>Log de Requisições / Diagnóstico</h2>
+                <button onclick="limparLogs()" class="btn-secondary btn-sm">Limpar</button>
+            </div>
+            <div id="console-logs" class="console-box">[Iniciando ambiente de testes locais...]</div>
+        </div>
+
+        <!-- INSPECTOR DE JSON BRUTO (OCULTO POR PADRÃO) -->
+        <div id="painel-json" class="card-panel" style="display: none;">
+            <div class="card-header">
+                <h2>Conteúdo Bruto de database.json</h2>
+                <span class="text-dim" style="font-size: 0.75rem;">Leitura direta via /api/pelada</span>
+            </div>
+            <pre id="json-conteudo" class="json-view">Aguardando dados...</pre>
+        </div>
+    </div>
+
+    <script>
+        let dadosLocais = { atletas: [], listaConfirmados: [], peladaConfig: {} };
+
+        function log(msg) {
+            const box = document.getElementById('console-logs');
+            const hora = new Date().toLocaleTimeString('pt-BR');
+            box.innerText = `[${hora}] ${msg}\n` + box.innerText;
+        }
+
+        function limparLogs() {
+            document.getElementById('console-logs').innerText = '';
+        }
+
+        function toggleJsonView() {
+            const p = document.getElementById('painel-json');
+            p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        async function carregarDadosServidor() {
+            log('Executando GET /api/pelada e GET /api/atletas...');
+            try {
+                const [respPelada, respAtletas] = await Promise.all([
+                    fetch('/api/pelada?t=' + Date.now()),
+                    fetch('/api/atletas?t=' + Date.now())
+                ]);
+
+                if (!respPelada.ok || !respAtletas.ok) {
+                    throw new Error(`Erro HTTP: Pelada=${respPelada.status}, Atletas=${respAtletas.status}`);
+                }
+
+                const dataPelada = await respPelada.json();
+                const dataAtletas = await respAtletas.json();
+
+                dadosLocais.peladaConfig = dataPelada.peladaConfig || {};
+                dadosLocais.listaConfirmados = Array.isArray(dataPelada.listaConfirmados) ? dataPelada.listaConfirmados : [];
+                dadosLocais.atletas = Array.isArray(dataAtletas) ? dataAtletas : (dataPelada.atletas || []);
+
+                log(`Dados recebidos com sucesso! ${dadosLocais.atletas.length} atletas cadastrados, ${dadosLocais.listaConfirmados.length} confirmados.`);
+                renderizarInterface();
+            } catch (err) {
+                log('ERRO ao buscar dados: ' + err.message);
+                document.getElementById('badge-status-servidor').className = 'badge';
+                document.getElementById('badge-status-servidor').style.background = 'rgba(239, 68, 68, 0.2)';
+                document.getElementById('badge-status-servidor').style.color = '#ef4444';
+                document.getElementById('badge-status-servidor').innerText = '● Servidor Inacessível';
+            }
+        }
+
+        function renderizarInterface() {
+            const atletas = dadosLocais.atletas || [];
+            const confirmados = dadosLocais.listaConfirmados || [];
+            const config = dadosLocais.peladaConfig || {};
+
+            // Atualiza Métricas
+            document.getElementById('metric-total-cadastrados').innerText = atletas.length;
+            
+            const presentesCampo = confirmados.filter(c => c.chegadaConfirmada === true || c.statusPresenca === 'chegou').length;
+            document.getElementById('metric-total-confirmados').innerText = confirmados.length;
+            document.getElementById('metric-total-chegaram').innerText = presentesCampo;
+
+            const listaAberta = config.listaAberta !== false;
+            const metricStatus = document.getElementById('metric-lista-status');
+            const metricSub = document.getElementById('metric-lista-sub');
+            const btnToggle = document.getElementById('btn-toggle-lista');
+
+            if (listaAberta) {
+                metricStatus.innerText = 'ABERTA';
+                metricStatus.style.color = 'var(--emerald)';
+                metricSub.innerText = 'Check-ins liberados';
+                btnToggle.className = 'btn-amber';
+                btnToggle.innerHTML = '<span>🔒 Travar / Fechar Lista</span>';
+            } else {
+                metricStatus.innerText = 'TRAVADA';
+                metricStatus.style.color = 'var(--amber)';
+                metricSub.innerText = 'Check-in bloqueado';
+                btnToggle.className = 'btn-emerald';
+                btnToggle.innerHTML = '<span>🔓 Abrir Lista de Check-in</span>';
+            }
+
+            document.getElementById('count-tabela').innerText = atletas.length;
+
+            // Renderiza Tabela de Atletas
+            const tbody = document.getElementById('tabela-atletas-corpo');
+            if (atletas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">Nenhum atleta cadastrado no database.json</td></tr>';
+                return;
+            }
+
+            let html = '';
+            atletas.forEach((a, idx) => {
+                const conf = confirmados.find(c => String(c.id) === String(a.id) || (c.nome && c.nome.trim().toLowerCase() === (a.nome || '').trim().toLowerCase()));
+                const chegou = (conf && conf.chegadaConfirmada === true) || (conf && conf.statusPresenca === 'chegou');
+                const estaConfirmado = chegou || (conf && conf.statusPresenca === 'confirmado');
+
+                let statusBadge = '';
+                if (chegou) {
+                    statusBadge = '<span class="status-pill status-chegou">🟢 No Campo</span>';
+                } else if (estaConfirmado) {
+                    statusBadge = '<span class="status-pill status-confirmado">🔵 Confirmado</span>';
+                } else {
+                    statusBadge = '<span class="status-pill status-pendente">⚪ Ausente</span>';
+                }
+
+                html += `
+                    <tr>
+                        <td><span style="color: var(--text-dim); font-size: 0.75rem;">${idx + 1}</span></td>
+                        <td>
+                            <strong style="display: block; font-size: 0.9rem;">${a.nome || 'Sem nome'}</strong>
+                            <span style="color: var(--text-dim); font-size: 0.7rem;">ID: ${a.id || '-'}</span>
+                        </td>
+                        <td><span class="pos-badge">${a.posicao || 'ATA'}</span></td>
+                        <td>
+                            <span style="font-size: 0.8rem;">${a.condicao || '100%'}</span>
+                            <span style="color: var(--emerald); font-size: 0.75rem; font-weight: 700;"> (${a.fitness || 100}%)</span>
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <button onclick="alternarPresenca('${a.id}', '${a.nome}')" class="btn-secondary btn-sm" title="Alternar Presença">
+                                    ${estaConfirmado ? '❌ Cancelar' : '✅ Confirmar'}
+                                </button>
+                                <button onclick="confirmarChegada('${a.id}', '${a.nome}', '${a.posicao}')" class="btn-emerald btn-sm" title="Marcar Chegada no Campo">
+                                    ⚽ Chegou
+                                </button>
+                                <button onclick="excluirAtleta('${a.id}', '${a.nome}')" class="btn-primary btn-sm" title="Excluir Atleta do Cadastro">
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+
+            // Atualiza JSON view
+            document.getElementById('json-conteudo').innerText = JSON.stringify(dadosLocais, null, 2);
+        }
+
+        async function alternarListaAberta() {
+            const novoEstado = !(dadosLocais.peladaConfig.listaAberta !== false);
+            log(`Enviando POST /api/pelada para definir listaAberta: ${novoEstado}...`);
+            try {
+                const resp = await fetch('/api/pelada', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        peladaConfig: { listaAberta: novoEstado }
+                    })
+                });
+                const res = await resp.json();
+                log(`Sucesso! Servidor atualizou listaAberta: ${novoEstado}`);
+                await carregarDadosServidor();
+            } catch (err) {
+                log('Erro ao alternar trava da lista: ' + err.message);
+            }
+        }
+
+        async function testarResetPartida() {
+            if (!confirm('Deseja testar o reset da partida (/api/admin/reset)?\n\nIsso zerará a presença da rodada mas NENHUM dos 23 atletas de database.json será apagado.')) return;
+            log('Chamando POST /api/admin/reset...');
+            try {
+                const resp = await fetch('/api/admin/reset', { method: 'POST' });
+                const res = await resp.json();
+                log('Reset concluído com sucesso pelo servidor!');
+                await carregarDadosServidor();
+            } catch (err) {
+                log('Erro ao resetar partida: ' + err.message);
+            }
+        }
+
+        async function alternarPresenca(id, nome) {
+            log(`Alternando presença para o atleta: ${nome} (${id})...`);
+            const confItem = dadosLocais.listaConfirmados.find(c => String(c.id) === String(id) || (c.nome && c.nome.trim().toLowerCase() === nome.trim().toLowerCase()));
+            
+            let novaLista = [...dadosLocais.listaConfirmados];
+            if (confItem) {
+                // Remove da lista
+                novaLista = novaLista.filter(c => String(c.id) !== String(id) && (!c.nome || c.nome.trim().toLowerCase() !== nome.trim().toLowerCase()));
+            } else {
+                // Adiciona na lista
+                const atletaOriginal = dadosLocais.atletas.find(a => String(a.id) === String(id)) || { id, nome, posicao: 'ATA' };
+                novaLista.unshift({
+                    ...atletaOriginal,
+                    statusPresenca: 'confirmado',
+                    chegadaConfirmada: false,
+                    hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                });
+            }
+
+            try {
+                const resp = await fetch('/api/pelada', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ listaConfirmados: novaLista })
+                });
+                log(`Presença atualizada com sucesso no servidor.`);
+                await carregarDadosServidor();
+            } catch (err) {
+                log('Erro ao alternar presença: ' + err.message);
+            }
+        }
+
+        async function confirmarChegada(id, nome, posicao) {
+            log(`Confirmando chegada no campo para: ${nome}...`);
+            try {
+                const resp = await fetch('/api/pelada/confirmar-chegada', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id,
+                        nome,
+                        posicao: posicao || 'ATA',
+                        distanciaMetros: 50
+                    })
+                });
+                const res = await resp.json();
+                log(`Chegada física confirmada para ${nome}!`);
+                await carregarDadosServidor();
+            } catch (err) {
+                log('Erro ao confirmar chegada: ' + err.message);
+            }
+        }
+
+        async function adicionarAtletaTeste() {
+            const nome = prompt('Nome do novo atleta de teste:', 'Jogador Teste ' + Math.floor(Math.random() * 100));
+            if (!nome) return;
+            const posicao = prompt('Posição (GOL, ZAG, LAT, VOL, MEI, ATA):', 'MEI') || 'MEI';
+
+            log(`Cadastrando novo atleta "${nome}" via POST /api/admin/atleta/salvar...`);
+            try {
+                const resp = await fetch('/api/admin/atleta/salvar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: 'jog_' + Date.now(),
+                        nome: nome.trim(),
+                        posicao: posicao.toUpperCase().trim(),
+                        condicao: '100% (Top)',
+                        idade: 27,
+                        fitness: 95
+                    })
+                });
+                const res = await resp.json();
+                log(`Atleta "${nome}" cadastrado com sucesso no database.json!`);
+                await carregarDadosServidor();
+            } catch (err) {
+                log('Erro ao cadastrar atleta: ' + err.message);
+            }
+        }
+
+        async function excluirAtleta(id, nome) {
+            if (!confirm(`Deseja excluir o atleta "${nome}" do cadastro permanente do database.json?`)) return;
+            log(`Excluindo atleta "${nome}" (${id}) via POST /api/admin/atleta/excluir...`);
+            try {
+                const resp = await fetch('/api/admin/atleta/excluir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, nome })
+                });
+                log(`Atleta "${nome}" excluído do database.json com sucesso.`);
+                await carregarDadosServidor();
+            } catch (err) {
+                log('Erro ao excluir atleta: ' + err.message);
+            }
+        }
+
+        // Conecta ao SSE para receber atualizações do servidor em tempo real
+        function iniciarSse() {
+            try {
+                const sse = new EventSource('/api/stream');
+                sse.onopen = () => log('Conexão SSE aberta em tempo real.');
+                sse.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        log(`[SSE Event] ${msg.type}`);
+                        if (msg.type === 'SYNC' || msg.type === 'LISTA_ZERADA_AUTO' || msg.type === 'JOGADOR_ONLINE') {
+                            carregarDadosServidor();
+                        }
+                    } catch(err) {}
+                };
+            } catch(e) {}
+        }
+
+        // Início
+        carregarDadosServidor();
+        iniciarSse();
+    </script>
+</body>
+</html>

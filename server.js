@@ -435,6 +435,19 @@ const requestHandler = (req, res) => {
       }
     }
 
+    // 0.1 Rota leve e isolada para testes locais: GET /teste
+    if (pathname === '/teste' || pathname === '/teste.html') {
+      const testePath = path.join(__dirname, 'teste.html');
+      if (fs.existsSync(testePath)) {
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
+        res.end(fs.readFileSync(testePath));
+        return;
+      }
+    }
+
     // 1. API: Realtime SSE (/api/stream ou /api/realtime)
     const isStreamRoute = pathname === '/api/stream' ||
                           pathname === '/api/realtime' ||
@@ -520,9 +533,7 @@ const requestHandler = (req, res) => {
             }
           }
           if (payload.peladaConfig !== undefined) {
-            appData.peladaConfig = (payload.peladaConfig && typeof payload.peladaConfig === 'object')
-              ? { ...(appData.peladaConfig || DEFAULT_CONFIG), ...payload.peladaConfig }
-              : payload.peladaConfig;
+            appData.peladaConfig = payload.peladaConfig;
           }
           if (payload.escalacaoAtiva !== undefined) {
             appData.escalacaoAtiva = payload.escalacaoAtiva;
