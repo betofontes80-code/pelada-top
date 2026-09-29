@@ -601,8 +601,14 @@ function limparTerminal() {
   }
 }
 
-// Event Listeners globais
-window.addEventListener('DOMContentLoaded', () => {
+// Event Listeners e Inicialização Robusta
+function bootApp() {
+  // Ajusta o link de acesso público para o host atual da máquina / rede
+  const publicLinkEl = document.getElementById('inputPublicLink');
+  if (publicLinkEl && window.location && window.location.origin) {
+    publicLinkEl.value = `${window.location.origin}/teste`;
+  }
+
   // Inicializa componentes
   initSSE();
   carregarAtletas();
@@ -666,4 +672,10 @@ window.addEventListener('DOMContentLoaded', () => {
     carregarAtletas();
     logTerminal('SISTEMA', 'Status e dados sincronizados com o servidor.', 'info');
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+  bootApp();
+}

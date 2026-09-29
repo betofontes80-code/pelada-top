@@ -435,8 +435,9 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // 0.1 Rota oficial para Página de Teste e Diagnóstico do Servidor: GET /teste
-    if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
+    // 0.1 Rota única oficial: Página de Teste e Diagnóstico do Servidor (exclusiva para /, /teste, /painel)
+    if (pathname === '/' || pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html' ||
+        pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html' || pathname === '/index.html') {
       const publicIndexPath = path.join(__dirname, 'public', 'index.html');
       if (fs.existsSync(publicIndexPath)) {
         res.writeHead(200, {
@@ -1432,55 +1433,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 11. Arquivos estáticos
-
-    // Rotas do Painel Master e Painel de Testes
-    if (pathname === '/painel' || pathname === '/painel/' || pathname === '/painel/index.html') {
-      const painelPath = path.join(__dirname, 'public_admin', 'index.html');
-      if (fs.existsSync(painelPath)) {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(fs.readFileSync(painelPath));
-        return;
-      }
-    }
-
-    if (pathname === '/teste' || pathname === '/teste/' || pathname === '/teste.html') {
-      if (!isLocalDevRequest(req)) {
-        res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acesso Restrito - Pelada Top Dev</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
-  <div class="max-w-md w-full bg-slate-800 border border-red-500/40 rounded-2xl p-6 shadow-2xl text-center">
-    <div class="w-14 h-14 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/50">
-      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-    </div>
-    <h1 class="text-xl font-black text-red-400 tracking-tight">ACESSO RESTRITO AO DEV LOCAL</h1>
-    <p class="text-sm text-slate-300 mt-2">A tela de diagnóstico e testes técnicos foi configurada para execução <b>fora do painel de administração</b> e com permissão exclusiva para a <b>máquina local de desenvolvimento (localhost / 127.0.0.1)</b>.</p>
-    <div class="mt-4 p-3 bg-slate-900 rounded-lg text-xs font-mono text-slate-400 border border-slate-700">
-      Dispositivo remoto não autorizado a executar ferramentas de teste dev.
-    </div>
-    <div class="mt-6 flex justify-center gap-3">
-      <a href="/" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">Ir para o App</a>
-      <a href="/painel" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all">Painel Admin</a>
-    </div>
-  </div>
-</body>
-</html>`);
-        return;
-      }
-      const testePath = path.join(__dirname, 'public_admin', 'teste.html');
-      if (fs.existsSync(testePath)) {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(fs.readFileSync(testePath));
-        return;
-      }
-    }
+    // 11. Arquivos estáticos e dashboard admin compatibilidade
 
     if (pathname === '/dashboard.js' || pathname === '/painel/dashboard.js') {
       const dashPath = path.join(__dirname, 'public_admin', 'dashboard.js');
@@ -1497,7 +1450,7 @@ const requestHandler = (req, res) => {
     const blockedFiles = ['/server.js', '/package.json', '/package-lock.json', '/pelada-dados.json'];
     if (blockedFiles.includes(reqPath)) {
       if (req.method === 'GET' && !pathname.startsWith('/api')) {
-        const indexPath = path.join(__dirname, 'index.html');
+        const indexPath = path.join(__dirname, 'public', 'index.html');
         if (fs.existsSync(indexPath)) {
           const indexData = fs.readFileSync(indexPath);
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Service-Worker-Allowed': '/' });
@@ -1538,9 +1491,9 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // Fallback para SPA (apenas requisições GET fora de /api)
+    // Fallback universal para Página de Teste & Diagnóstico (apenas requisições GET fora de /api)
     if (req.method === 'GET') {
-      const indexPath = path.join(__dirname, 'index.html');
+      const indexPath = path.join(__dirname, 'public', 'index.html');
       if (fs.existsSync(indexPath)) {
         try {
           const indexData = fs.readFileSync(indexPath);
@@ -1570,16 +1523,30 @@ const server = http.createServer(requestHandler);
 // Porta universal para Render ou localhost
 const SERVER_PORT = process.env.PORT || PORT;
 
-server.listen(SERVER_PORT, '0.0.0.0', () => {
+server.listen(SERVER_PORT, () => {
   const localIp = getLocalIp();
   console.log('====================================================');
-  console.log('    ⚽ PELADA TOP - SERVIDOR REALTIME PWA ATIVO     ');
+  console.log('  ⚽ PELADA TOP - PAINEL DE TESTE & DIAGNÓSTICO ATIVO ');
   console.log('====================================================');
-  console.log(`Porta ativa:        ${SERVER_PORT}`);
-  console.log(`Local (neste PC):   http://localhost:${SERVER_PORT}`);
-  console.log(`Rede Wi-Fi/Celular: http://${localIp}:${SERVER_PORT}`);
+  console.log(`Porta principal:    ${SERVER_PORT}`);
+  console.log(`Local (neste PC):   http://localhost:${SERVER_PORT}/teste`);
+  console.log(`                    http://127.0.0.1:${SERVER_PORT}/teste`);
+  console.log(`Rede Wi-Fi/Celular: http://${localIp}:${SERVER_PORT}/teste`);
   console.log('====================================================');
 });
+
+// Porta espelho 8080 para compatibilidade se diferente da principal
+if (String(SERVER_PORT) !== '8080') {
+  try {
+    const server8080 = http.createServer(requestHandler);
+    server8080.listen(8080, () => {
+      console.log(`Porta espelho ativa: http://localhost:8080/teste`);
+    });
+    server8080.on('error', () => {
+      // Porta 8080 ocupada silenciosamente
+    });
+  } catch (e) {}
+}
 
 // Export para compatibilidade
 module.exports = requestHandler;
