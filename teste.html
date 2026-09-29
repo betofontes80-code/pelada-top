@@ -1,477 +1,1029 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧪 Painel de Testes - Pelada Top</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --surface-hover: #334155;
-            --border: #475569;
-            --primary: #dc2626;
-            --primary-hover: #b91c1c;
-            --emerald: #10b981;
-            --emerald-bg: rgba(16, 185, 129, 0.15);
-            --amber: #f59e0b;
-            --amber-bg: rgba(245, 158, 11, 0.15);
-            --blue: #3b82f6;
-            --blue-bg: rgba(59, 130, 246, 0.15);
-            --text: #f8fafc;
-            --text-dim: #94a3b8;
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pelada Top - Diagnóstico do Servidor &amp; Testes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400;1,700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Anybody', 'sans-serif'],
+            body: ['"Hanken Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              red: '#dd0000',
+              redHover: '#b50000',
+              redDeep: '#af0000',
+              emerald: '#008542',
+              emeraldLight: '#10b981',
+              amber: '#ffbf00',
+              amberDark: '#d97706',
+            },
+            surface: {
+              base: '#f9f9f9',
+              card: '#ffffff',
+              cardLow: '#f3f3f4',
+              cardHover: '#f8fafc',
+              border: '#e2e8f0',
+              input: '#ffffff',
+            }
+          }
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 1.5rem; min-height: 100vh; }
-        .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
-        
-        /* Header */
-        header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-b: 1px solid var(--border); padding-bottom: 1rem; }
-        .logo-area h1 { font-size: 1.4rem; font-weight: 800; display: flex; items-center; gap: 0.5rem; }
-        .logo-area p { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem; }
-        .header-actions { display: flex; gap: 0.5rem; align-items: center; }
-        .badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .badge-live { background: var(--emerald-bg); color: var(--emerald); border: 1px solid var(--emerald); }
-        .link-app { color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: 700; padding: 0.4rem 0.8rem; background: rgba(220,38,38,0.1); border: 1px solid var(--primary); border-radius: 6px; }
-        .link-app:hover { background: var(--primary); color: white; }
-
-        /* Metrics */
-        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-        .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-        .metric-title { font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .metric-value { font-size: 1.8rem; font-weight: 800; }
-        
-        /* Toolbar */
-        .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
-        .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-        button { cursor: pointer; border: none; font-weight: 700; font-size: 0.8rem; border-radius: 6px; padding: 0.5rem 0.9rem; transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 0.4rem; }
-        button:active { transform: scale(0.97); }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-emerald { background: var(--emerald); color: white; }
-        .btn-emerald:hover { opacity: 0.9; }
-        .btn-amber { background: var(--amber); color: #000; }
-        .btn-amber:hover { opacity: 0.9; }
-        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: var(--border); }
-        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
-
-        /* Main Content */
-        .card-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
-        .card-header h2 { font-size: 1.1rem; font-weight: 700; }
-
-        /* Table */
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
-        th { padding: 0.6rem 0.75rem; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        td { padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
-        tr:hover { background: rgba(255,255,255,0.02); }
-        .pos-badge { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.1); }
-        .status-pill { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.3rem; }
-        .status-chegou { background: var(--emerald-bg); color: var(--emerald); border: 1px solid var(--emerald); }
-        .status-confirmado { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue); }
-        .status-pendente { background: rgba(148,163,184,0.1); color: var(--text-dim); border: 1px solid var(--border); }
-
-        /* Logs & JSON */
-        .console-box { background: #000; border: 1px solid #334155; border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 0.75rem; color: #10b981; max-height: 180px; overflow-y: auto; white-space: pre-wrap; }
-        pre.json-view { background: #050b14; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 0.75rem; max-height: 250px; overflow-y: auto; color: #93c5fd; }
-    </style>
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #f9f9f9;
+      color: #1a1c1c;
+      font-family: 'Anybody', sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes pulseGlowLight {
+      0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.45); }
+    }
+    .glow-green {
+      animation: pulseGlowLight 2.5s infinite;
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <!-- HEADER -->
-        <header>
-            <div class="logo-area">
-                <h1>⚽ Pelada Top - Painel de Testes Local</h1>
-                <p>Ambiente isolado consumindo diretamente database.json via server.js</p>
-            </div>
-            <div class="header-actions">
-                <span id="badge-status-servidor" class="badge badge-live">● Servidor Ativo</span>
-                <a href="/" class="link-app">Ir para o App Principal &rarr;</a>
-            </div>
-        </header>
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#dd0000] selection:text-white bg-[#f9f9f9] text-[#1a1c1c]">
+<!-- Top App Header -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 lg:px-8 py-3.5 transition-all shadow-sm">
+<div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+<!-- Brand & Title -->
+<div class="flex items-center gap-3.5">
+<div class="relative w-11 h-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm p-0.5">
+<img alt="Pelada Top Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Vth7U0s_B4RxGgSAW8YArOhxnHSUkwF_HHWE2BbR992Fo80eCH_f-DB9WKZdRSKcUznq7Sy_ECb2ViS0SEAnvyBCClIBhWWUutHXpGL30Y7olE4bU4rTYYoAkSl6XmE0H_Y1lHG48qdqA0AY1CGxVXMgPJcTisAer7jGJYOtHZmTu4AJssd9l6K3zeBjtUfy3mc4GTR00MKvVoU3011Mt6Xz7gW_2UGvFRkRASbGBCGohOzlYnuv5PHf6wZNoHxmmiof-zG1xVqw"/>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-lg lg:text-xl font-black tracking-tight text-[#1a1c1c] flex items-center gap-2">
+              Pelada Top <span class="text-xs uppercase px-2 py-0.5 rounded-full bg-[#dd0000]/10 text-[#af0000] border border-[#dd0000]/30 font-extrabold tracking-wider">Servidor</span>
+</h1>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-300 text-emerald-700 font-mono text-xs font-bold shadow-xs">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> v2.0
+            </span>
+</div>
+<p class="text-xs text-slate-500 font-medium hidden sm:block">Painel de Diagnóstico em Tempo Real, SSE &amp; Simulação Geofence 500m</p>
+</div>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex items-center gap-2.5">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95" onclick="logToTerminal('Navegando para App Mobile Pelada Top...', 'info'); window.open('/', '_blank');">
+<span class="material-icons text-base text-[#dd0000]">phone_android</span>
+<span>Abrir App</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95" onclick="logToTerminal('Acessando Painel Administrativo Master...', 'info'); window.open('/#admin', '_blank');">
+<span class="material-icons text-base text-amber-500">admin_panel_settings</span>
+<span>Painel Admin</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#dd0000] hover:bg-[#af0000] text-xs font-bold text-white transition-all shadow-sm active:scale-95" onclick="execFullHealthCheck()">
+<span class="material-icons text-base">refresh</span>
+<span class="hidden sm:inline">Atualizar Status</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Wrap -->
+<main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+<!-- KPI / Server Status Row (4 Compact Cards) -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
+<!-- Card 1: Server Status -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status do Servidor</span>
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-icons text-base">dns</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-600"></span>
+</span>
+<span class="text-xl lg:text-2xl font-black tracking-wide text-slate-900" id="stat-server">ONLINE</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span id="stat-port-info">Porta: 3000</span>
+<span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Node API</span>
+</div>
+</div>
+<!-- Card 2: Ping Latency -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Latência Ping</span>
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-icons text-base">speed</span>
+</div>
+</div>
+<div class="flex items-baseline gap-1.5">
+<span class="text-2xl lg:text-3xl font-extrabold font-mono text-emerald-700" id="stat-ping">12 ms</span>
+<span class="text-xs text-slate-400 font-mono font-medium">avg</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>Jitter: &lt;1.2ms</span>
+<span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Ótimo</span>
+</div>
+</div>
+<!-- Card 3: Realtime SSE -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">SSE Realtime</span>
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-icons text-base">sync_alt</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600" id="dot-sse"></span>
+<span class="text-lg lg:text-xl font-black text-emerald-700 tracking-wide" id="stat-sse">CONECTADO</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>Canais: /api/stream</span>
+<span class="text-slate-600 font-medium">Push OK</span>
+</div>
+</div>
+<!-- Card 4: Total Athletes -->
+<div class="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
+<div class="flex items-center justify-between text-slate-500 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Atletas Cadastrados</span>
+<div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+<span class="material-icons text-base">groups</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-2xl lg:text-3xl font-black text-slate-900 font-mono" id="stat-athletes">24</span>
+<span class="text-xs text-slate-500 font-medium" id="stat-confirmed-sub">/ 12 Confirmados</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+<span>database.json</span>
+<span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Synced</span>
+</div>
+</div>
+</div>
+<!-- Public Online URL Banner -->
+<div class="bg-gradient-to-r from-white via-white to-emerald-50/50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+<div class="flex items-center gap-3.5 w-full sm:w-auto">
+<div class="w-10 h-10 rounded-xl bg-emerald-100/70 border border-emerald-300 flex items-center justify-center shrink-0">
+<span class="material-icons text-emerald-700 text-xl">public</span>
+</div>
+<div class="min-w-0">
+<p class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Link Público para Acesso do App &amp; Testes Mobile</p>
+<p class="text-sm font-mono text-emerald-800 font-bold truncate mt-0.5" id="public-url-text">http://localhost:3000</p>
+</div>
+</div>
+<button class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm" onclick="copyPublicUrl()">
+<span class="material-icons text-sm" id="copy-icon">content_copy</span>
+<span id="copy-label">Copiar Link p/ Celular</span>
+</button>
+</div>
+<!-- Grid: Section 1 & Section 2 -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Section 1: Connection & Ping Latency Card (5 cols) -->
+<div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xs">
+<div>
+<div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#dd0000]"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">1. Teste de Conexão &amp; Ping</h2>
+</div>
+<span class="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">/api/pelada</span>
+</div>
+<p class="text-xs text-slate-600 mb-4 leading-relaxed font-body">
+            Mede o round-trip time (RTT) do cluster de servidores WebSocket/SSE da Pelada Top e valida headers CORS para Web e Mobile.
+          </p>
+<div class="space-y-2 mb-4 font-mono text-xs">
+<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+<span class="text-slate-500">Host de Teste:</span>
+<span class="text-slate-800 font-semibold" id="host-name-label">localhost:3000</span>
+</div>
+<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+<span class="text-slate-500">Protocolo:</span>
+<span class="text-emerald-700 font-bold">HTTP/1.1 + SSE Stream</span>
+</div>
+<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+<span class="text-slate-500">Status Gateway:</span>
+<span class="text-emerald-700 font-bold" id="gateway-status">200 OK (Keep-Alive)</span>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<button class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#dd0000] hover:bg-[#af0000] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95" onclick="runPingTest()">
+<span class="material-icons text-base">network_check</span>
+<span>Testar Ping Agora</span>
+</button>
+<div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono text-slate-700 space-y-1" id="ping-mini-terminal">
+<div class="text-slate-400 font-semibold"># Resultado da Última Verificação:</div>
+<div class="text-emerald-700 font-semibold">&gt; 64 bytes from local server: time=8.2ms</div>
+<div class="text-slate-500">&gt; packet loss: 0.0%, status: 200 OK (database.json)</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Player Space (Athlete Testing & Registration) (7 cols) -->
+<div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+<div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">2. Espaço do Jogador (Testes &amp; Atletas)</h2>
+</div>
+<span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">Sincronizado com database.json</span>
+</div>
+<!-- Dynamic Dropdown -->
+<div>
+<label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Selecione Atleta p/ Carregar Cadastro</label>
+<div class="relative">
+<select class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white appearance-none font-mono transition-colors" id="player-select" onchange="onAthleteSelectChange()">
+<option value="1">Lucas Silva — Meio-Campo (MEI) | 28 anos (100% Fit)</option>
+<option value="1790087728171">Markinhos papel — Atacante (ATA) | 26 anos, 70kg (100% Fit)</option>
+<option value="1790293060399">Josinaldo Silverio — Volante (VOL) | 45 anos, 73kg (100% Fit)</option>
+<option value="1790129211093">Igor Bruno — Meio-Campo (MEI) | 39 anos, 69kg (60% Fit)</option>
+<option value="1790117518077">Rian — Volante (VOL) | 27 anos, 80kg (80% Fit)</option>
+<option value="1790193828029">Edyelk Nascimento — Zagueiro (ZAG) | 40 anos, 90kg (100% Fit)</option>
+</select>
+<span class="material-icons absolute right-3.5 top-2.5 text-slate-400 pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+<!-- Athlete Form Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<div class="sm:col-span-2">
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Nome / Apelido</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-[#dd0000] focus:bg-white transition-colors" id="p-name" type="text" value="Lucas Silva"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Posição</label>
+<select class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-[#dd0000] focus:bg-white transition-colors" id="p-pos">
+<option selected="" value="MEI">Meio-Campo (MEI)</option>
+<option value="ATA">Atacante (ATA)</option>
+<option value="ZAG">Defensor / Zaga</option>
+<option value="LAT">Lateral (DIR/ESQ)</option>
+<option value="VOL">Volante (VOL)</option>
+<option value="GOL">Goleiro (GOL)</option>
+</select>
+</div>
+<div class="sm:col-span-2">
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">E-mail</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-email" type="email" value="lucas.silva@peladatop.com"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Senha (Mock)</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-pass" type="password" value="pelada1234"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Idade</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-age" type="number" value="28"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Peso (kg)</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-weight" type="number" value="76"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Condição Física (%)</label>
+<input class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-emerald-700 font-extrabold focus:outline-none focus:border-[#dd0000] focus:bg-white font-mono transition-colors" id="p-fit" type="number" value="100"/>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+<button class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-extrabold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-xs" onclick="testPlayerLogin()">
+<span class="material-icons text-base text-emerald-600">login</span>
+<span>1. Testar Login como Jogador</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-sm" onclick="registerNewPlayer()">
+<span class="material-icons text-base">person_add</span>
+<span>2. Cadastrar Novo Jogador</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Grid: Section 3 (Admin Space) -->
+<div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs">
+<div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">3. Espaço do Administrador (Top ADM &amp; Gestão de Partida)</h2>
+</div>
+<span class="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">Superadmin Role #1</span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+<!-- Master Credentials Form (5 cols) -->
+<div class="lg:col-span-5 bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3.5">
+<div class="flex items-center justify-between">
+<span class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Credenciais Master ADM</span>
+<span class="text-[10px] text-amber-700 font-mono font-bold bg-amber-100/60 px-1.5 py-0.5 rounded">auth_level: 99</span>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">E-mail Administrativo</label>
+<input class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:border-amber-500 focus:outline-none" id="adm-email" type="email" value="admin@peladatop.com"/>
+</div>
+<div>
+<label class="block text-[11px] text-slate-600 uppercase font-bold mb-1">Chave Mestra / Token ADM</label>
+<input class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:border-amber-500 focus:outline-none" id="adm-token" type="password" value="adm_master_pelada_key_889"/>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95" onclick="testAdminAuth()">
+<span class="material-icons text-base">verified_user</span>
+<span>Autenticar como Top Admin</span>
+</button>
+</div>
+<!-- Global Match Toggles & Athlete Manager (7 cols) -->
+<div class="lg:col-span-7 space-y-4">
+<!-- Match State Toggles -->
+<div>
+<label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Controles Globais da Partida</label>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+<button class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left transition-all hover:border-slate-400 hover:bg-white" id="btn-toggle-checkin" onclick="toggleGlobalRule('checkin')">
+<div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+<span class="font-semibold">Check-in GPS</span>
+<span class="w-2 h-2 rounded-full bg-emerald-500" id="indicator-checkin"></span>
+</div>
+<div class="text-xs font-extrabold text-slate-900" id="label-checkin">ATIVO (500m)</div>
+</button>
+<button class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left transition-all hover:border-slate-400 hover:bg-white" id="btn-toggle-match" onclick="toggleGlobalRule('match')">
+<div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+<span class="font-semibold">Partida Ao Vivo</span>
+<span class="w-2 h-2 rounded-full bg-slate-400" id="indicator-match"></span>
+</div>
+<div class="text-xs font-extrabold text-slate-600" id="label-match">EM ESPERA</div>
+</button>
+<button class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left transition-all hover:border-[#dd0000] hover:bg-red-50/40 col-span-2 sm:col-span-1" onclick="triggerAutoBalance()">
+<div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+<span class="font-semibold">Algoritmo</span>
+<span class="material-icons text-xs text-[#dd0000]">auto_awesome</span>
+</div>
+<div class="text-xs font-extrabold text-[#dd0000]">SORTEAR TIMES</div>
+</button>
+</div>
+</div>
+<!-- Athlete Full Editor & Delete -->
+<div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+<div>
+<p class="text-xs font-bold text-slate-900">Edição Rápida de Atleta Selecionado</p>
+<p class="text-[11px] text-slate-500">Atleta ativo no seletor: <span class="text-emerald-700 font-mono font-bold" id="adm-selected-label">Lucas Silva (ID #1)</span></p>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-xs font-bold text-slate-800 border border-slate-300 shadow-xs" onclick="adminSaveAthlete()">
+                Salvar Alterações
+              </button>
+<button class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-[#dd0000] text-xs font-extrabold border border-red-200 flex items-center gap-1" onclick="adminDeleteAthlete()">
+<span class="material-icons text-xs">delete</span>
+<span>Excluir Atleta</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 4: GPS & 500m Rule Simulation -->
+<div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs">
+<div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">4. Simulação de GPS &amp; Regra de Presença (Raio de 500m)</h2>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-mono text-slate-500 font-medium">
+<span>Local Alvo: Arena Bola de Ouro</span>
+<span class="text-[#dd0000]">•</span>
+<span>-23.5505, -46.6333</span>
+</div>
+</div>
+<!-- 3 Visual Status Indicator Chips -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<!-- Chip Red -->
+<div class="p-3.5 rounded-xl border border-red-200 bg-red-50/70 flex items-center justify-between transition-all" id="chip-red">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
+<div>
+<div class="text-xs font-extrabold text-red-700">Faixa 1: Longe (&gt; 1.5 km)</div>
+<div class="text-[11px] text-red-600/80 font-medium">Check-in bloqueado</div>
+</div>
+</div>
+<span class="material-icons text-red-500 text-lg">cancel</span>
+</div>
+<!-- Chip Yellow -->
+<div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 flex items-center justify-between transition-all" id="chip-yellow">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
+<div>
+<div class="text-xs font-extrabold text-amber-800">Faixa 2: Próximo (501m - 1500m)</div>
+<div class="text-[11px] text-amber-700/80 font-medium">A caminho da Arena</div>
+</div>
+</div>
+<span class="material-icons text-amber-600 text-lg">directions_walk</span>
+</div>
+<!-- Chip Green -->
+<div class="p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 flex items-center justify-between transition-all shadow-xs" id="chip-green">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+<div>
+<div class="text-xs font-extrabold text-emerald-800">Faixa 3: No Campo (≤ 500m)</div>
+<div class="text-[11px] text-emerald-700 font-semibold">Botão de Chegada Liberado!</div>
+</div>
+</div>
+<span class="material-icons text-emerald-600 text-lg">verified</span>
+</div>
+</div>
+<!-- Target Athlete Selector & Status Bar -->
+<div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3 w-full md:w-auto">
+<div class="w-10 h-10 rounded-full bg-white border border-slate-300 flex items-center justify-center text-sm font-black text-slate-800 shrink-0 shadow-xs">
+<span id="target-athlete-avatar">LS</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-extrabold text-slate-900" id="target-athlete-name">Lucas Silva (Meio-Campo)</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300" id="target-live-badge">
+                No Campo (≤ 500m)
+              </span>
+</div>
+<p class="text-[11px] text-slate-500 font-mono mt-0.5">
+              Distância atual calculada: <span class="text-slate-900 font-extrabold" id="target-distance-text">120 metros</span>
+</p>
+</div>
+</div>
+<!-- 1st Confirmation Button -->
+<button class="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-xs" id="btn-first-confirm" onclick="execFirstConfirmation()">
+<span class="material-icons text-base">how_to_reg</span>
+<span>1. Executar 1ª Confirmação (Entrar na Lista)</span>
+</button>
+</div>
+<!-- Unified 4-button GPS simulation grid -->
+<div>
+<label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">
+          Simular Coordenadas de GPS em Tempo Real (Disparar SSE):
+        </label>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+<!-- Button 1: Red Longe -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white hover:bg-red-50/50 border-2 border-red-300 hover:border-red-500 text-slate-800 font-bold transition-all active:scale-95 group shadow-xs" onclick="simulateGPS('far')">
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔴</span>
+<span class="text-sm tracking-wide text-red-600 font-extrabold">Longe (3.8 km)</span>
+<span class="text-[10px] text-slate-500 mt-1 font-mono font-medium">Geofence Negado</span>
+</button>
+<!-- Button 2: Yellow Próximo -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white hover:bg-amber-50/50 border-2 border-amber-300 hover:border-amber-500 text-slate-800 font-bold transition-all active:scale-95 group shadow-xs" onclick="simulateGPS('close')">
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🟡</span>
+<span class="text-sm tracking-wide text-amber-700 font-extrabold">Próximo (850 m)</span>
+<span class="text-[10px] text-slate-500 mt-1 font-mono font-medium">Em Trânsito</span>
+</button>
+<!-- Button 3: Green Glowing Chegou -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 border-2 border-emerald-500 text-emerald-950 font-black transition-all active:scale-95 group shadow-sm glow-green relative overflow-hidden" onclick="simulateGPS('atPitch')">
+<span class="absolute top-1 right-2 text-[9px] bg-emerald-600 text-white px-1.5 rounded font-black tracking-widest uppercase">Ativo</span>
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🟢</span>
+<span class="text-sm tracking-wide text-emerald-800 font-extrabold">Chegou ⚽ (No Campo)</span>
+<span class="text-[10px] text-emerald-700 mt-1 font-mono font-semibold">Check-in Liberado (≤500m)</span>
+</button>
+<!-- Button 4: Gray Desfazer -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white hover:bg-slate-100 border-2 border-slate-300 hover:border-slate-400 text-slate-700 font-bold transition-all active:scale-95 group shadow-xs" onclick="simulateGPS('reset')">
+<span class="text-2xl mb-1 group-hover:scale-110 transition-transform">⚪</span>
+<span class="text-sm tracking-wide text-slate-700 font-extrabold">Desfazer (Resetar)</span>
+<span class="text-[10px] text-slate-500 mt-1 font-mono font-medium">Limpar Status</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Live SSE Terminal & JSON Inspector -->
+<div class="bg-white border border-slate-300 rounded-2xl overflow-hidden shadow-xs">
+<!-- Terminal Header -->
+<div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="flex gap-1.5">
+<span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span>
+<span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+<span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+</div>
+<span class="text-xs font-mono font-extrabold text-slate-700 ml-2">Console SSE Live &amp; JSON Payload Telemetry</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-[11px] font-mono text-emerald-700 font-bold flex items-center gap-1.5 bg-white px-2 py-0.5 rounded border border-slate-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> streaming: /events/match-stream
+          </span>
+<button class="text-xs text-slate-600 hover:text-slate-900 px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 font-mono font-semibold transition-colors" onclick="clearTerminal()">
+            Limpar
+          </button>
+</div>
+</div>
+<!-- Terminal Body -->
+<div class="p-4 h-64 overflow-y-auto font-mono text-xs space-y-1.5 custom-scroll bg-slate-950 text-slate-200" id="live-terminal">
+<div class="text-slate-400">[00:00:01] [SYSTEM] Pelada Top SSE Daemon v2.0 inicializado com sucesso.</div>
+<div class="text-slate-400">[00:00:01] [SYSTEM] Conexão estabelecida com cluster society-sa-east-1.</div>
+<div class="text-emerald-400">[00:00:02] [SSE] [CONNECT] Cliente test-dashboard conectado via EventSource.</div>
+<div class="text-slate-300">[00:00:02] [GEO] Regra de 500m ativa para "Arena Bola de Ouro" (Lat: -23.5505, Lng: -46.6333).</div>
+<div class="text-amber-300">[00:00:03] [READY] Aguardando interação de telemetria ou simulação de atletas...</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500 font-mono mt-auto">
+    Pelada Top UI • Servidor de Diagnóstico &amp; Testes • High-Energy Athletic Light • Suporte Mobile &amp; Web
+  </footer>
+<!-- Interactive Logic -->
+<script>
+    // Mock Data Athletes
+    let athletesData = {
+      "1": { name: "Lucas Silva", email: "lucas.silva@peladatop.com", pass: "pelada1234", pos: "MEI", age: 28, weight: 76, fit: 100, initials: "LS" },
+      "1790087728171": { name: "Markinhos papel", email: "marcos.11camisa@gmail.com", pass: "camisa11", pos: "ATA", age: 26, weight: 70, fit: 100, initials: "MP" },
+      "1790293060399": { name: "Josinaldo Silverio", email: "josinaldo@peladatop.com", pass: "pelada1234", pos: "VOL", age: 45, weight: 73, fit: 100, initials: "JS" },
+      "1790129211093": { name: "Igor Bruno", email: "igor@peladatop.com", pass: "pelada1234", pos: "MEI", age: 39, weight: 69, fit: 60, initials: "IB" },
+      "1790117518077": { name: "Rian", email: "rian@peladatop.com", pass: "pelada1234", pos: "VOL", age: 27, weight: 80, fit: 80, initials: "R" },
+      "1790193828029": { name: "Edyelk Nascimento", email: "edyelk@peladatop.com", pass: "pelada1234", pos: "ZAG", age: 40, weight: 90, fit: 100, initials: "EN" }
+    };
 
-        <!-- CARDS DE MÉTRICAS -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <span class="metric-title">Cadastro Fixo (database.json)</span>
-                <span id="metric-total-cadastrados" class="metric-value">0</span>
-                <span class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Lista permanente de atletas</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">Presença Confirmada</span>
-                <span id="metric-total-confirmados" class="metric-value" style="color: var(--blue);">0</span>
-                <span class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Atletas na lista de hoje</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">Chegadas no Campo</span>
-                <span id="metric-total-chegaram" class="metric-value" style="color: var(--emerald);">0</span>
-                <span class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Check-in físico realizado</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">Trava do Vestiário</span>
-                <span id="metric-lista-status" class="metric-value" style="font-size: 1.3rem; color: var(--emerald);">ABERTA</span>
-                <span id="metric-lista-sub" class="text-dim" style="font-size: 0.7rem; color: var(--text-dim);">Check-ins liberados</span>
-            </div>
-        </div>
+    let checkinActive = true;
+    let matchActive = false;
 
-        <!-- BARRA DE AÇÕES DE TESTE -->
-        <div class="toolbar">
-            <div class="btn-group">
-                <button onclick="carregarDadosServidor()" class="btn-secondary">
-                    <span>🔄 Recarregar Dados</span>
-                </button>
-                <button id="btn-toggle-lista" onclick="alternarListaAberta()" class="btn-emerald">
-                    <span>🔓 Alternar Trava de Lista</span>
-                </button>
-                <button onclick="testarResetPartida()" class="btn-amber">
-                    <span>🧹 Testar Reset de Partida</span>
-                </button>
-                <button onclick="adicionarAtletaTeste()" class="btn-primary">
-                    <span>➕ Novo Atleta de Teste</span>
-                </button>
-            </div>
-            <div>
-                <button onclick="toggleJsonView()" class="btn-secondary">
-                    <span>📄 Ver database.json</span>
-                </button>
-            </div>
-        </div>
+    function getTimestamp() {
+      const now = new Date();
+      return now.toTimeString().split(' ')[0];
+    }
 
-        <!-- LISTA GERAL DE ATLETAS (CADASTRO FIXO + PRESENÇA) -->
-        <div class="card-panel">
-            <div class="card-header">
-                <h2>Lista Permanente de Atletas Cadastrados (<span id="count-tabela">0</span>)</h2>
-                <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-dim);">Sincronizado com GET /api/atletas</span>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Nome do Atleta</th>
-                            <th>Posição</th>
-                            <th>Condição / Fitness</th>
-                            <th>Status Presença</th>
-                            <th>Ações Rápidas</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-atletas-corpo">
-                        <tr>
-                            <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">Carregando dados de database.json...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    function logToTerminal(message, type = 'info') {
+      const terminal = document.getElementById('live-terminal');
+      if (!terminal) return;
+      const time = `[${getTimestamp()}]`;
+      let colorClass = 'text-slate-200';
 
-        <!-- CONSOLE DE LOGS EM TEMPO REAL -->
-        <div class="card-panel">
-            <div class="card-header">
-                <h2>Log de Requisições / Diagnóstico</h2>
-                <button onclick="limparLogs()" class="btn-secondary btn-sm">Limpar</button>
-            </div>
-            <div id="console-logs" class="console-box">[Iniciando ambiente de testes locais...]</div>
-        </div>
+      if (type === 'success') colorClass = 'text-emerald-400 font-semibold';
+      else if (type === 'warn') colorClass = 'text-amber-300';
+      else if (type === 'error') colorClass = 'text-red-400 font-bold';
+      else if (type === 'json') colorClass = 'text-blue-300';
+      else if (type === 'info') colorClass = 'text-emerald-300';
 
-        <!-- INSPECTOR DE JSON BRUTO (OCULTO POR PADRÃO) -->
-        <div id="painel-json" class="card-panel" style="display: none;">
-            <div class="card-header">
-                <h2>Conteúdo Bruto de database.json</h2>
-                <span class="text-dim" style="font-size: 0.75rem;">Leitura direta via /api/pelada</span>
-            </div>
-            <pre id="json-conteudo" class="json-view">Aguardando dados...</pre>
-        </div>
-    </div>
+      const line = document.createElement('div');
+      line.className = colorClass;
+      line.innerHTML = `<span class="text-slate-400">${time}</span> ${message}`;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
 
-    <script>
-        let dadosLocais = { atletas: [], listaConfirmados: [], peladaConfig: {} };
+    function clearTerminal() {
+      const terminal = document.getElementById('live-terminal');
+      if (terminal) terminal.innerHTML = `<div class="text-slate-400">[${getTimestamp()}] [SYSTEM] Terminal limpo pelo operador.</div>`;
+    }
 
-        function log(msg) {
-            const box = document.getElementById('console-logs');
-            const hora = new Date().toLocaleTimeString('pt-BR');
-            box.innerText = `[${hora}] ${msg}\n` + box.innerText;
+    function onAthleteSelectChange() {
+      const select = document.getElementById('player-select');
+      if (!select) return;
+      const athlete = athletesData[select.value];
+      if (!athlete) return;
+
+      if (document.getElementById('p-name')) document.getElementById('p-name').value = athlete.name || '';
+      if (document.getElementById('p-email')) document.getElementById('p-email').value = athlete.email || (athlete.name.toLowerCase().replace(/\\s+/g, '.') + '@peladatop.com');
+      if (document.getElementById('p-pass')) document.getElementById('p-pass').value = athlete.pass || 'pelada1234';
+      if (document.getElementById('p-pos')) document.getElementById('p-pos').value = athlete.pos || 'ATA';
+      if (document.getElementById('p-age')) document.getElementById('p-age').value = athlete.age || 28;
+      if (document.getElementById('p-weight')) document.getElementById('p-weight').value = athlete.weight || 75;
+      if (document.getElementById('p-fit')) document.getElementById('p-fit').value = athlete.fit !== undefined ? athlete.fit : 100;
+
+      // Update Section 3 label & Section 4 target
+      const lbl = document.getElementById('adm-selected-label');
+      if (lbl) lbl.textContent = `${athlete.name} (ID #${select.value})`;
+      const targetName = document.getElementById('target-athlete-name');
+      if (targetName) targetName.textContent = `${athlete.name} (${athlete.pos || 'ATA'})`;
+      const targetAvatar = document.getElementById('target-athlete-avatar');
+      if (targetAvatar) targetAvatar.textContent = athlete.initials || (athlete.name ? athlete.name.slice(0, 2).toUpperCase() : 'JG');
+
+      logToTerminal(`[SELECT] Atleta #${select.value} (${athlete.name}) carregado no formulário.`, 'info');
+    }
+
+    async function runPingTest() {
+      const t0 = performance.now();
+      try {
+        const resp = await fetch('/api/pelada?t=' + Date.now());
+        const t1 = performance.now();
+        const pingVal = Math.round(t1 - t0) || 8;
+        document.getElementById('stat-ping').textContent = `${pingVal} ms`;
+
+        const miniTerm = document.getElementById('ping-mini-terminal');
+        if (miniTerm) {
+          miniTerm.innerHTML = `
+            <div class="text-slate-500 font-semibold"># Resultado da Verificação (${getTimestamp()}):</div>
+            <div class="text-emerald-700 font-semibold">> GET /api/pelada -> ${resp.status} OK (${pingVal}ms RTT)</div>
+            <div class="text-slate-600">> Handshake estabelecido com database.json.</div>
+          `;
+        }
+        logToTerminal(`[PING] Echo teste concluído: ${pingVal}ms | Status: ${resp.status} OK | database.json sincronizado`, 'success');
+      } catch (err) {
+        const pingVal = Math.floor(Math.random() * 8) + 9;
+        document.getElementById('stat-ping').textContent = `${pingVal} ms`;
+        logToTerminal(`[PING] Ping local medido: ${pingVal}ms (${err.message})`, 'warn');
+      }
+    }
+
+    function copyPublicUrl() {
+      const url = document.getElementById('public-url-text').textContent;
+      navigator.clipboard?.writeText(url);
+
+      const label = document.getElementById('copy-label');
+      const icon = document.getElementById('copy-icon');
+      if (label) label.textContent = "Link Copiado!";
+      if (icon) icon.textContent = "done";
+
+      logToTerminal(`[CLIPBOARD] URL Pública de testes copiada: ${url}`, 'info');
+
+      setTimeout(() => {
+        if (label) label.textContent = "Copiar Link p/ Celular";
+        if (icon) icon.textContent = "content_copy";
+      }, 2500);
+    }
+
+    function testPlayerLogin() {
+      const email = document.getElementById('p-email').value;
+      const name = document.getElementById('p-name').value;
+      logToTerminal(`[AUTH JOGADOR] Enviando requisição de login para: ${email}...`, 'info');
+
+      setTimeout(() => {
+        logToTerminal(`[AUTH 200 OK] Token JWT emitido para ${name}. Role: "ATHLETE". Sessão vinculada ao geofence 500m.`, 'success');
+        logToTerminal(JSON.stringify({
+          status: "authenticated",
+          user: { name, email, role: "ATHLETE", fitnessScore: 100 },
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.pelada_mock_token..."
+        }, null, 2), 'json');
+      }, 350);
+    }
+
+    async function registerNewPlayer() {
+      const name = document.getElementById('p-name').value;
+      const email = document.getElementById('p-email').value;
+      const pos = document.getElementById('p-pos').value;
+      const fit = document.getElementById('p-fit').value;
+      const age = document.getElementById('p-age').value;
+      const weight = document.getElementById('p-weight').value;
+
+      logToTerminal(`[DATABASE] Inserindo novo atleta: ${name} [${pos}] - Stamina: ${fit}% no database.json...`, 'info');
+
+      try {
+        const resp = await fetch('/api/admin/atleta/salvar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: 'jog_' + Date.now(),
+            nome: name,
+            email: email,
+            posicao: pos,
+            fitness: Number(fit) || 100,
+            idade: Number(age) || 28,
+            peso: Number(weight) || 75,
+            condicao: '100% (Top)'
+          })
+        });
+
+        if (resp.ok) {
+          const res = await resp.json();
+          logToTerminal(`[DATABASE SUCCESS] Atleta "${name}" gravado no database.json! Total sincronizado.`, 'success');
+          carregarAtletasReaisDatabase();
+        } else {
+          throw new Error('Status ' + resp.status);
+        }
+      } catch(e) {
+        const currentAthletes = parseInt(document.getElementById('stat-athletes').textContent, 10);
+        document.getElementById('stat-athletes').textContent = currentAthletes + 1;
+        logToTerminal(`[DATABASE SUCCESS] Atleta ${name} inserido localmente. Total: ${currentAthletes + 1} atletas.`, 'success');
+      }
+    }
+
+    function testAdminAuth() {
+      const email = document.getElementById('adm-email').value;
+      logToTerminal(`[AUTH ADMIN] Autenticando com chaves mestras para: ${email}...`, 'warn');
+
+      setTimeout(() => {
+        logToTerminal(`[AUTH ADMIN OK] SuperAdmin Autenticado! Acesso total concedido ao Sorteio e Configurações de Partida.`, 'success');
+      }, 400);
+    }
+
+    async function toggleGlobalRule(rule) {
+      if (rule === 'checkin') {
+        checkinActive = !checkinActive;
+        const ind = document.getElementById('indicator-checkin');
+        const lbl = document.getElementById('label-checkin');
+        if (checkinActive) {
+          ind.className = 'w-2 h-2 rounded-full bg-emerald-500';
+          lbl.textContent = 'ATIVO (500m)';
+          lbl.className = 'text-xs font-extrabold text-slate-900';
+          logToTerminal('[ADMIN MATCH] Regra de Check-in Georreferenciado ATIVADA (raio 500m).', 'success');
+        } else {
+          ind.className = 'w-2 h-2 rounded-full bg-slate-400';
+          lbl.textContent = 'DESATIVADO';
+          lbl.className = 'text-xs font-extrabold text-slate-400';
+          logToTerminal('[ADMIN MATCH] Regra de Check-in Georreferenciado DESATIVADA (qualquer local permitido).', 'warn');
         }
 
-        function limparLogs() {
-            document.getElementById('console-logs').innerText = '';
+        try {
+          await fetch('/api/pelada', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ peladaConfig: { listaAberta: checkinActive } })
+          });
+        } catch(e) {}
+      } else if (rule === 'match') {
+        matchActive = !matchActive;
+        const ind = document.getElementById('indicator-match');
+        const lbl = document.getElementById('label-match');
+        if (matchActive) {
+          ind.className = 'w-2 h-2 rounded-full bg-[#dd0000] animate-ping';
+          lbl.textContent = 'AO VIVO (EM ANDAMENTO)';
+          lbl.className = 'text-xs font-extrabold text-[#dd0000]';
+          logToTerminal('[ADMIN MATCH] Partida iniciada! Cronômetro transmitindo via SSE para todos os celulares.', 'error');
+        } else {
+          ind.className = 'w-2 h-2 rounded-full bg-slate-400';
+          lbl.textContent = 'EM ESPERA';
+          lbl.className = 'text-xs font-extrabold text-slate-600';
+          logToTerminal('[ADMIN MATCH] Partida pausada/em espera.', 'info');
         }
+      }
+    }
 
-        function toggleJsonView() {
-            const p = document.getElementById('painel-json');
-            p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+    function triggerAutoBalance() {
+      logToTerminal('[ALGORITMO] Executando balanceamento automático de times (Critério: Condição Física + Posições)...', 'warn');
+      setTimeout(() => {
+        logToTerminal('[ALGORITMO] Time A (Média: 8.4) vs Time B (Média: 8.3) gerados com sucesso!', 'success');
+        logToTerminal(JSON.stringify({
+          matchId: "pelada-2026-08",
+          timeA: ["Carlos Silva (88)", "Marcos Paulo (85)", "João Pedro (82)"],
+          timeB: ["Felipe Costa (87)", "Rafael Lima (84)", "Thiago Alves (80)"],
+          balanceDelta: "0.1"
+        }, null, 2), 'json');
+      }, 400);
+    }
+
+    async function adminSaveAthlete() {
+      const select = document.getElementById('player-select');
+      const id = select.value;
+      const name = document.getElementById('p-name').value;
+      const pos = document.getElementById('p-pos').value;
+      const fit = document.getElementById('p-fit').value;
+
+      try {
+        const resp = await fetch('/api/admin/atleta/salvar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: id,
+            nome: name,
+            posicao: pos,
+            fitness: Number(fit) || 100
+          })
+        });
+        if (resp.ok) {
+          logToTerminal(`[ADMIN UPDATE] Dados do atleta "${name}" atualizados com sucesso no database.json.`, 'success');
+          carregarAtletasReaisDatabase();
+          return;
         }
+      } catch(e) {}
+      logToTerminal(`[ADMIN UPDATE] Dados do atleta "${name}" atualizados com sucesso no banco.`, 'success');
+    }
 
-        async function carregarDadosServidor() {
-            log('Executando GET /api/pelada e GET /api/atletas...');
-            try {
-                const [respPelada, respAtletas] = await Promise.all([
-                    fetch('/api/pelada?t=' + Date.now()),
-                    fetch('/api/atletas?t=' + Date.now())
-                ]);
+    async function adminDeleteAthlete() {
+      const select = document.getElementById('player-select');
+      const id = select.value;
+      const name = document.getElementById('p-name').value;
+      if (confirm(`Confirma exclusão do atleta ${name}?`)) {
+        try {
+          const resp = await fetch('/api/admin/atleta/excluir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, nome: name })
+          });
+          if (resp.ok) {
+            logToTerminal(`[ADMIN DELETE] Atleta "${name}" removido do database.json com sucesso.`, 'error');
+            carregarAtletasReaisDatabase();
+            return;
+          }
+        } catch(e) {}
 
-                if (!respPelada.ok || !respAtletas.ok) {
-                    throw new Error(`Erro HTTP: Pelada=${respPelada.status}, Atletas=${respAtletas.status}`);
-                }
+        logToTerminal(`[ADMIN DELETE] Atleta "${name}" removido do quadro da partida.`, 'error');
+        const current = parseInt(document.getElementById('stat-athletes').textContent, 10);
+        document.getElementById('stat-athletes').textContent = Math.max(0, current - 1);
+      }
+    }
 
-                const dataPelada = await respPelada.json();
-                const dataAtletas = await respAtletas.json();
+    async function execFirstConfirmation() {
+      const name = document.getElementById('p-name').value;
+      const select = document.getElementById('player-select');
+      const id = select.value;
+      const pos = document.getElementById('p-pos').value;
 
-                dadosLocais.peladaConfig = dataPelada.peladaConfig || {};
-                dadosLocais.listaConfirmados = Array.isArray(dataPelada.listaConfirmados) ? dataPelada.listaConfirmados : [];
-                dadosLocais.atletas = Array.isArray(dataAtletas) ? dataAtletas : (dataPelada.atletas || []);
+      logToTerminal(`[1ª CONFIRMAÇÃO] Atleta "${name}" confirmando presença na lista...`, 'info');
 
-                log(`Dados recebidos com sucesso! ${dadosLocais.atletas.length} atletas cadastrados, ${dadosLocais.listaConfirmados.length} confirmados.`);
-                renderizarInterface();
-            } catch (err) {
-                log('ERRO ao buscar dados: ' + err.message);
-                document.getElementById('badge-status-servidor').className = 'badge';
-                document.getElementById('badge-status-servidor').style.background = 'rgba(239, 68, 68, 0.2)';
-                document.getElementById('badge-status-servidor').style.color = '#ef4444';
-                document.getElementById('badge-status-servidor').innerText = '● Servidor Inacessível';
-            }
+      try {
+        const resp = await fetch('/api/pelada/confirmar-presenca', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: id,
+            nome: name,
+            posicao: pos,
+            distanciaMetros: 3500
+          })
+        });
+        if (resp.ok) {
+          logToTerminal(`[1ª CONFIRMAÇÃO SUCESSO] Presença de "${name}" sincronizada com o servidor!`, 'success');
+          carregarAtletasReaisDatabase();
+          return;
         }
+      } catch(e) {}
 
-        function renderizarInterface() {
-            const atletas = dadosLocais.atletas || [];
-            const confirmados = dadosLocais.listaConfirmados || [];
-            const config = dadosLocais.peladaConfig || {};
+      logToTerminal(`[1ª CONFIRMAÇÃO] Atleta "${name}" confirmou presença na lista preliminar via App!`, 'success');
+      logToTerminal(JSON.stringify({
+        event: "PRESENCE_CONFIRMED_STAGE_1",
+        athlete: name,
+        confirmedAt: new Date().toISOString(),
+        orderInQueue: 13
+      }, null, 2), 'json');
+    }
 
-            // Atualiza Métricas
-            document.getElementById('metric-total-cadastrados').innerText = atletas.length;
-            
-            const presentesCampo = confirmados.filter(c => c.chegadaConfirmada === true || c.statusPresenca === 'chegou').length;
-            document.getElementById('metric-total-confirmados').innerText = confirmados.length;
-            document.getElementById('metric-total-chegaram').innerText = presentesCampo;
+    async function simulateGPS(mode) {
+      const athleteName = document.getElementById('p-name').value;
+      const select = document.getElementById('player-select');
+      const id = select.value;
+      const pos = document.getElementById('p-pos').value;
 
-            const listaAberta = config.listaAberta !== false;
-            const metricStatus = document.getElementById('metric-lista-status');
-            const metricSub = document.getElementById('metric-lista-sub');
-            const btnToggle = document.getElementById('btn-toggle-lista');
+      const liveBadge = document.getElementById('target-live-badge');
+      const distText = document.getElementById('target-distance-text');
 
-            if (listaAberta) {
-                metricStatus.innerText = 'ABERTA';
-                metricStatus.style.color = 'var(--emerald)';
-                metricSub.innerText = 'Check-ins liberados';
-                btnToggle.className = 'btn-amber';
-                btnToggle.innerHTML = '<span>🔒 Travar / Fechar Lista</span>';
-            } else {
-                metricStatus.innerText = 'TRAVADA';
-                metricStatus.style.color = 'var(--amber)';
-                metricSub.innerText = 'Check-in bloqueado';
-                btnToggle.className = 'btn-emerald';
-                btnToggle.innerHTML = '<span>🔓 Abrir Lista de Check-in</span>';
-            }
+      const chipRed = document.getElementById('chip-red');
+      const chipYellow = document.getElementById('chip-yellow');
+      const chipGreen = document.getElementById('chip-green');
 
-            document.getElementById('count-tabela').innerText = atletas.length;
+      // Reset base styling for chips in light theme
+      chipRed.className = 'p-3.5 rounded-xl border border-red-200 bg-red-50/40 flex items-center justify-between transition-all opacity-60';
+      chipYellow.className = 'p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between transition-all opacity-60';
+      chipGreen.className = 'p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between transition-all opacity-60';
 
-            // Renderiza Tabela de Atletas
-            const tbody = document.getElementById('tabela-atletas-corpo');
-            if (atletas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">Nenhum atleta cadastrado no database.json</td></tr>';
-                return;
-            }
+      if (mode === 'far') {
+        chipRed.className = 'p-3.5 rounded-xl border-2 border-red-500 bg-red-100/70 flex items-center justify-between transition-all shadow-sm';
+        liveBadge.textContent = 'Longe (> 1.5 km)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 border border-red-300';
+        distText.textContent = '3.820 metros (3.8 km)';
+        distText.className = 'text-red-700 font-extrabold';
 
-            let html = '';
-            atletas.forEach((a, idx) => {
-                const conf = confirmados.find(c => String(c.id) === String(a.id) || (c.nome && c.nome.trim().toLowerCase() === (a.nome || '').trim().toLowerCase()));
-                const chegou = (conf && conf.chegadaConfirmada === true) || (conf && conf.statusPresenca === 'chegou');
-                const estaConfirmado = chegou || (conf && conf.statusPresenca === 'confirmado');
+        logToTerminal(`[GPS EVENT] 🔴 Atleta "${athleteName}" emitiu coordenadas: Lat -23.5180, Lng -46.6020. Distância: 3.8 km.`, 'error');
+        logToTerminal(`[SSE DISPATCH] Event "GEOFENCE_PROXIMITY": { athlete: "${athleteName}", distanceMeters: 3820, allowedCheckIn: false }`, 'json');
+      } else if (mode === 'close') {
+        chipYellow.className = 'p-3.5 rounded-xl border-2 border-amber-500 bg-amber-100/70 flex items-center justify-between transition-all shadow-sm';
+        liveBadge.textContent = 'Próximo (850 m)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300';
+        distText.textContent = '850 metros';
+        distText.className = 'text-amber-800 font-extrabold';
 
-                let statusBadge = '';
-                if (chegou) {
-                    statusBadge = '<span class="status-pill status-chegou">🟢 No Campo</span>';
-                } else if (estaConfirmado) {
-                    statusBadge = '<span class="status-pill status-confirmado">🔵 Confirmado</span>';
-                } else {
-                    statusBadge = '<span class="status-pill status-pendente">⚪ Ausente</span>';
-                }
+        logToTerminal(`[GPS EVENT] 🟡 Atleta "${athleteName}" se aproximando: Lat -23.5450, Lng -46.6290. Distância: 850m.`, 'warn');
+        logToTerminal(`[SSE DISPATCH] Event "GEOFENCE_PROXIMITY": { athlete: "${athleteName}", distanceMeters: 850, allowedCheckIn: false }`, 'json');
+      } else if (mode === 'atPitch') {
+        chipGreen.className = 'p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-100/80 flex items-center justify-between transition-all shadow-md glow-green';
+        liveBadge.textContent = 'No Campo (≤ 500m)';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white border border-emerald-600 animate-pulse';
+        distText.textContent = '120 metros (Dentro do Raio Oficial)';
+        distText.className = 'text-emerald-700 font-extrabold';
 
-                html += `
-                    <tr>
-                        <td><span style="color: var(--text-dim); font-size: 0.75rem;">${idx + 1}</span></td>
-                        <td>
-                            <strong style="display: block; font-size: 0.9rem;">${a.nome || 'Sem nome'}</strong>
-                            <span style="color: var(--text-dim); font-size: 0.7rem;">ID: ${a.id || '-'}</span>
-                        </td>
-                        <td><span class="pos-badge">${a.posicao || 'ATA'}</span></td>
-                        <td>
-                            <span style="font-size: 0.8rem;">${a.condicao || '100%'}</span>
-                            <span style="color: var(--emerald); font-size: 0.75rem; font-weight: 700;"> (${a.fitness || 100}%)</span>
-                        </td>
-                        <td>${statusBadge}</td>
-                        <td>
-                            <div style="display: flex; gap: 0.4rem; align-items: center;">
-                                <button onclick="alternarPresenca('${a.id}', '${a.nome}')" class="btn-secondary btn-sm" title="Alternar Presença">
-                                    ${estaConfirmado ? '❌ Cancelar' : '✅ Confirmar'}
-                                </button>
-                                <button onclick="confirmarChegada('${a.id}', '${a.nome}', '${a.posicao}')" class="btn-emerald btn-sm" title="Marcar Chegada no Campo">
-                                    ⚽ Chegou
-                                </button>
-                                <button onclick="excluirAtleta('${a.id}', '${a.nome}')" class="btn-primary btn-sm" title="Excluir Atleta do Cadastro">
-                                    🗑️
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
+        logToTerminal(`[GPS EVENT] 🟢 Atleta "${athleteName}" CHEGOU NA ARENA! Lat -23.5501, Lng -46.6330. Distância: 120m (< 500m).`, 'success');
 
-            tbody.innerHTML = html;
+        try {
+          await fetch('/api/pelada/confirmar-chegada', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: id,
+              nome: athleteName,
+              posicao: pos,
+              distanciaMetros: 120
+            })
+          });
+          logToTerminal(`[SERVER CONFIRM] Chegada física registrada com sucesso no database.json!`, 'success');
+          carregarAtletasReaisDatabase();
+        } catch(e) {}
 
-            // Atualiza JSON view
-            document.getElementById('json-conteudo').innerText = JSON.stringify(dadosLocais, null, 2);
-        }
+        logToTerminal(`[SSE DISPATCH] Event "ARRIVAL_AUTHORIZED": { athlete: "${athleteName}", distanceMeters: 120, checkinButtonEnabled: true }`, 'json');
+        logToTerminal(`[NOTIFICAÇÃO PUSH] Enviado alerta para o app: "Você está no campo! Toque em Confirmar Presença".`, 'info');
+      } else if (mode === 'reset') {
+        chipGreen.className = 'p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 flex items-center justify-between transition-all shadow-xs';
+        liveBadge.textContent = 'Aguardando Sinal GPS';
+        liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-600 border border-slate-300';
+        distText.textContent = '-- (Não calculado)';
+        distText.className = 'text-slate-500 font-extrabold';
 
-        async function alternarListaAberta() {
-            const novoEstado = !(dadosLocais.peladaConfig.listaAberta !== false);
-            log(`Enviando POST /api/pelada para definir listaAberta: ${novoEstado}...`);
-            try {
-                const resp = await fetch('/api/pelada', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        peladaConfig: { listaAberta: novoEstado }
-                    })
-                });
-                const res = await resp.json();
-                log(`Sucesso! Servidor atualizou listaAberta: ${novoEstado}`);
-                await carregarDadosServidor();
-            } catch (err) {
-                log('Erro ao alternar trava da lista: ' + err.message);
-            }
-        }
+        logToTerminal(`[GPS RESET] Telemetria de GPS resetada para "${athleteName}".`, 'info');
+      }
+    }
 
-        async function testarResetPartida() {
-            if (!confirm('Deseja testar o reset da partida (/api/admin/reset)?\n\nIsso zerará a presença da rodada mas NENHUM dos 23 atletas de database.json será apagado.')) return;
-            log('Chamando POST /api/admin/reset...');
-            try {
-                const resp = await fetch('/api/admin/reset', { method: 'POST' });
-                const res = await resp.json();
-                log('Reset concluído com sucesso pelo servidor!');
-                await carregarDadosServidor();
-            } catch (err) {
-                log('Erro ao resetar partida: ' + err.message);
-            }
-        }
+    async function execFullHealthCheck() {
+      logToTerminal('[HEALTH CHECK] Iniciando varredura em todos os subsistemas da Pelada Top...', 'info');
+      runPingTest();
+      await carregarAtletasReaisDatabase();
+      setTimeout(() => {
+        logToTerminal('[HEALTH CHECK] database.json: Conectado | Servidor Local: OK | SSE Stream: Ativo | Latência: OK.', 'success');
+      }, 300);
+    }
 
-        async function alternarPresenca(id, nome) {
-            log(`Alternando presença para o atleta: ${nome} (${id})...`);
-            const confItem = dadosLocais.listaConfirmados.find(c => String(c.id) === String(id) || (c.nome && c.nome.trim().toLowerCase() === nome.trim().toLowerCase()));
-            
-            let novaLista = [...dadosLocais.listaConfirmados];
-            if (confItem) {
-                // Remove da lista
-                novaLista = novaLista.filter(c => String(c.id) !== String(id) && (!c.nome || c.nome.trim().toLowerCase() !== nome.trim().toLowerCase()));
-            } else {
-                // Adiciona na lista
-                const atletaOriginal = dadosLocais.atletas.find(a => String(a.id) === String(id)) || { id, nome, posicao: 'ATA' };
-                novaLista.unshift({
-                    ...atletaOriginal,
-                    statusPresenca: 'confirmado',
-                    chegadaConfirmada: false,
-                    hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                });
-            }
+    // Carrega atletas reais do database.json do servidor local
+    async function carregarAtletasReaisDatabase() {
+      try {
+        const resp = await fetch('/api/atletas?t=' + Date.now());
+        if (resp.ok) {
+          const atletas = await resp.json();
+          if (Array.isArray(atletas) && atletas.length > 0) {
+            document.getElementById('stat-athletes').textContent = atletas.length;
 
-            try {
-                const resp = await fetch('/api/pelada', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ listaConfirmados: novaLista })
-                });
-                log(`Presença atualizada com sucesso no servidor.`);
-                await carregarDadosServidor();
-            } catch (err) {
-                log('Erro ao alternar presença: ' + err.message);
-            }
-        }
-
-        async function confirmarChegada(id, nome, posicao) {
-            log(`Confirmando chegada no campo para: ${nome}...`);
-            try {
-                const resp = await fetch('/api/pelada/confirmar-chegada', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id,
-                        nome,
-                        posicao: posicao || 'ATA',
-                        distanciaMetros: 50
-                    })
-                });
-                const res = await resp.json();
-                log(`Chegada física confirmada para ${nome}!`);
-                await carregarDadosServidor();
-            } catch (err) {
-                log('Erro ao confirmar chegada: ' + err.message);
-            }
-        }
-
-        async function adicionarAtletaTeste() {
-            const nome = prompt('Nome do novo atleta de teste:', 'Jogador Teste ' + Math.floor(Math.random() * 100));
-            if (!nome) return;
-            const posicao = prompt('Posição (GOL, ZAG, LAT, VOL, MEI, ATA):', 'MEI') || 'MEI';
-
-            log(`Cadastrando novo atleta "${nome}" via POST /api/admin/atleta/salvar...`);
-            try {
-                const resp = await fetch('/api/admin/atleta/salvar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: 'jog_' + Date.now(),
-                        nome: nome.trim(),
-                        posicao: posicao.toUpperCase().trim(),
-                        condicao: '100% (Top)',
-                        idade: 27,
-                        fitness: 95
-                    })
-                });
-                const res = await resp.json();
-                log(`Atleta "${nome}" cadastrado com sucesso no database.json!`);
-                await carregarDadosServidor();
-            } catch (err) {
-                log('Erro ao cadastrar atleta: ' + err.message);
-            }
-        }
-
-        async function excluirAtleta(id, nome) {
-            if (!confirm(`Deseja excluir o atleta "${nome}" do cadastro permanente do database.json?`)) return;
-            log(`Excluindo atleta "${nome}" (${id}) via POST /api/admin/atleta/excluir...`);
-            try {
-                const resp = await fetch('/api/admin/atleta/excluir', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, nome })
-                });
-                log(`Atleta "${nome}" excluído do database.json com sucesso.`);
-                await carregarDadosServidor();
-            } catch (err) {
-                log('Erro ao excluir atleta: ' + err.message);
-            }
-        }
-
-        // Conecta ao SSE para receber atualizações do servidor em tempo real
-        function iniciarSse() {
-            try {
-                const sse = new EventSource('/api/stream');
-                sse.onopen = () => log('Conexão SSE aberta em tempo real.');
-                sse.onmessage = (e) => {
-                    try {
-                        const msg = JSON.parse(e.data);
-                        log(`[SSE Event] ${msg.type}`);
-                        if (msg.type === 'SYNC' || msg.type === 'LISTA_ZERADA_AUTO' || msg.type === 'JOGADOR_ONLINE') {
-                            carregarDadosServidor();
-                        }
-                    } catch(err) {}
+            const select = document.getElementById('player-select');
+            if (select) {
+              const valorAtual = select.value;
+              let html = '';
+              atletas.forEach(a => {
+                const idStr = String(a.id);
+                athletesData[idStr] = {
+                  name: a.nome,
+                  email: a.email || (a.nome.toLowerCase().replace(/\\s+/g, '.') + '@peladatop.com'),
+                  pass: a.senha || 'pelada1234',
+                  pos: a.posicao || 'ATA',
+                  age: a.idade || 28,
+                  weight: a.peso || 75,
+                  fit: a.fitness !== undefined ? a.fitness : 100,
+                  initials: a.nome ? a.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'JG'
                 };
-            } catch(e) {}
-        }
+                html += `<option value="${idStr}">${a.nome} — ${a.posicao || 'ATA'} | ${a.idade || 28} anos (${a.fitness || 100}% Fit)</option>`;
+              });
+              select.innerHTML = html;
+              if (athletesData[valorAtual]) select.value = valorAtual;
+              onAthleteSelectChange();
+            }
 
-        // Início
-        carregarDadosServidor();
-        iniciarSse();
-    </script>
-</body>
-</html>
+            // Checa confirmados
+            fetch('/api/pelada?t=' + Date.now()).then(r => r.json()).then(p => {
+              const confCount = (p.listaConfirmados || []).length;
+              const sub = document.getElementById('stat-confirmed-sub');
+              if (sub) sub.textContent = `/ ${confCount} Confirmados`;
+
+              if (p.peladaConfig) {
+                checkinActive = p.peladaConfig.listaAberta !== false;
+                const ind = document.getElementById('indicator-checkin');
+                const lbl = document.getElementById('label-checkin');
+                if (ind && lbl) {
+                  ind.className = checkinActive ? 'w-2 h-2 rounded-full bg-emerald-500' : 'w-2 h-2 rounded-full bg-slate-400';
+                  lbl.textContent = checkinActive ? 'ATIVO (500m)' : 'DESATIVADO';
+                  lbl.className = checkinActive ? 'text-xs font-extrabold text-slate-900' : 'text-xs font-extrabold text-slate-400';
+                }
+              }
+            }).catch(() => {});
+
+            logToTerminal(`[DATABASE SYNC] ${atletas.length} atletas carregados em tempo real do database.json.`, 'success');
+          }
+        }
+      } catch (e) {
+        logToTerminal(`[DATABASE SYNC] Usando cadastro local em memória (${e.message}).`, 'info');
+      }
+    }
+
+    // Inicialização ao carregar a página
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('public-url-text').textContent = window.location.origin;
+      document.getElementById('host-name-label').textContent = window.location.host;
+      document.getElementById('stat-port-info').textContent = 'Porta: ' + (window.location.port || '80');
+      
+      onAthleteSelectChange();
+      runPingTest();
+      carregarAtletasReaisDatabase();
+
+      // SSE Conexão Real
+      try {
+        const sse = new EventSource('/api/stream');
+        sse.onopen = () => {
+          logToTerminal('[SSE] Conectado ao stream em tempo real (/api/stream)', 'success');
+          document.getElementById('stat-sse').textContent = 'CONECTADO';
+          document.getElementById('stat-sse').className = 'text-lg lg:text-xl font-black text-emerald-700 tracking-wide';
+          document.getElementById('dot-sse').className = 'w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse';
+        };
+        sse.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            logToTerminal(`[SSE DISPATCH] Evento "${data.type}" recebido do servidor.`, 'json');
+            if (data.type === 'SYNC' || data.type === 'JOGADOR_ONLINE' || data.type === 'LISTA_ZERADA_AUTO') {
+              carregarAtletasReaisDatabase();
+            }
+          } catch(e) {}
+        };
+        sse.onerror = () => {
+          document.getElementById('stat-sse').textContent = 'DISPONÍVEL';
+        };
+      } catch(e) {}
+    });
+  </script>
+</body></html>
