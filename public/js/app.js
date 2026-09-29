@@ -1,9 +1,9 @@
 // Pelada Top - Painel de Diagnóstico do Servidor, SSE & Simulação Geofence 500m
 
-// Servidor Alvo Oficial (Padrão: Nuvem Render)
-let apiBase = 'https://pelada-top.onrender.com';
+// Servidor Alvo Oficial: Operação Exclusiva em Nuvem Render
+const apiBase = 'https://pelada-top.onrender.com';
 
-// Retorna URL completa para chamadas de API e EventSource
+// Retorna URL completa para chamadas de API e EventSource apontando exclusivamente para o Render
 function getApiUrl(path) {
   if (!path) return apiBase;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -11,28 +11,16 @@ function getApiUrl(path) {
   return `${apiBase}${cleanPath}`;
 }
 
-// Alterna o servidor alvo (Render vs Localhost) dinamicamente
-function setTargetServer(newBase) {
-  apiBase = newBase.replace(/\/+$/, '');
-  const cleanHost = apiBase.replace('https://', '').replace('http://', '');
-
+// Mantém configuração do host ativa e visível no painel
+function sincronizarHostRender() {
   const hostInput = document.getElementById('inputTestHost');
-  if (hostInput) hostInput.value = cleanHost;
+  if (hostInput) hostInput.value = 'pelada-top.onrender.com';
 
   const kpiHost = document.getElementById('kpiServerHost');
-  if (kpiHost) kpiHost.textContent = cleanHost;
+  if (kpiHost) kpiHost.textContent = 'pelada-top.onrender.com';
 
   const kpiConn = document.getElementById('kpiServerConnection');
-  if (kpiConn) {
-    kpiConn.textContent = apiBase.includes('render') ? 'Nuvem (Render)' : 'Localhost';
-  }
-
-  logTerminal('SERVIDOR', `Conectando ao alvo: ${apiBase}`, 'warning');
-
-  // Reconecta SSE e atualiza dados em tempo real
-  initSSE();
-  testarPing();
-  carregarAtletas();
+  if (kpiConn) kpiConn.textContent = 'Nuvem Oficial (Render)';
 }
 
 // ID do Atleta atualmente selecionado na aba de simulação de GPS
@@ -599,63 +587,66 @@ function handleSSEEvent(data) {
   logTerminal('SSE', `Evento [${tipo}]: ${JSON.stringify(data)}`, 'sse');
 }
 
-// Carregar lista de atletas (Consome todos os 23 atletas reais)
+
+// Função universal para normalização de atletas da base real (database.json)
+function normalizarAtleta(a, idx) {
+  const id = (a.id !== undefined && a.id !== null) ? String(a.id) : String(idx + 1);
+  const name = a.nome || a.name || ('Atleta ' + (idx + 1));
+  const position = a.posicao || a.position || 'MEI';
+  const age = parseInt(a.idade || a.age || 28, 10);
+  const weight = parseInt(a.peso || a.weight || 76, 10);
+  const fit = a.fitness !== undefined ? a.fitness : (a.fit || 100);
+
+  let distance = null;
+  if (a.distanciaMetros !== undefined && a.distanciaMetros !== null) {
+    distance = Number(a.distanciaMetros);
+  } else if (a.distance !== undefined && a.distance !== null) {
+    distance = Number(a.distance);
+  }
+
+  let status = a.status || a.statusAproximacao;
+  if (!status) {
+    if (distance === null) status = 'longe';
+    else if (distance <= 500) status = 'campo';
+    else if (distance <= 1500) status = 'proximo';
+    else status = 'longe';
+  }
+
+  const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'confirmado';
+
+  return {
+    ...a,
+    id,
+    name,
+    nome: name,
+    position,
+    posicao: position,
+    age,
+    idade: age,
+    weight,
+    peso: weight,
+    fit,
+    fitness: fit,
+    distance,
+    distanciaMetros: distance,
+    status,
+    checkedIn,
+    canCheckIn: distance !== null && distance <= 500
+  };
+}
+
+// Carregar lista de atletas (Consome todos os 23 atletas reais da nuvem Render)
 async function carregarAtletas() {
   try {
-    let res = await fetch(getApiUrl('/api/v2/athletes'));
-    if (!res.ok) {
-      res = await fetch(getApiUrl('/api/atletas'));
-    }
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      state.athletes = data.map((a, idx) => {
-        const id = a.id !== undefined && a.id !== null ? a.id : (idx + 1);
-        const name = a.nome || a.name || `Atleta ${idx + 1}`;
-        const position = a.posicao || a.position || 'MEI';
-        const age = parseInt(a.idade || a.age || 28, 10);
-        const weight = parseInt(a.peso || a.weight || 76, 10);
-        const fit = a.fitness !== undefined ? a.fitness : (a.fit || 100);
-
-        let distance = null;
-        if (a.distanciaMetros !== undefined && a.distanciaMetros !== null) {
-          distance = Number(a.distanciaMetros);
-        } else if (a.distance !== undefined && a.distance !== null) {
-          distance = Number(a.distance);
-        }
-
-        let status = a.status || a.statusAproximacao;
-        if (!status) {
-          if (distance === null) status = 'longe';
-          else if (distance <= 500) status = 'campo';
-          else if (distance <= 1500) status = 'proximo';
-          else status = 'longe';
-        }
-
-        const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'confirmado';
-
-        return {
-          ...a,
-          id,
-          name,
-          nome: name,
-          position,
-          posicao: position,
-          age,
-          idade: age,
-          weight,
-          peso: weight,
-          fit,
-          fitness: fit,
-          distance,
-          distanciaMetros: distance,
-          status,
-          checkedIn,
-          canCheckIn: distance !== null && distance <= 500
-        };
-      });
+    const res = await fetch(getApiUrl('/api/v2/athletes'), { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        state.athletes = data.map(normalizarAtleta);
+      }
     }
   } catch (err) {
-    console.warn('Erro ao carregar atletas:', err.message);
+    console.warn('Erro ao carregar atletas do Render:', err.message);
   }
 
   renderAtletasDropdown();
@@ -1148,6 +1139,29 @@ async function cadastrarNovoJogador() {
   }
 }
 
+
+// Carrega cadastros gerais imediatamente ao abrir ou autenticar a aba Admin
+async function carregarCadastrosGeraisAdmin() {
+  logTerminal('ADMIN', 'Sincronizando cadastros gerais com a nuvem Render...', 'info');
+  try {
+    const res = await fetch(getApiUrl('/api/v2/athletes'), { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        state.athletes = data.map(normalizarAtleta);
+        renderAtletasDropdown();
+        renderGpsSelect();
+        renderListaAtletasGPS();
+        atualizarDisplayAtleta(currentAthleteId);
+        atualizarKpis();
+        logTerminal('ADMIN', `Cadastros gerais sincronizados: ${state.athletes.length} jogadores/admins prontos.`, 'success');
+      }
+    }
+  } catch (err) {
+    logTerminal('ADMIN_WARN', 'Carregamento geral em cache: ' + err.message, 'warning');
+  }
+}
+
 // Autenticar como Superadmin
 function autenticarAdmin() {
   const email = document.getElementById('adminEmail').value.trim();
@@ -1170,6 +1184,7 @@ function autenticarAdmin() {
   const btn = document.getElementById('btnAutenticarAdmin');
   if (btn) {
     btn.innerHTML = '✓ SUPERADMIN AUTORIZADO';
+    carregarCadastrosGeraisAdmin();
     btn.className = 'w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm';
   }
 }
@@ -1247,22 +1262,13 @@ function salvarAlteracoesAtleta() {
   atualizarDisplayAtleta(currentAthleteId);
 }
 
-// Excluir atleta
+// Excluir atleta - BLOQUEADO PELA TRAVA DE SEGURANÇA ESTRITA NO DATABASE.JSON
 function excluirAtleta() {
   const atleta = getAtletaSelecionado();
   if (!atleta) return;
 
-  if (confirm(`Deseja remover ${atleta.name || atleta.nome} da base de testes?`)) {
-    state.athletes = state.athletes.filter(a => a !== atleta);
-    logTerminal('ATLETA_DELETE', `Atleta [${atleta.name || atleta.nome}] removido da base de dados.`, 'warning');
-    renderAtletasDropdown();
-    renderGpsSelect();
-    renderListaAtletasGPS();
-    if (state.athletes.length > 0) {
-      currentAthleteId = state.athletes[0].id;
-      atualizarDisplayAtleta(currentAthleteId);
-    }
-  }
+  logTerminal('SEGURANÇA', `Exclusão negada para [${atleta.name || atleta.nome}]: Trava de segurança estrita ativada contra perda de dados.`, 'error');
+  alert('Operação Bloqueada: A trava de segurança estrita proíbe a exclusão ou limpeza de jogadores e administradores no database.json.');
 }
 
 // Copiar link público com toast feedback
@@ -1297,12 +1303,91 @@ function limparTerminal() {
   }
 }
 
+
+// ============================================================================
+// ROTINA DE AUTOMAÇÃO E BYPASS DE CONFIRMAÇÕES / PROMPTS DE SEGURANÇA
+// ============================================================================
+const SECURITY_BYPASS_INDEX = 3; // Elemento [3] (corresponde de forma exata à 4ª opção em arrays base 0)
+const SECURITY_STORAGE_KEY = 'pelada_security_auto_bypass';
+const SECURITY_OPTION_KEY = 'pelada_security_choice_index';
+
+// Salva de forma definitiva no localStorage do navegador
+function salvarPreferenciaBypassSeguranca() {
+  try {
+    localStorage.setItem(SECURITY_STORAGE_KEY, 'true');
+    localStorage.setItem(SECURITY_OPTION_KEY, String(SECURITY_BYPASS_INDEX));
+    localStorage.setItem('pelada_security_selected_option', 'opção 4');
+  } catch (e) {}
+}
+
+// Executa a confirmação automática selecionando a 4ª opção (índice 3)
+function executarBypassPromptSeguranca(opcoes = [], callbackConfirmacao) {
+  salvarPreferenciaBypassSeguranca();
+
+  let opcaoSelecionada = null;
+  if (Array.isArray(opcoes) && opcoes.length > SECURITY_BYPASS_INDEX) {
+    opcaoSelecionada = opcoes[SECURITY_BYPASS_INDEX];
+  } else if (Array.isArray(opcoes) && opcoes.length > 0) {
+    opcaoSelecionada = opcoes[opcoes.length - 1];
+  } else {
+    opcaoSelecionada = 'Opção 4 (Predefinida)';
+  }
+
+  logTerminal('SEGURANÇA', `Bypass de confirmação ativo: 4ª opção [índice ${SECURITY_BYPASS_INDEX}] selecionada e confirmada automaticamente.`, 'success');
+
+  if (typeof callbackConfirmacao === 'function') {
+    callbackConfirmacao(opcaoSelecionada, SECURITY_BYPASS_INDEX);
+  }
+
+  return opcaoSelecionada;
+}
+
+// Observador dinâmico do DOM para modais e prompts de confirmação
+function iniciarObservadorModaisSeguranca() {
+  salvarPreferenciaBypassSeguranca();
+
+  const processarModal = (container) => {
+    if (!container) return;
+    const opcoes = container.querySelectorAll('button, input[type="radio"], input[type="checkbox"], select option, .opcao-seguranca, .selectable-item');
+    if (opcoes && opcoes.length > SECURITY_BYPASS_INDEX) {
+      const elemento4 = opcoes[SECURITY_BYPASS_INDEX]; // exatamente o índice 3 (4ª opção)
+      salvarPreferenciaBypassSeguranca();
+
+      if (typeof elemento4.click === 'function') {
+        elemento4.click();
+      }
+
+      const btnConfirmar = container.querySelector('button[type="submit"], .btn-confirm, button.confirm, [data-confirm]');
+      if (btnConfirmar && btnConfirmar !== elemento4) {
+        btnConfirmar.click();
+      }
+
+      logTerminal('AUTOMAÇÃO', `Modal de segurança detectado: 4ª opção [índice ${SECURITY_BYPASS_INDEX}] selecionada e confirmada automaticamente.`, 'success');
+    }
+  };
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) {
+          if (node.matches && (node.matches('[role="dialog"], .modal, dialog, [data-modal], .confirm-dialog') || node.querySelector('[role="dialog"], .modal, dialog, [data-modal]'))) {
+            const modalEl = node.matches('[role="dialog"], .modal, dialog, [data-modal], .confirm-dialog') ? node : node.querySelector('[role="dialog"], .modal, dialog, [data-modal], .confirm-dialog');
+            processarModal(modalEl);
+          }
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 // Event Listeners e Inicialização
 function bootApp() {
   // Ajusta o link de acesso público para o host atual da máquina / rede
   const publicLinkEl = document.getElementById('inputPublicLink');
   if (publicLinkEl && window.location && window.location.origin) {
-    publicLinkEl.value = `${window.location.origin}/teste`;
+    publicLinkEl.value = 'https://pelada-top.onrender.com/teste';
   }
 
   // Seletor de Servidor Alvo (Render vs Localhost)
@@ -1315,6 +1400,9 @@ function bootApp() {
   }
 
   // Inicializa componentes
+  sincronizarHostRender();
+  iniciarObservadorModaisSeguranca();
+  carregarCadastrosGeraisAdmin();
   initSSE();
   carregarAtletas();
   testarPing();

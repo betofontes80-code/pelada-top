@@ -88,18 +88,19 @@
         </div>
       </div>
 
-      <!-- Servidor Alvo & Ações -->
+      <!-- Servidor Alvo Oficial: Render Cloud Exclusivo -->
       <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-1.5 bg-slate-50 border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 shadow-xs">
-          <span class="text-[10px] font-bold font-sans text-slate-500 uppercase tracking-wider">Conectar a:</span>
-          <select id="serverTargetSelect" class="bg-transparent text-xs font-bold text-[#131313] focus:outline-none cursor-pointer">
-            <option value="https://pelada-top.onrender.com" selected>🌐 Servidor Online (Render)</option>
-            <option value="http://localhost:3000">💻 Servidor Local (Porta 3000)</option>
-            <option value="http://192.168.1.100:3000">📱 Celular / Wi-Fi</option>
-          </select>
+        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-300 rounded-lg px-3 py-1.5 shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 live-indicator"></span>
+          <span class="text-xs font-bold font-mono text-emerald-800">🌐 Render Cloud: pelada-top.onrender.com</span>
         </div>
 
-        <button id="btnAtualizarStatus" class="px-4 py-2 rounded-lg bg-[#dd0000] hover:bg-[#b50000] text-white text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm">
+        <a href="https://pelada-top.onrender.com/api/backup-download" download class="px-3 py-2 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm" title="Exportar backup completo do banco de dados em formato JSON">
+          <span class="material-icons text-sm">cloud_download</span>
+          Backup JSON
+        </a>
+
+        <button id="btnAtualizarStatus" class="px-3.5 py-2 rounded-lg bg-[#dd0000] hover:bg-[#b50000] text-white text-xs font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm">
           <span class="material-icons text-sm">refresh</span>
           Sincronizar
         </button>
@@ -384,16 +385,22 @@
             </div>
           </div>
 
-          <!-- Edição Rápida do Atleta -->
-          <div class="pt-2 flex items-center gap-2">
-            <button id="btnSalvarAtleta" class="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-sans font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1">
-              <span class="material-icons text-sm">save</span>
-              Salvar Alterações
-            </button>
-            <button id="btnExcluirAtleta" class="py-2 px-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-sans font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1">
-              <span class="material-icons text-sm">delete_outline</span>
-              Excluir Atleta
-            </button>
+          <!-- Edição Rápida & Backup de Segurança -->
+          <div class="pt-2 flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <button id="btnSalvarAtleta" class="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-sans font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1">
+                <span class="material-icons text-sm">save</span>
+                Salvar Alterações
+              </button>
+              <button id="btnExcluirAtleta" class="py-2 px-3 bg-slate-100 text-slate-400 border border-slate-200 font-sans font-bold text-xs rounded-lg flex items-center justify-center gap-1 cursor-not-allowed" title="Trava de segurança estrita ativada contra perda de dados">
+                <span class="material-icons text-sm">lock</span>
+                Exclusão Bloqueada
+              </button>
+            </div>
+            <a href="https://pelada-top.onrender.com/api/backup-download" download class="w-full py-2 px-3 bg-slate-900 hover:bg-black text-white font-sans font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs">
+              <span class="material-icons text-sm">cloud_download</span>
+              Exportar Backup JSON (database.json)
+            </a>
           </div>
         </div>
       </section>
@@ -563,6 +570,6 @@
   </footer>
 
   <!-- Script da Aplicação -->
-  <script src="/js/app.js?v=2.8.0"></script>
+  <script src="/js/app.js?v=2.9.0"></script>
 </body>
 </html>

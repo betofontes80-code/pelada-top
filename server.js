@@ -42,12 +42,74 @@ function salvarDados(dados) {
   try {
     if (!dados || typeof dados !== 'object') return false;
 
-    // Garante persistência separada entre o cadastro fixo de atletas e a presença temporária
-    if (!Array.isArray(dados.atletas) || dados.atletas.length === 0) {
-      if (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0) {
-        dados.atletas = dados.listaConfirmados;
+    // --- TRAVA DE SEGURANÇA ESTRITA NO DATABASE.JSON ---
+    // Proíbe absolutamente qualquer exclusão, limpeza ou sobrescrita acidental de atletas e administradores
+    let existing = null;
+    try {
+      if (fs.existsSync(DATABASE_FILE)) {
+        existing = JSON.parse(fs.readFileSync(DATABASE_FILE, 'utf8'));
       }
-    }
+    } catch (e) {}
+
+    // 1. Preservação e Merge Seguro de Atletas/Jogadores
+    const existingAtletas = (existing && Array.isArray(existing.atletas) && existing.atletas.length > 0)
+      ? existing.atletas
+      : ((existing && Array.isArray(existing.listaConfirmados) && existing.listaConfirmados.length > 0) ? existing.listaConfirmados : []);
+
+    let incomingAtletas = Array.isArray(dados.atletas) && dados.atletas.length > 0
+      ? dados.atletas
+      : (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0 ? dados.listaConfirmados : []);
+
+    const atletasMap = new Map();
+    // Primeiro insere todos os existentes
+    existingAtletas.forEach(a => {
+      if (a && a.id !== undefined && a.id !== null) {
+        atletasMap.set(String(a.id), { ...a });
+      }
+    });
+
+    // Atualiza ou insere novos sem jamais excluir nenhum atleta pré-existente
+    incomingAtletas.forEach(a => {
+      if (a && a.id !== undefined && a.id !== null) {
+        const key = String(a.id);
+        const prev = atletasMap.get(key) || {};
+        atletasMap.set(key, { ...prev, ...a });
+      }
+    });
+
+    dados.atletas = Array.from(atletasMap.values());
+
+    // 2. Preservação Estrita de Usuários e Administradores
+    const existingUsuarios = (existing && Array.isArray(existing.usuarios) && existing.usuarios.length > 0)
+      ? existing.usuarios
+      : ((existing && Array.isArray(existing.jogadoresCadastrados)) ? existing.jogadoresCadastrados : []);
+
+    let incomingUsuarios = Array.isArray(dados.usuarios) && dados.usuarios.length > 0
+      ? dados.usuarios
+      : (Array.isArray(dados.jogadoresCadastrados) ? dados.jogadoresCadastrados : []);
+
+    const usuariosMap = new Map();
+    existingUsuarios.forEach(u => {
+      if (u) {
+        const key = String(u.id || u.email || u.nome || Math.random());
+        usuariosMap.set(key, { ...u });
+      }
+    });
+
+    incomingUsuarios.forEach(u => {
+      if (u) {
+        const key = String(u.id || u.email || u.nome);
+        const prev = usuariosMap.get(key) || {};
+        if (prev.role === 'admin' || (prev.id && String(prev.id).includes('admin'))) {
+          u.role = 'admin';
+        }
+        usuariosMap.set(key, { ...prev, ...u });
+      }
+    });
+
+    dados.usuarios = Array.from(usuariosMap.values());
+    dados.jogadoresCadastrados = dados.usuarios;
+
     if (!Array.isArray(dados.listaConfirmados)) {
       dados.listaConfirmados = [];
     }
@@ -56,13 +118,19 @@ function salvarDados(dados) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+
+    // Backup rotativo de segurança antes da escrita
+    try {
+      if (fs.existsSync(DATABASE_FILE)) {
+        fs.copyFileSync(DATABASE_FILE, path.join(__dirname, 'database.backup.json'));
+      }
+    } catch (bkErr) {}
+
     const jsonStr = JSON.stringify(dados, null, 2);
     fs.writeFileSync(DATABASE_FILE, jsonStr, 'utf8');
 
     // Mantém sincronizado com pelada-dados.json e tmp para redundância e retrocompatibilidade
-    try {
-      fs.writeFileSync(DATA_FILE, jsonStr, 'utf8');
-    } catch (e) {}
+    try { fs.writeFileSync(DATA_FILE, jsonStr, 'utf8'); } catch (e) {}
     try {
       fs.writeFileSync(path.join(TMP_DIR, 'database.json'), jsonStr, 'utf8');
       fs.writeFileSync(path.join(TMP_DIR, 'pelada-dados.json'), jsonStr, 'utf8');
@@ -523,6 +591,21 @@ const requestHandler = (req, res) => {
         'Access-Control-Allow-Origin': '*'
       });
       res.end(JSON.stringify({ status: "ok", rtt: "12ms", time: Date.now() }));
+      return;
+    }
+
+    // 0.25 Rota de Backup Oficial: Download direto do database.json para o computador
+    if ((pathname === '/api/backup-download' || pathname === '/api/admin/backup-download' || pathname === '/api/backup') && req.method === 'GET') {
+      const dados = lerDados();
+      const dataHora = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `pelada-top-database-backup-${dataHora}.json`;
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(JSON.stringify(dados, null, 2));
       return;
     }
 
@@ -1249,49 +1332,17 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 8. API Admin: Excluir Atleta (Por ID ou por Nome)
+    // 8. API Admin: Excluir Atleta - BLOQUEADO PELA TRAVA DE SEGURANÇA ESTRITA NO DATABASE.JSON
     if (pathname === '/api/admin/atleta/excluir' && req.method === 'POST') {
-      lerCorpoRequisicao(req, (err, payload) => {
-        if (!err && payload) {
-          try {
-            const saved = loadData();
-            if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
-            if (saved.usuarios) appData.usuarios = saved.usuarios;
-          } catch (e) {}
-
-          const idBusca = payload.id ? String(payload.id).trim() : null;
-          const nomeBusca = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
-
-          if (idBusca || nomeBusca) {
-            appData.listaConfirmados = (appData.listaConfirmados || []).filter(j => {
-              if (idBusca && String(j.id) === idBusca) return false;
-              if (nomeBusca && j.nome && j.nome.trim().toLowerCase() === nomeBusca) return false;
-              return true;
-            });
-
-            if (appData.usuarios) {
-              appData.usuarios = (appData.usuarios || []).filter(u => {
-                if (idBusca && String(u.id) === idBusca) return false;
-                if (nomeBusca && u.nome && u.nome.trim().toLowerCase() === nomeBusca) return false;
-                return true;
-              });
-            }
-
-            if (Array.isArray(appData.atletas)) {
-              appData.atletas = appData.atletas.filter(a => {
-                if (idBusca && String(a.id) === idBusca) return false;
-                if (nomeBusca && a.nome && a.nome.trim().toLowerCase() === nomeBusca) return false;
-                return true;
-              });
-            }
-            appData.version = Date.now();
-            salvarDadosDisco();
-            broadcastSse('SYNC', appData);
-          }
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados }));
+      res.writeHead(403, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
       });
+      res.end(JSON.stringify({
+        sucesso: false,
+        bloqueado: true,
+        mensagem: 'Operação bloqueada: A trava de segurança estrita proíbe a exclusão ou limpeza de cadastros no database.json.'
+      }));
       return;
     }
 
@@ -1732,31 +1783,17 @@ const requestHandler = (req, res) => {
 
 const server = http.createServer(requestHandler);
 
-// Porta universal para Render ou localhost
-const SERVER_PORT = process.env.PORT || PORT;
+// Servidor Oficial na Nuvem Render
+const SERVER_PORT = process.env.PORT || 10000;
 
 server.listen(SERVER_PORT, () => {
-  const localIp = getLocalIp();
   console.log('====================================================');
-  console.log('  ⚽ PELADA TOP - PAINEL DE TESTE & DIAGNÓSTICO ATIVO ');
-  console.log('====================================================');
-  console.log(`Porta principal:    ${SERVER_PORT}`);
-  console.log(`Local (neste PC):   http://localhost:${SERVER_PORT}/teste`);
-  console.log(`                    http://127.0.0.1:${SERVER_PORT}/teste`);
-  console.log(`Rede Wi-Fi/Celular: http://${localIp}:${SERVER_PORT}/teste`);
+  console.log('  ⚽ PELADA TOP - SERVIDOR EM NUVEM (RENDER OFICIAL)');
+  console.log('  URL: https://pelada-top.onrender.com');
+  console.log('  Painel de Teste: https://pelada-top.onrender.com/teste');
+  console.log(`  Porta: ${SERVER_PORT}`);
   console.log('====================================================');
 });
-
-// Porta espelho 8080 para compatibilidade se diferente da principal
-if (String(SERVER_PORT) !== '8080') {
-  try {
-    const server8080 = http.createServer(requestHandler);
-    server8080.listen(8080, () => {
-      console.log(`Porta espelho ativa: http://localhost:8080/teste`);
-    });
-    server8080.on('error', () => {});
-  } catch (e) {}
-}
 
 // Export para compatibilidade
 module.exports = requestHandler;
