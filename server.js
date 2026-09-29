@@ -42,12 +42,16 @@ function salvarDados(dados) {
   try {
     if (!dados || typeof dados !== 'object') return false;
 
-    // Sincroniza atletas e listaConfirmados de forma bidirecional unificada
-    const listaAtletas = (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0)
-      ? dados.listaConfirmados
-      : ((Array.isArray(dados.atletas) && dados.atletas.length > 0) ? dados.atletas : (dados.listaConfirmados || dados.atletas || []));
-    dados.listaConfirmados = listaAtletas;
-    dados.atletas = listaAtletas;
+    // Preserva o cadastro geral fixo de atletas e a lista temporária de presença de forma independente
+    if (!Array.isArray(dados.atletas) || dados.atletas.length === 0) {
+      if (Array.isArray(appData.atletas) && appData.atletas.length > 0) {
+        dados.atletas = appData.atletas;
+      } else if (Array.isArray(dados.jogadoresCadastrados) && dados.jogadoresCadastrados.length > 0) {
+        dados.atletas = dados.jogadoresCadastrados;
+      }
+    }
+    if (!Array.isArray(dados.atletas)) dados.atletas = [];
+    if (!Array.isArray(dados.listaConfirmados)) dados.listaConfirmados = [];
 
     const dir = path.dirname(DATABASE_FILE);
     if (!fs.existsSync(dir)) {
@@ -157,6 +161,7 @@ const DEFAULT_CONFIRMADOS = [];
 // Estado na memória
 let appData = {
   usuarios: [],
+  atletas: [],
   listaConfirmados: DEFAULT_CONFIRMADOS,
   peladaConfig: DEFAULT_CONFIG,
   escalacaoAtiva: null,
@@ -176,14 +181,24 @@ try {
       appData.usuarios = dadosIniciais.jogadoresCadastrados;
     }
 
-    const listaInicial = (Array.isArray(dadosIniciais.atletas) && dadosIniciais.atletas.length > 0)
-      ? dadosIniciais.atletas
-      : (Array.isArray(dadosIniciais.listaConfirmados) && dadosIniciais.listaConfirmados.length > 0 ? dadosIniciais.listaConfirmados : []);
-
-    if (listaInicial.length > 0) {
-      appData.listaConfirmados = listaInicial;
-      appData.atletas = listaInicial;
+    // 1. Cadastro Geral Fixo de Atletas (Permanente no banco de dados)
+    if (Array.isArray(dadosIniciais.atletas) && dadosIniciais.atletas.length > 0) {
+      appData.atletas = dadosIniciais.atletas;
       carregou = true;
+    } else if (Array.isArray(dadosIniciais.jogadoresCadastrados) && dadosIniciais.jogadoresCadastrados.length > 0) {
+      appData.atletas = dadosIniciais.jogadoresCadastrados;
+      carregou = true;
+    }
+
+    // 2. Lista Temporária de Presença da Partida
+    if (Array.isArray(dadosIniciais.listaConfirmados)) {
+      appData.listaConfirmados = dadosIniciais.listaConfirmados;
+    } else {
+      appData.listaConfirmados = [];
+    }
+
+    if (appData.atletas.length === 0 && appData.listaConfirmados.length > 0) {
+      appData.atletas = [...appData.listaConfirmados];
     }
 
     if (dadosIniciais.peladaConfig) appData.peladaConfig = dadosIniciais.peladaConfig;
@@ -203,17 +218,22 @@ try {
 
 // Salvar no disco com tratamento seguro para Serverless e preservação de todas as chaves
 function salvarDadosDisco() {
-  const lista = (Array.isArray(appData.listaConfirmados) && appData.listaConfirmados.length > 0)
-    ? appData.listaConfirmados
-    : ((Array.isArray(appData.atletas) && appData.atletas.length > 0) ? appData.atletas : []);
-  appData.listaConfirmados = lista;
-  appData.atletas = lista;
+  if (!Array.isArray(appData.atletas) || appData.atletas.length === 0) {
+    try {
+      const db = lerDados();
+      if (Array.isArray(db.atletas) && db.atletas.length > 0) {
+        appData.atletas = db.atletas;
+      }
+    } catch(e) {}
+  }
+  if (!Array.isArray(appData.atletas)) appData.atletas = [];
+  if (!Array.isArray(appData.listaConfirmados)) appData.listaConfirmados = [];
 
   const dadosCompletos = {
     usuarios: appData.usuarios || [],
-    jogadoresCadastrados: appData.usuarios || [],
-    listaConfirmados: lista,
-    atletas: lista,
+    jogadoresCadastrados: appData.atletas || appData.usuarios || [],
+    atletas: appData.atletas,
+    listaConfirmados: appData.listaConfirmados,
     peladaConfig: appData.peladaConfig || DEFAULT_CONFIG,
     escalacaoAtiva: appData.escalacaoAtiva,
     partidaEstado: appData.partidaEstado,
@@ -258,8 +278,8 @@ function verificarResetMeiaNoite() {
         console.log(`[Auto-Reset Meia-Noite] Dia da pelada (${dataPeladaStr}) finalizou. Data atual: ${hojeStr}.`);
         console.log(`[Auto-Reset Meia-Noite] Zerando a lista de presença da aba jogadores e mantendo configurações.`);
         
-        if (Array.isArray(appData.listaConfirmados)) {
-          appData.listaConfirmados = appData.listaConfirmados.map(a => ({
+        if (Array.isArray(appData.atletas)) {
+          appData.atletas = appData.atletas.map(a => ({
             ...a,
             statusPresenca: 'pendente',
             chegadaConfirmada: false,
@@ -267,7 +287,7 @@ function verificarResetMeiaNoite() {
             horaChegada: null
           }));
         }
-        appData.atletas = appData.listaConfirmados;
+        appData.listaConfirmados = [];
         appData.escalacaoAtiva = null;
         appData.timesSorteados = [];
         appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
@@ -477,7 +497,12 @@ const requestHandler = (req, res) => {
       try {
         verificarResetMeiaNoite();
         const saved = loadData();
-        const listaSalva = (Array.isArray(saved.atletas) && saved.atletas.length > 0) ? saved.atletas : (Array.isArray(saved.listaConfirmados) && saved.listaConfirmados.length > 0 ? saved.listaConfirmados : []); if (listaSalva.length > 0) { appData.listaConfirmados = listaSalva; appData.atletas = listaSalva; }
+        if (Array.isArray(saved.atletas) && saved.atletas.length > 0) {
+          appData.atletas = saved.atletas;
+        }
+        if (Array.isArray(saved.listaConfirmados)) {
+          appData.listaConfirmados = saved.listaConfirmados;
+        }
         if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
         if (saved.escalacaoAtiva !== undefined && appData.escalacaoAtiva === undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
         if (saved.partidaEstado !== undefined && appData.partidaEstado === undefined) appData.partidaEstado = saved.partidaEstado;
@@ -499,14 +524,11 @@ const requestHandler = (req, res) => {
         }
 
         try {
-          if (payload.listaConfirmados !== undefined || payload.atletas !== undefined) {
-            const novaLista = payload.listaConfirmados !== undefined ? payload.listaConfirmados : payload.atletas;
-            if (Array.isArray(novaLista)) {
-              if (novaLista.length > 0 || payload.forcarLimpeza === true || !appData.listaConfirmados || appData.listaConfirmados.length === 0) {
-                appData.listaConfirmados = novaLista;
-                appData.atletas = novaLista;
-              }
-            }
+          if (payload.atletas !== undefined && Array.isArray(payload.atletas) && payload.atletas.length > 0) {
+            appData.atletas = payload.atletas;
+          }
+          if (payload.listaConfirmados !== undefined && Array.isArray(payload.listaConfirmados)) {
+            appData.listaConfirmados = payload.listaConfirmados;
           }
           if (payload.peladaConfig !== undefined) {
             appData.peladaConfig = payload.peladaConfig;
@@ -544,17 +566,16 @@ const requestHandler = (req, res) => {
 
         if (Array.isArray(dados.atletas) && dados.atletas.length > 0) {
           lista = dados.atletas;
-        } else if (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0) {
-          lista = dados.listaConfirmados;
-        } else if (Array.isArray(appData.listaConfirmados) && appData.listaConfirmados.length > 0) {
-          lista = appData.listaConfirmados;
         } else if (Array.isArray(appData.atletas) && appData.atletas.length > 0) {
           lista = appData.atletas;
+        } else if (Array.isArray(dados.jogadoresCadastrados) && dados.jogadoresCadastrados.length > 0) {
+          lista = dados.jogadoresCadastrados;
+        } else if (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0) {
+          lista = dados.listaConfirmados;
         }
 
         // Mantém a sincronização no appData em memória
         if (lista.length > 0) {
-          appData.listaConfirmados = lista;
           appData.atletas = lista;
         }
 
@@ -582,26 +603,25 @@ const requestHandler = (req, res) => {
 
         try {
           const dados = lerDados();
-          let lista = (dados.listaConfirmados && dados.listaConfirmados.length)
-            ? dados.listaConfirmados
-            : (dados.atletas || appData.listaConfirmados || []);
+          if (Array.isArray(dados.atletas) && dados.atletas.length > 0) {
+            appData.atletas = dados.atletas;
+          }
+          if (!Array.isArray(appData.atletas)) appData.atletas = [];
 
-          if (Array.isArray(payload)) {
-            lista = payload;
-          } else if (payload && Array.isArray(payload.atletas)) {
-            lista = payload.atletas;
-          } else if (payload && Array.isArray(payload.listaConfirmados)) {
-            lista = payload.listaConfirmados;
+          if (Array.isArray(payload) && payload.length > 0) {
+            appData.atletas = payload;
+          } else if (payload && Array.isArray(payload.atletas) && payload.atletas.length > 0) {
+            appData.atletas = payload.atletas;
           } else if (payload && typeof payload === 'object') {
             const idBusca = payload.id ? String(payload.id).trim() : null;
             const nomeBusca = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
-            const idx = lista.findIndex(j => 
+            const idx = appData.atletas.findIndex(j => 
               (idBusca && String(j.id) === idBusca) ||
               (nomeBusca && (j.nome || '').trim().toLowerCase() === nomeBusca)
             );
 
             if (idx >= 0) {
-              lista[idx] = { ...lista[idx], ...payload };
+              appData.atletas[idx] = { ...appData.atletas[idx], ...payload };
             } else {
               const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
               const novoAtleta = {
@@ -613,27 +633,31 @@ const requestHandler = (req, res) => {
                 hora: horaAgora,
                 horaOnline: horaAgora,
                 online: true,
-                statusPresenca: 'confirmado',
+                statusPresenca: payload.statusPresenca || 'pendente',
                 chegadaConfirmada: false,
                 ...payload
               };
-              lista.unshift(novoAtleta);
+              appData.atletas.unshift(novoAtleta);
+            }
+
+            // Atualiza também em listaConfirmados se o atleta já estiver nela
+            if (Array.isArray(appData.listaConfirmados)) {
+              const cIdx = appData.listaConfirmados.findIndex(j => 
+                (idBusca && String(j.id) === idBusca) ||
+                (nomeBusca && (j.nome || '').trim().toLowerCase() === nomeBusca)
+              );
+              if (cIdx >= 0) {
+                appData.listaConfirmados[cIdx] = { ...appData.listaConfirmados[cIdx], ...payload };
+              }
             }
           }
 
-          appData.listaConfirmados = lista;
-          appData.atletas = lista;
           appData.version = Date.now();
-
-          dados.listaConfirmados = lista;
-          dados.atletas = lista;
-          dados.version = appData.version;
-          salvarDados(dados);
-
+          salvarDadosDisco();
           broadcastSse('SYNC', appData);
 
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ sucesso: true, atletas: lista, listaConfirmados: lista, version: appData.version }));
+          res.end(JSON.stringify({ sucesso: true, atletas: appData.atletas, listaConfirmados: appData.listaConfirmados, version: appData.version }));
         } catch (innerErr) {
           res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ sucesso: false, erro: innerErr.message }));
@@ -812,15 +836,17 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 7. API Admin: Salvar Atleta (Edição Completa ou Novo Cadastro)
+    // 7. API Admin: Salvar Atleta (Edição Completa ou Novo Cadastro Fixo)
     if (pathname === '/api/admin/atleta/salvar' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (!err && payload) {
           try {
             const saved = loadData();
+            if (saved.atletas) appData.atletas = saved.atletas;
             if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
             if (saved.usuarios) appData.usuarios = saved.usuarios;
           } catch (e) {}
+          if (!appData.atletas) appData.atletas = [];
           if (!appData.listaConfirmados) appData.listaConfirmados = [];
 
           const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -828,7 +854,7 @@ const requestHandler = (req, res) => {
           const nomeOriginal = payload.nomeOriginal ? String(payload.nomeOriginal).trim().toLowerCase() : null;
           const nomeNovo = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
 
-          const idx = appData.listaConfirmados.findIndex(j => 
+          const idx = appData.atletas.findIndex(j => 
             (idBusca && String(j.id) === idBusca) ||
             (nomeOriginal && (j.nome || '').trim().toLowerCase() === nomeOriginal) ||
             (nomeNovo && (j.nome || '').trim().toLowerCase() === nomeNovo)
@@ -836,15 +862,25 @@ const requestHandler = (req, res) => {
 
           let atletaSalvo;
           if (idx >= 0) {
-            // Edição de atleta existente
-            const antigo = appData.listaConfirmados[idx];
+            // Edição de atleta existente no cadastro geral
+            const antigo = appData.atletas[idx];
             atletaSalvo = {
               ...antigo,
               ...payload,
               fitness: calcularFitnessAtleta({ ...antigo, ...payload })
             };
-            appData.listaConfirmados[idx] = atletaSalvo;
-            appData.atletas = appData.listaConfirmados;
+            appData.atletas[idx] = atletaSalvo;
+
+            // Atualiza também na lista temporária de confirmados se estiver nela
+            const cIdx = appData.listaConfirmados.findIndex(j => 
+              (idBusca && String(j.id) === idBusca) ||
+              (nomeOriginal && (j.nome || '').trim().toLowerCase() === nomeOriginal) ||
+              (nomeNovo && (j.nome || '').trim().toLowerCase() === nomeNovo)
+            );
+            if (cIdx >= 0) {
+              appData.listaConfirmados[cIdx] = { ...appData.listaConfirmados[cIdx], ...atletaSalvo };
+            }
+
             if (appData.usuarios) {
               const uIdx = appData.usuarios.findIndex(u => 
                 (idBusca && String(u.id) === idBusca) ||
@@ -856,7 +892,7 @@ const requestHandler = (req, res) => {
               }
             }
           } else {
-            // Novo atleta adicionado
+            // Novo atleta adicionado ao cadastro fixo geral
             atletaSalvo = {
               id: payload.id || ('jog_' + Date.now()),
               nome: payload.nome || 'Novo Atleta',
@@ -876,12 +912,16 @@ const requestHandler = (req, res) => {
               statusAproximacao: payload.statusAproximacao || 'longe',
               entrouEm: Date.now()
             };
-            appData.listaConfirmados.unshift(atletaSalvo);
-            appData.atletas = appData.listaConfirmados;
+            appData.atletas.unshift(atletaSalvo);
+
+            if (atletaSalvo.statusPresenca === 'confirmado' || atletaSalvo.chegadaConfirmada) {
+              appData.listaConfirmados.unshift(atletaSalvo);
+            }
 
             broadcastSse('JOGADOR_ONLINE', {
               atleta: atletaSalvo,
-              mensagem: `${atletaSalvo.nome} acabou de entrar na lista da pelada!`,
+              mensagem: `${atletaSalvo.nome} foi cadastrado com sucesso!`,
+              atletas: appData.atletas,
               listaConfirmados: appData.listaConfirmados,
               version: appData.version
             });
@@ -892,7 +932,7 @@ const requestHandler = (req, res) => {
           broadcastSse('SYNC', appData);
 
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ sucesso: true, atleta: atletaSalvo, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+          res.end(JSON.stringify({ sucesso: true, atleta: atletaSalvo, atletas: appData.atletas, listaConfirmados: appData.listaConfirmados, version: appData.version }));
           return;
         }
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -915,6 +955,14 @@ const requestHandler = (req, res) => {
           const nomeBusca = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
 
           if (idBusca || nomeBusca) {
+            // Remove do cadastro fixo de atletas
+            appData.atletas = (appData.atletas || []).filter(j => {
+              if (idBusca && String(j.id) === idBusca) return false;
+              if (nomeBusca && j.nome && j.nome.trim().toLowerCase() === nomeBusca) return false;
+              return true;
+            });
+
+            // Remove também da lista temporária de confirmados
             appData.listaConfirmados = (appData.listaConfirmados || []).filter(j => {
               if (idBusca && String(j.id) === idBusca) return false;
               if (nomeBusca && j.nome && j.nome.trim().toLowerCase() === nomeBusca) return false;
@@ -929,14 +977,13 @@ const requestHandler = (req, res) => {
               });
             }
 
-            appData.atletas = appData.listaConfirmados;
             appData.version = Date.now();
             salvarDadosDisco();
             broadcastSse('SYNC', appData);
           }
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados }));
+        res.end(JSON.stringify({ sucesso: true, atletas: appData.atletas, listaConfirmados: appData.listaConfirmados }));
       });
       return;
     }
@@ -963,6 +1010,20 @@ const requestHandler = (req, res) => {
             if (idx >= 0) {
               appData.listaConfirmados[idx] = {
                 ...appData.listaConfirmados[idx],
+                ...payload,
+                chegadaConfirmada: true,
+                statusPresenca: 'chegou',
+                statusAproximacao: 'chegou',
+                horaChegada: horaAgora
+              };
+            }
+            const aIdx = (appData.atletas || []).findIndex(j => 
+              (payload.id && String(j.id) === String(payload.id)) ||
+              (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+            );
+            if (aIdx >= 0) {
+              appData.atletas[aIdx] = {
+                ...appData.atletas[aIdx],
                 ...payload,
                 chegadaConfirmada: true,
                 statusPresenca: 'chegou',
@@ -1016,6 +1077,19 @@ const requestHandler = (req, res) => {
 
             // Coloca o atleta na 1ª POSIÇÃO (índice 0)
             appData.listaConfirmados.unshift(atletaFinal);
+
+            const aIdxPres = (appData.atletas || []).findIndex(j => 
+              (payload.id && String(j.id) === String(payload.id)) ||
+              (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+            );
+            if (aIdxPres >= 0) {
+              appData.atletas[aIdxPres] = {
+                ...appData.atletas[aIdxPres],
+                ...atletaFinal
+              };
+            } else {
+              appData.atletas.unshift(atletaFinal);
+            }
 
             // Transmite evento específico de jogador online para todos os donos e participantes
             broadcastSse('JOGADOR_ONLINE', {
@@ -1121,6 +1195,17 @@ const requestHandler = (req, res) => {
 
     // 13. API Admin: Reset de Partida
     if (pathname === '/api/admin/reset' && req.method === 'POST') {
+      // Reinicia o cronômetro, escalação e presenças temporárias da partida
+      // O cadastro geral de atletas (appData.atletas) é PRESERVADO INTACTO!
+      if (Array.isArray(appData.atletas)) {
+        appData.atletas = appData.atletas.map(a => ({
+          ...a,
+          chegadaConfirmada: false,
+          statusPresenca: 'pendente',
+          statusAproximacao: 'longe',
+          horaChegada: null
+        }));
+      }
       appData.listaConfirmados = [];
       appData.escalacaoAtiva = null;
       appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
@@ -1128,7 +1213,7 @@ const requestHandler = (req, res) => {
       salvarDadosDisco();
       broadcastSse('SYNC', appData);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ sucesso: true }));
+      res.end(JSON.stringify({ sucesso: true, atletas: appData.atletas, listaConfirmados: appData.listaConfirmados }));
       return;
     }
 
