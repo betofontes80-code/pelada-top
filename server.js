@@ -520,7 +520,9 @@ const requestHandler = (req, res) => {
             }
           }
           if (payload.peladaConfig !== undefined) {
-            appData.peladaConfig = payload.peladaConfig;
+            appData.peladaConfig = (payload.peladaConfig && typeof payload.peladaConfig === 'object')
+              ? { ...(appData.peladaConfig || DEFAULT_CONFIG), ...payload.peladaConfig }
+              : payload.peladaConfig;
           }
           if (payload.escalacaoAtiva !== undefined) {
             appData.escalacaoAtiva = payload.escalacaoAtiva;
