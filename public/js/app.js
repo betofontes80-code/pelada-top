@@ -146,9 +146,10 @@ function handleSSEEvent(data) {
   }
 
   if (tipo === 'GEOFENCE_UPDATE') {
-    const athlete = state.athletes.find(a => a.id === parseInt(data.athleteId));
+    const athlete = state.athletes.find(a => String(a.id) === String(data.athleteId));
     if (athlete) {
       athlete.distance = data.distance;
+      athlete.distanciaMetros = data.distance;
       athlete.status = data.status;
       athlete.canCheckIn = data.canCheckIn;
     }
@@ -161,11 +162,12 @@ function handleSSEEvent(data) {
   }
 
   if (tipo === 'CHECKIN_CONFIRMED') {
-    const athlete = state.athletes.find(a => a.id === parseInt(data.athleteId));
+    const athlete = state.athletes.find(a => String(a.id) === String(data.athleteId));
     if (athlete) {
       athlete.checkedIn = true;
       athlete.status = 'campo';
       athlete.distance = data.distance;
+      athlete.distanciaMetros = data.distance;
     }
     atualizarDisplayAtleta(currentAthleteId);
     renderListaAtletasGPS();
@@ -189,17 +191,63 @@ function handleSSEEvent(data) {
   logTerminal('SSE', `Evento [${tipo}]: ${JSON.stringify(data)}`, 'sse');
 }
 
-// Carregar lista de atletas da API v2
+// Carregar lista de atletas (Consome todos os 23 atletas reais)
 async function carregarAtletas() {
   try {
-    const res = await fetch(getApiUrl('/api/v2/athletes'));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let res = await fetch(getApiUrl('/api/v2/athletes'));
+    if (!res.ok) {
+      res = await fetch(getApiUrl('/api/atletas'));
+    }
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-      state.athletes = data;
+      state.athletes = data.map((a, idx) => {
+        const id = a.id !== undefined && a.id !== null ? a.id : (idx + 1);
+        const name = a.nome || a.name || `Atleta ${idx + 1}`;
+        const position = a.posicao || a.position || 'MEI';
+        const age = parseInt(a.idade || a.age || 28, 10);
+        const weight = parseInt(a.peso || a.weight || 76, 10);
+        const fit = a.fitness !== undefined ? a.fitness : (a.fit || 100);
+
+        let distance = null;
+        if (a.distanciaMetros !== undefined && a.distanciaMetros !== null) {
+          distance = Number(a.distanciaMetros);
+        } else if (a.distance !== undefined && a.distance !== null) {
+          distance = Number(a.distance);
+        }
+
+        let status = a.status || a.statusAproximacao;
+        if (!status) {
+          if (distance === null) status = 'longe';
+          else if (distance <= 500) status = 'campo';
+          else if (distance <= 1500) status = 'proximo';
+          else status = 'longe';
+        }
+
+        const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'confirmado';
+
+        return {
+          ...a,
+          id,
+          name,
+          nome: name,
+          position,
+          posicao: position,
+          age,
+          idade: age,
+          weight,
+          peso: weight,
+          fit,
+          fitness: fit,
+          distance,
+          distanciaMetros: distance,
+          status,
+          checkedIn,
+          canCheckIn: distance !== null && distance <= 500
+        };
+      });
     }
   } catch (err) {
-    console.warn('Usando atletas mockados de fallback:', err.message);
+    console.warn('Erro ao carregar atletas:', err.message);
   }
 
   renderAtletasDropdown();
@@ -222,16 +270,16 @@ function renderGpsSelect() {
     opt.value = a.id;
     const nome = a.name || a.nome;
     const pos = a.position || a.posicao || 'MEI';
-    const dist = a.distance !== undefined ? a.distance + 'm' : '';
+    const dist = a.distance !== undefined && a.distance !== null ? a.distance + 'm' : 'Sem GPS';
     const st = (a.status || 'longe').toUpperCase();
     const check = a.checkedIn ? '⚽ OK' : '⏳ Pend';
-    opt.textContent = `#${a.id} ${nome} (${pos}) — ${dist} [${st}] [${check}]`;
+    opt.textContent = `${nome} (${pos}) — ${dist} [${st}] [${check}]`;
     select.appendChild(opt);
   });
 
   if (currentVal && state.athletes.some(a => String(a.id) === String(currentVal))) {
     select.value = currentVal;
-    currentAthleteId = parseInt(currentVal);
+    currentAthleteId = currentVal;
   } else if (state.athletes.length > 0) {
     select.value = state.athletes[0].id;
     currentAthleteId = state.athletes[0].id;
@@ -245,7 +293,7 @@ function renderListaAtletasGPS() {
 
   tbody.innerHTML = '';
   state.athletes.forEach(a => {
-    const isSelected = a.id === currentAthleteId;
+    const isSelected = String(a.id) === String(currentAthleteId);
     const tr = document.createElement('tr');
     tr.className = `cursor-pointer transition-all hover:bg-slate-50 ${isSelected ? 'bg-emerald-50/70 font-bold border-l-4 border-emerald-500' : ''}`;
 
@@ -287,7 +335,7 @@ function renderListaAtletasGPS() {
 
 // Atualiza o card de configuração individual do atleta ativo na Seção 4
 function atualizarDisplayAtleta(athleteId) {
-  const athlete = state.athletes.find(a => a.id === parseInt(athleteId)) || state.athletes[0];
+  const athlete = state.athletes.find(a => String(a.id) === String(athleteId)) || state.athletes[0];
   if (!athlete) return;
 
   const nomeEl = document.getElementById('selectedAthleteName');
@@ -384,7 +432,7 @@ function atualizarDisplayAtleta(athleteId) {
 // 2. Dispara a simulação de distância para o atleta selecionado (POST /api/v2/geofence-test)
 async function dispararSimulacaoGPS(distancia, statusTag) {
   // Atualização otimista imediata na interface para feedback instantâneo
-  const localAthlete = state.athletes.find(a => a.id === currentAthleteId);
+  const localAthlete = state.athletes.find(a => String(a.id) === String(currentAthleteId));
   if (localAthlete) {
     if (statusTag === 'reset') {
       localAthlete.status = 'reset';
@@ -415,7 +463,7 @@ async function dispararSimulacaoGPS(distancia, statusTag) {
     });
     const result = await response.json();
     if (result.success && result.athlete) {
-      const idx = state.athletes.findIndex(a => a.id === result.athlete.id);
+      const idx = state.athletes.findIndex(a => String(a.id) === String(result.athlete.id));
       if (idx !== -1) {
         state.athletes[idx] = { ...state.athletes[idx], ...result.athlete };
       }
@@ -432,7 +480,7 @@ async function dispararSimulacaoGPS(distancia, statusTag) {
 
 // 3. Executar o check-in do atleta ativo (POST /api/v2/checkin)
 async function executarCheckinAtivo() {
-  const localAthlete = state.athletes.find(a => a.id === currentAthleteId);
+  const localAthlete = state.athletes.find(a => String(a.id) === String(currentAthleteId));
   if (!localAthlete) return;
 
   if (localAthlete.distance > 500) {
@@ -462,7 +510,7 @@ async function executarCheckinAtivo() {
     });
     const result = await response.json();
     if (result.success && result.athlete) {
-      const idx = state.athletes.findIndex(a => a.id === result.athlete.id);
+      const idx = state.athletes.findIndex(a => String(a.id) === String(result.athlete.id));
       if (idx !== -1) {
         state.athletes[idx] = { ...state.athletes[idx], ...result.athlete };
       }
@@ -860,7 +908,7 @@ function bootApp() {
   const gpsSelect = document.getElementById('gps-athlete-select');
   if (gpsSelect) {
     gpsSelect.addEventListener('change', (e) => {
-      currentAthleteId = parseInt(e.target.value);
+      currentAthleteId = e.target.value;
       atualizarDisplayAtleta(currentAthleteId);
       renderListaAtletasGPS();
       logTerminal('SELETOR', `Atleta ativo alterado para ID #${currentAthleteId}`);
