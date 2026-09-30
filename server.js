@@ -630,7 +630,7 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const athleteId = String(payload.athleteId || payload.id || '').trim();
+        const athleteId = String(payload.athleteId || payload.atletaId || payload.id || '').trim();
         const athleteName = String(payload.nome || payload.nomeAtleta || payload.athleteName || '').trim();
 
         let distanceMeters = 0;
@@ -638,6 +638,8 @@ const requestHandler = (req, res) => {
           distanceMeters = Number(payload.distanceMeters);
         } else if (payload.distance !== undefined && payload.distance !== null && !isNaN(Number(payload.distance))) {
           distanceMeters = Number(payload.distance);
+        } else if (payload.distanciaMetros !== undefined && payload.distanciaMetros !== null && !isNaN(Number(payload.distanciaMetros))) {
+          distanceMeters = Number(payload.distanciaMetros);
         }
 
         const customStatus = String(payload.customStatus || payload.status || payload.statusDistancia || '').toLowerCase().trim();
@@ -677,14 +679,24 @@ const requestHandler = (req, res) => {
           athlete.status = 'campo';
           athlete.statusAproximacao = 'campo';
           athlete.canCheckIn = true;
+          if (customStatus === 'campo' || customStatus === 'chegou') {
+            athlete.checkedIn = true;
+            athlete.chegadaConfirmada = true;
+            athlete.statusPresenca = 'chegou';
+            athlete.horaChegada = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          }
         } else if (distanceMeters <= 1500) {
           athlete.status = 'proximo';
           athlete.statusAproximacao = 'proximo';
           athlete.canCheckIn = false;
+          athlete.chegadaConfirmada = false;
+          athlete.checkedIn = false;
         } else {
           athlete.status = 'longe';
           athlete.statusAproximacao = 'longe';
           athlete.canCheckIn = false;
+          athlete.chegadaConfirmada = false;
+          athlete.checkedIn = false;
         }
 
         // Persiste alteração no database.json e sincroniza appData
@@ -747,7 +759,8 @@ const requestHandler = (req, res) => {
           athleteName: athlete.name || athlete.nome,
           distance: athlete.distance,
           status: athlete.status,
-          canCheckIn: athlete.status === 'campo',
+          canCheckIn: athlete.status === 'campo' || distanceMeters <= 500,
+          chegadaConfirmada: athlete.chegadaConfirmada || false,
           athlete: athleteObj
         });
         broadcastSse('SYNC', appData);
@@ -1624,8 +1637,10 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const { atletaId, nomeAtleta, statusDistancia } = payload;
-        const busca = (nomeAtleta || atletaId || '').toString().toLowerCase().trim();
+        const atletaId = String(payload.atletaId || payload.athleteId || payload.id || '').trim();
+        const nomeAtleta = String(payload.nomeAtleta || payload.athleteName || payload.nome || '').trim();
+        const statusDistancia = String(payload.statusDistancia || payload.customStatus || payload.status || '').trim();
+        const busca = (nomeAtleta || atletaId || '').toLowerCase().trim();
 
         if (!appData.listaConfirmados) appData.listaConfirmados = [];
 
@@ -1636,14 +1651,20 @@ const requestHandler = (req, res) => {
         );
 
         if (!atleta) {
+          const dadosAtletas = lerDados();
+          const atletaCadastrado = (dadosAtletas.atletas || []).find(j => 
+            (atletaId && String(j.id) === String(atletaId)) ||
+            (j.nome && j.nome.toLowerCase() === busca)
+          );
+
           atleta = {
-            id: atletaId || ('jog_' + Date.now()),
-            nome: nomeAtleta || 'Atleta Teste',
-            posicao: 'ATA',
-            condicao: 'excelente',
-            idade: 28,
-            fitness: 90,
-            foto: '',
+            id: atletaId || (atletaCadastrado && atletaCadastrado.id) || ('jog_' + Date.now()),
+            nome: nomeAtleta || (atletaCadastrado && atletaCadastrado.nome) || 'Atleta Teste',
+            posicao: (atletaCadastrado && (atletaCadastrado.posicao || atletaCadastrado.position)) || 'ATA',
+            condicao: (atletaCadastrado && atletaCadastrado.condicao) || 'excelente',
+            idade: (atletaCadastrado && atletaCadastrado.idade) || 28,
+            fitness: (atletaCadastrado && atletaCadastrado.fitness) || 90,
+            foto: (atletaCadastrado && atletaCadastrado.foto) || '',
             hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             statusPresenca: 'confirmado',
             chegadaConfirmada: false
@@ -1651,23 +1672,32 @@ const requestHandler = (req, res) => {
           appData.listaConfirmados.unshift(atleta);
         }
 
+        let distMetrosNum = null;
+        if (payload.distanceMeters !== undefined && payload.distanceMeters !== null && !isNaN(Number(payload.distanceMeters))) {
+          distMetrosNum = Number(payload.distanceMeters);
+        } else if (payload.distance !== undefined && payload.distance !== null && !isNaN(Number(payload.distance))) {
+          distMetrosNum = Number(payload.distance);
+        } else if (payload.distanciaMetros !== undefined && payload.distanciaMetros !== null && !isNaN(Number(payload.distanciaMetros))) {
+          distMetrosNum = Number(payload.distanciaMetros);
+        }
+
         const st = String(statusDistancia || '').toLowerCase().trim();
-        if (st === 'chegou' || st === 'chegar' || st === 'campo' || st === 'no_campo') {
-          atleta.distanciaMetros = 50;
-          atleta.distanciaTexto = 'No Campo';
+        if (st === 'chegou' || st === 'chegar' || st === 'campo' || st === 'no_campo' || (distMetrosNum !== null && distMetrosNum <= 500 && st !== 'resetar' && st !== 'reset')) {
+          atleta.distanciaMetros = distMetrosNum !== null ? distMetrosNum : 50;
+          atleta.distanciaTexto = atleta.distanciaMetros <= 500 ? 'No Campo' : `${atleta.distanciaMetros}m`;
           atleta.statusAproximacao = 'chegou';
           atleta.chegadaConfirmada = true;
           atleta.statusPresenca = 'chegou';
           atleta.horaChegada = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        } else if (st === 'proximo' || st === 'proxima' || st === '850') {
-          atleta.distanciaMetros = 850;
-          atleta.distanciaTexto = '850m';
+        } else if (st === 'proximo' || st === 'proxima' || st === '850' || (distMetrosNum !== null && distMetrosNum > 500 && distMetrosNum <= 1500)) {
+          atleta.distanciaMetros = distMetrosNum !== null ? distMetrosNum : 850;
+          atleta.distanciaTexto = `${atleta.distanciaMetros}m`;
           atleta.statusAproximacao = 'proximo';
           atleta.chegadaConfirmada = false;
           atleta.statusPresenca = 'confirmado';
           atleta.horaChegada = null;
-        } else if (st === 'longe' || st === '3800') {
-          atleta.distanciaMetros = 3800;
+        } else if (st === 'longe' || st === '3800' || (distMetrosNum !== null && distMetrosNum > 1500)) {
+          atleta.distanciaMetros = distMetrosNum !== null ? distMetrosNum : 3800;
           atleta.distanciaTexto = 'Longe';
           atleta.statusAproximacao = 'longe';
           atleta.chegadaConfirmada = false;
@@ -1684,13 +1714,14 @@ const requestHandler = (req, res) => {
 
         const dadosGps = lerDados();
         if (Array.isArray(dadosGps.atletas)) {
-          const atletaBanco = dadosGps.atletas.find(a => String(a.id) === String(atleta.id) || (a.nome && a.nome.toLowerCase() === atleta.nome.toLowerCase()));
+          const atletaBanco = dadosGps.atletas.find(a => (atletaId && String(a.id) === String(atleta.id)) || (a.nome && a.nome.toLowerCase() === atleta.nome.toLowerCase()));
           if (atletaBanco) {
             atletaBanco.distanciaMetros = atleta.distanciaMetros;
             atletaBanco.statusAproximacao = atleta.statusAproximacao;
             atletaBanco.status = atleta.statusAproximacao;
             atletaBanco.chegadaConfirmada = atleta.chegadaConfirmada;
             atletaBanco.checkedIn = atleta.chegadaConfirmada;
+            if (atleta.horaChegada) atletaBanco.horaChegada = atleta.horaChegada;
             salvarDados(dadosGps);
           }
         }
@@ -1698,6 +1729,15 @@ const requestHandler = (req, res) => {
 
         appData.version = Date.now();
         salvarDadosDisco();
+        broadcastSse('GEOFENCE_UPDATE', {
+          athleteId: atleta.id,
+          athleteName: atleta.nome,
+          distance: atleta.distanciaMetros !== null ? atleta.distanciaMetros : 0,
+          status: atleta.statusAproximacao,
+          canCheckIn: atleta.distanciaMetros !== null && atleta.distanciaMetros <= 500,
+          chegadaConfirmada: atleta.chegadaConfirmada || false,
+          athlete: atleta
+        });
         broadcastSse('SYNC', appData);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });

@@ -8,6 +8,9 @@ function getApiUrl(path) {
   if (!path) return apiBase;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const cleanPath = path.startsWith('/') ? path : '/' + path;
+  if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.protocol.startsWith('http')) {
+    return cleanPath;
+  }
   return `${apiBase}${cleanPath}`;
 }
 
@@ -573,18 +576,24 @@ function handleSSEEvent(data) {
 
 
   if (tipo === 'GEOFENCE_UPDATE') {
-    const athlete = state.athletes.find(a => String(a.id) === String(data.athleteId));
+    const aId = String(data.athleteId || (data.athlete && data.athlete.id) || '');
+    const aNome = data.athleteName || (data.athlete && (data.athlete.name || data.athlete.nome)) || '';
+    const athlete = state.athletes.find(a => (aId && String(a.id) === aId) || (aNome && (a.name || a.nome).toLowerCase() === aNome.toLowerCase()));
     if (athlete) {
       athlete.distance = data.distance;
       athlete.distanciaMetros = data.distance;
       athlete.status = data.status;
       athlete.canCheckIn = data.canCheckIn;
+      if (data.chegadaConfirmada !== undefined) {
+        athlete.checkedIn = data.chegadaConfirmada;
+      }
     }
     atualizarDisplayAtleta(currentAthleteId);
     renderListaAtletasGPS();
     renderGpsSelect();
-    const isOk = data.status === 'campo';
-    logTerminal('SSE_GEOFENCE', `[Tempo Real] Atleta #${data.athleteId} (${data.athleteName}) -> ${data.distance}m | Status: ${(data.status || '').toUpperCase()}`, isOk ? 'success' : 'warning');
+    atualizarKpis();
+    const isOk = data.status === 'campo' || (data.distance !== undefined && data.distance <= 500);
+    logTerminal('SSE_GEOFENCE', `[Tempo Real] Atleta #${data.athleteId} (${data.athleteName || 'Atleta'}) -> ${data.distance}m | Status: ${(data.status || '').toUpperCase()}`, isOk ? 'success' : 'warning');
     return;
   }
 
@@ -934,25 +943,34 @@ async function dispararSimulacaoGPS(distancia, statusTag) {
   try {
     const payload = {
       athleteId: selectedId,
+      atletaId: selectedId,
       id: selectedId,
       nome: athleteNome,
       nomeAtleta: athleteNome,
       athleteName: athleteNome,
       distanceMeters: distNum,
       distance: distNum,
+      distanciaMetros: distNum,
       customStatus: statusTag,
       status: statusTag,
       statusDistancia: statusTag
     };
 
-    const response = await fetch(getApiUrl('/api/v2/geofence-test'), {
+    let response = await fetch(getApiUrl('/api/v2/geofence-test'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+      response = await fetch(getApiUrl('/api/teste/simular-gps'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+      }
     }
 
     const result = await response.json();

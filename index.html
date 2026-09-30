@@ -554,7 +554,7 @@
                             <div class="flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-primary text-base">manage_accounts</span>
                                 <h3 class="font-headline-md text-xs font-bold text-on-surface">Cadastro de Atletas</h3>
-                                <span id="admin-contador-atletas" class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">0 atletas</span>
+                                <span id="admin-contador-atletas" class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">Carregando atletas...</span>
                             </div>
                             <button onclick="abrirModalAdicionarAtleta()" class="px-2.5 py-1 bg-primary text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-sm active:scale-95">
                                 <span class="material-symbols-outlined text-xs">person_add</span>
@@ -1596,7 +1596,10 @@
         async function carregarListaOficialAtletas() {
             try {
                 // Consome a rota oficial GET /api/atletas para carregar permanentemente TODOS os atletas cadastrados na nuvem
-                const resp = await fetch('/api/atletas?t=' + Date.now(), {
+                const apiUrl = window.location.protocol.startsWith('http')
+                    ? '/api/atletas?t=' + Date.now()
+                    : 'https://pelada-top.onrender.com/api/atletas?t=' + Date.now();
+                const resp = await fetch(apiUrl, {
                     headers: { 'Accept': 'application/json' }
                 });
 
@@ -1620,14 +1623,26 @@
                         cadastroGeralAtletas = atletasValidos;
                         localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
 
-                        // 2. Apenas inicializa listaConfirmados se for nula
-                        if (!Array.isArray(listaConfirmados)) {
+                        // 2. Sincroniza listaConfirmados se estiver vazia ou nula
+                        if (!Array.isArray(listaConfirmados) || listaConfirmados.length === 0) {
                             listaConfirmados = [...cadastroGeralAtletas];
                             localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                         }
 
+                        // Atualiza na hora o contador do painel admin
+                        const badgeCount = document.getElementById('admin-contador-atletas');
+                        if (badgeCount) {
+                            const totalConfirmados = atletasValidos.filter(j => {
+                                const conf = (listaConfirmados || []).find(c => String(c.id) === String(j.id));
+                                return (conf && (conf.statusPresenca === 'confirmado' || conf.statusPresenca === 'chegou' || conf.chegadaConfirmada === true)) ||
+                                       (j.statusPresenca === 'confirmado' || j.statusPresenca === 'chegou' || j.chegadaConfirmada === true);
+                            }).length;
+                            badgeCount.innerText = `${atletasValidos.length} cadastrados (${totalConfirmados} confirmados)`;
+                        }
+
                         // Renderiza e sincroniza instantaneamente todas as abas (admin e jogadores)
                         aplicarDadosAtualizados();
+                        renderizarListaGestaoAdmin();
                         return;
                     }
                 }
@@ -1637,6 +1652,7 @@
 
             // Fallback: renderiza dados locais / pré-carregados
             aplicarDadosAtualizados();
+            renderizarListaGestaoAdmin();
         }
 
         const consumirApiAtletasAdmin = carregarListaOficialAtletas;
@@ -1845,9 +1861,9 @@
                     sincronizarPerfilCamposUi();
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
-                    // Consome e renderiza imediatamente da rota oficial da nuvem (/api/atletas / database.json)
-                    carregarListaOficialAtletas();
                     renderizarListaGestaoAdmin();
+                    // Consome imediatamente GET /api/atletas para garantir que o painel admin exiba todos os cadastros atualizados da nuvem
+                    carregarListaOficialAtletas();
                     buscarDadosServidor();
                     atualizarLocalizacaoGps(false);
                 } else if (aba === 'equipes') {
@@ -4351,46 +4367,7 @@
         }
 
 
-        let _buscandoAtletasAdmin = false;
-        async function sincronizarCadastrosOficiaisNuvemAdmin() {
-            if (_buscandoAtletasAdmin || !window.location.protocol.startsWith('http')) return;
-            _buscandoAtletasAdmin = true;
-            try {
-                const resp = await fetch('/api/atletas?t=' + Date.now(), {
-                    headers: { 'Accept': 'application/json' }
-                });
-                if (resp.ok) {
-                    const dadosRetornados = await resp.json();
-                    let arrayAtletas = [];
-                    if (Array.isArray(dadosRetornados)) {
-                        arrayAtletas = dadosRetornados;
-                    } else if (dadosRetornados && Array.isArray(dadosRetornados.atletas)) {
-                        arrayAtletas = dadosRetornados.atletas;
-                    } else if (dadosRetornados && Array.isArray(dadosRetornados.listaConfirmados)) {
-                        arrayAtletas = dadosRetornados.listaConfirmados;
-                    }
-                    const atletasValidos = arrayAtletas.filter(a => a && typeof a === 'object' && a.nome);
-                    if (atletasValidos.length > 0) {
-                        cadastroGeralAtletas = atletasValidos;
-                        localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
-                        desenharListaGestaoAdmin();
-                    }
-                }
-            } catch (err) {
-                console.warn('[Admin] Erro ao sincronizar cadastros da nuvem:', err);
-            } finally {
-                _buscandoAtletasAdmin = false;
-            }
-        }
-
         function renderizarListaGestaoAdmin() {
-            // Consome e renderiza os dados diretamente da rota oficial de cadastros da nuvem (/api/atletas / database.json)
-            // de forma imediata e automática ao abrir a aba, sem depender de cliques manuais ou do status de lista aberta
-            sincronizarCadastrosOficiaisNuvemAdmin();
-            desenharListaGestaoAdmin();
-        }
-
-        function desenharListaGestaoAdmin() {
             const container = document.getElementById('admin-lista-atletas-gestao');
             const badgeCount = document.getElementById('admin-contador-atletas');
 
@@ -4419,6 +4396,24 @@
             if (!container) return;
 
             if (atletasValidos.length === 0) {
+                // Tenta puxar de /api/atletas imediatamente para garantir exibição permanente
+                if (window.location.protocol.startsWith('http')) {
+                    fetch('/api/atletas?t=' + Date.now())
+                        .then(r => r.json())
+                        .then(data => {
+                            const atletasRecebidos = Array.isArray(data)
+                                ? data
+                                : (Array.isArray(data.atletas) ? data.atletas : (Array.isArray(data.listaConfirmados) ? data.listaConfirmados : []));
+                            if (Array.isArray(atletasRecebidos) && atletasRecebidos.length > 0) {
+                                cadastroGeralAtletas = atletasRecebidos.filter(j => j && typeof j === 'object' && j.nome);
+                                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+                                renderizarListaGestaoAdmin();
+                                renderizarListaJogadores();
+                            }
+                        })
+                        .catch(() => {});
+                }
+
                 container.innerHTML = `
                     <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-secondary text-2xl">person_off</span>
@@ -4822,9 +4817,9 @@
 
             // Garante que o fetch no frontend na aba de administracao chame /api/atletas ao carregar a pagina
             try {
-                carregarAtletasApi();
+                carregarListaOficialAtletas();
             } catch (e) {
-                console.warn('[Init] Aviso ao chamar carregarAtletasApi:', e);
+                console.warn('[Init] Aviso ao chamar carregarListaOficialAtletas:', e);
             }
 
             try {
