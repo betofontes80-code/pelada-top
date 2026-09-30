@@ -621,7 +621,8 @@ const requestHandler = (req, res) => {
     }
 
     // 0.4 API v2: Teste de Geofencing 500m Individual
-    if (pathname === '/api/v2/geofence-test' && req.method === 'POST') {
+    // 0.4 API v2: Teste de Geofencing 500m Individual (Suporta POST e PUT)
+    if (pathname === '/api/v2/geofence-test' && (req.method === 'POST' || req.method === 'PUT')) {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err || !payload) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
@@ -629,9 +630,9 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const athleteId = String(payload.athleteId);
-        const distanceMeters = Number(payload.distanceMeters || 0);
-        const customStatus = payload.customStatus;
+        const athleteId = String(payload.athleteId || payload.id);
+        const distanceMeters = Number(payload.distanceMeters !== undefined ? payload.distanceMeters : (payload.distance || 0));
+        const customStatus = payload.customStatus || payload.status;
 
         // Atualiza tanto no database.json quanto em athletesDatabase
         const dados = lerDados();
@@ -674,11 +675,29 @@ const requestHandler = (req, res) => {
           athlete.canCheckIn = false;
         }
 
-        // Persiste alteração no database.json
+        // Persiste alteração no database.json e sincroniza appData
         if (lista.length > 0) {
           dados.atletas = lista;
           salvarDados(dados);
         }
+
+        appData.atletas = dados.atletas;
+        if (Array.isArray(appData.listaConfirmados)) {
+          const conf = appData.listaConfirmados.find(c => String(c.id) === String(athlete.id) || (c.nome && c.nome.toLowerCase() === (athlete.nome || athlete.name || '').toLowerCase()));
+          if (conf) {
+            conf.distanciaMetros = athlete.distanciaMetros;
+            conf.statusAproximacao = athlete.status;
+            conf.chegadaConfirmada = (athlete.status === 'campo');
+            if (athlete.status === 'campo') conf.statusPresenca = 'chegou';
+            else if (athlete.status === 'reset') {
+              conf.chegadaConfirmada = false;
+              conf.statusPresenca = 'confirmado';
+            }
+          }
+        }
+        appData.version = Date.now();
+        salvarDadosDisco();
+        athletesDatabase = obterAtletasCompletos();
 
         const athleteObj = {
           ...athlete,
@@ -703,6 +722,7 @@ const requestHandler = (req, res) => {
           canCheckIn: athlete.status === 'campo',
           athlete: athleteObj
         });
+        broadcastSse('SYNC', appData);
 
         res.writeHead(200, {
           'Content-Type': 'application/json; charset=utf-8',
@@ -710,6 +730,8 @@ const requestHandler = (req, res) => {
         });
         res.end(JSON.stringify({
           success: true,
+          distance: athleteObj.distance,
+          status: athleteObj.status,
           athlete: athleteObj,
           allowed: athlete.distance <= 500 && athlete.status !== 'reset'
         }));
@@ -1565,8 +1587,8 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 16. API Teste: Simular GPS (Disponível para testes no Painel /teste na nuvem e local)
-    if ((pathname === '/api/teste/simular-gps' || pathname === '/api/admin/simular-gps') && req.method === 'POST') {
+    // 16. API Teste: Simular GPS (Disponível para testes no Painel /teste na nuvem e local, aceita POST e PUT)
+    if ((pathname === '/api/teste/simular-gps' || pathname === '/api/admin/simular-gps') && (req.method === 'POST' || req.method === 'PUT')) {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err || !payload) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1631,6 +1653,20 @@ const requestHandler = (req, res) => {
           atleta.statusPresenca = 'confirmado';
           atleta.horaChegada = null;
         }
+
+        const dadosGps = lerDados();
+        if (Array.isArray(dadosGps.atletas)) {
+          const atletaBanco = dadosGps.atletas.find(a => String(a.id) === String(atleta.id) || (a.nome && a.nome.toLowerCase() === atleta.nome.toLowerCase()));
+          if (atletaBanco) {
+            atletaBanco.distanciaMetros = atleta.distanciaMetros;
+            atletaBanco.statusAproximacao = atleta.statusAproximacao;
+            atletaBanco.status = atleta.statusAproximacao;
+            atletaBanco.chegadaConfirmada = atleta.chegadaConfirmada;
+            atletaBanco.checkedIn = atleta.chegadaConfirmada;
+            salvarDados(dadosGps);
+          }
+        }
+        athletesDatabase = obterAtletasCompletos();
 
         appData.version = Date.now();
         salvarDadosDisco();

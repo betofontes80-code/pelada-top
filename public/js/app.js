@@ -584,7 +584,7 @@ function handleSSEEvent(data) {
     renderListaAtletasGPS();
     renderGpsSelect();
     const isOk = data.status === 'campo';
-    logTerminal('GEOFENCE', `Atleta #${data.athleteId} (${data.athleteName}) -> ${data.distance}m | Status: ${(data.status || '').toUpperCase()}`, isOk ? 'success' : 'warning');
+    logTerminal('SSE_GEOFENCE', `[Tempo Real] Atleta #${data.athleteId} (${data.athleteName}) -> ${data.distance}m | Status: ${(data.status || '').toUpperCase()}`, isOk ? 'success' : 'warning');
     return;
   }
 
@@ -680,6 +680,7 @@ async function carregarAtletas() {
     console.warn('Erro ao carregar atletas do Render:', err.message);
   }
 
+  // Sincroniza dinamicamente o seletor dropdown e a listagem de atletas
   renderAtletasDropdown();
   renderGpsSelect();
   atualizarDisplayAtleta(currentAthleteId);
@@ -692,27 +693,30 @@ function renderGpsSelect() {
   const select = document.getElementById('gps-athlete-select');
   if (!select) return;
 
-  const currentVal = select.value;
+  const targetId = String(currentAthleteId || select.value || (state.athletes[0] ? state.athletes[0].id : ''));
   select.innerHTML = '';
 
   state.athletes.forEach(a => {
     const opt = document.createElement('option');
-    opt.value = a.id;
+    opt.value = String(a.id);
     const nome = a.name || a.nome;
     const pos = a.position || a.posicao || 'MEI';
-    const dist = a.distance !== undefined && a.distance !== null ? a.distance + 'm' : 'Sem GPS';
+    const dist = (a.distance !== undefined && a.distance !== null) ? a.distance + 'm' : (a.distanciaMetros !== null && a.distanciaMetros !== undefined ? a.distanciaMetros + 'm' : 'Sem GPS');
     const st = (a.status || 'longe').toUpperCase();
     const check = a.checkedIn ? '⚽ OK' : '⏳ Pend';
     opt.textContent = `${nome} (${pos}) — ${dist} [${st}] [${check}]`;
+    if (String(a.id) === targetId) {
+      opt.selected = true;
+    }
     select.appendChild(opt);
   });
 
-  if (currentVal && state.athletes.some(a => String(a.id) === String(currentVal))) {
-    select.value = currentVal;
-    currentAthleteId = currentVal;
+  if (targetId && state.athletes.some(a => String(a.id) === targetId)) {
+    select.value = targetId;
+    currentAthleteId = targetId;
   } else if (state.athletes.length > 0) {
-    select.value = state.athletes[0].id;
-    currentAthleteId = state.athletes[0].id;
+    select.value = String(state.athletes[0].id);
+    currentAthleteId = String(state.athletes[0].id);
   }
 }
 
@@ -861,50 +865,83 @@ function atualizarDisplayAtleta(athleteId) {
 
 // 2. Dispara a simulação de distância para o atleta selecionado (POST /api/v2/geofence-test)
 async function dispararSimulacaoGPS(distancia, statusTag) {
-  // Atualização otimista imediata na interface para feedback instantâneo
-  const localAthlete = state.athletes.find(a => String(a.id) === String(currentAthleteId));
-  if (localAthlete) {
+  // Sincroniza de forma estrita com o ID selecionado no dropdown
+  const selectGps = document.getElementById('gps-athlete-select');
+  if (selectGps && selectGps.value) {
+    currentAthleteId = String(selectGps.value);
+  }
+
+  const athlete = state.athletes.find(a => String(a.id) === String(currentAthleteId));
+  const athleteNome = athlete ? (athlete.name || athlete.nome) : `Atleta #${currentAthleteId}`;
+
+  // 1. Atualização otimista imediata na interface para feedback instantâneo sem recarregar
+  if (athlete) {
     if (statusTag === 'reset') {
-      localAthlete.status = 'reset';
-      localAthlete.distance = 0;
-      localAthlete.distanciaMetros = 0;
-      localAthlete.checkedIn = false;
-      localAthlete.canCheckIn = false;
+      athlete.status = 'reset';
+      athlete.distance = 0;
+      athlete.distanciaMetros = 0;
+      athlete.checkedIn = false;
+      athlete.canCheckIn = false;
     } else {
-      localAthlete.distance = distancia;
-      localAthlete.distanciaMetros = distancia;
-      localAthlete.status = statusTag;
-      localAthlete.canCheckIn = distancia <= 500;
+      athlete.distance = distancia;
+      athlete.distanciaMetros = distancia;
+      athlete.status = (distancia <= 500) ? 'campo' : statusTag;
+      athlete.canCheckIn = distancia <= 500;
     }
     atualizarDisplayAtleta(currentAthleteId);
     renderListaAtletasGPS();
     renderGpsSelect();
   }
 
+  logTerminal('GPS_SIM', `[Disparando] Simulação GPS: ${athleteNome} -> ${distancia}m (${statusTag.toUpperCase()})...`, 'info');
+
   try {
+    const payload = {
+      athleteId: currentAthleteId,
+      distanceMeters: distancia,
+      customStatus: statusTag
+    };
+
     const response = await fetch(getApiUrl('/api/v2/geofence-test'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        athleteId: currentAthleteId,
-        distanceMeters: distancia,
-        customStatus: statusTag
-      })
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    }
+
     const result = await response.json();
-    if (result.success && result.athlete) {
-      const idx = state.athletes.findIndex(a => String(a.id) === String(result.athlete.id));
-      if (idx !== -1) {
-        state.athletes[idx] = { ...state.athletes[idx], ...result.athlete };
+    if (result && (result.success || result.athlete)) {
+      const athleteObj = result.athlete || result.atleta;
+      if (athleteObj) {
+        const idx = state.athletes.findIndex(a => String(a.id) === String(athleteObj.id));
+        if (idx !== -1) {
+          state.athletes[idx] = { ...state.athletes[idx], ...normalizarAtleta(athleteObj, idx) };
+        }
       }
+
+      // 2. Atualiza instantaneamente a tabela de listagem individual e o card sem recarregar a página
       atualizarDisplayAtleta(currentAthleteId);
       renderListaAtletasGPS();
       renderGpsSelect();
-      logTerminal('GEOFENCE', `Atleta #${result.athlete.id} (${result.athlete.name || result.athlete.nome}) -> ${result.athlete.distance}m | Status: ${(result.athlete.status || '').toUpperCase()}`, result.allowed ? 'success' : 'warning');
+      atualizarKpis();
+
+      const atletaAtualizado = state.athletes.find(a => String(a.id) === String(currentAthleteId));
+      const distFinal = atletaAtualizado ? (atletaAtualizado.distance !== undefined ? atletaAtualizado.distance + 'm' : distancia + 'm') : distancia + 'm';
+      const stFinal = atletaAtualizado ? (atletaAtualizado.status || statusTag).toUpperCase() : statusTag.toUpperCase();
+      const isAllowed = result.allowed || (distancia <= 500 && statusTag !== 'reset');
+
+      logTerminal(
+        'GEOFENCE_RES',
+        `Simulação confirmada pelo servidor: ${athleteNome} -> ${distFinal} | Status: [${stFinal}] | Check-in: ${isAllowed ? 'LIBERADO (≤500m)' : 'BLOQUEADO'}`,
+        isAllowed ? 'success' : (statusTag === 'reset' ? 'info' : 'warning')
+      );
     }
   } catch (error) {
     console.error("Erro na simulação:", error);
-    logTerminal('GEOFENCE_ERR', error.message, 'error');
+    logTerminal('GEOFENCE_ERR', `Falha na requisição de simulação: ${error.message}`, 'error');
   }
 }
 

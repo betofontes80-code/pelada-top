@@ -4181,28 +4181,73 @@
             const currentVal = sel.value;
             sel.innerHTML = '';
 
-            (listaConfirmados || []).forEach(a => {
+            const fonteAtletas = (Array.isArray(cadastroGeralAtletas) && cadastroGeralAtletas.length > 0)
+                ? cadastroGeralAtletas
+                : ((Array.isArray(listaConfirmados) && listaConfirmados.length > 0) ? listaConfirmados : (ATLETAS_INICIAIS_PADRAO || []));
+
+            fonteAtletas.forEach(a => {
                 const opt = document.createElement('option');
-                opt.value = a.id || a.nome;
-                const isCampo = (a.statusPresenca === 'chegou' || a.chegadaConfirmada || (a.distanciaMetros && a.distanciaMetros <= 500) || a.statusAproximacao === 'chegou');
-                const isCaminho = (a.statusPresenca === 'a_caminho' || (a.distanciaMetros && a.distanciaMetros > 500 && a.distanciaMetros <= 1500) || a.statusAproximacao === 'proximo');
+                const idVal = a.id ? String(a.id) : (a.nome || '');
+                opt.value = idVal;
+                const isCampo = (a.statusPresenca === 'chegou' || a.chegadaConfirmada || (a.distanciaMetros !== undefined && a.distanciaMetros <= 500) || a.statusAproximacao === 'chegou' || a.status === 'campo');
+                const isCaminho = (a.statusPresenca === 'a_caminho' || (a.distanciaMetros !== undefined && a.distanciaMetros > 500 && a.distanciaMetros <= 1500) || a.statusAproximacao === 'proximo' || a.status === 'proximo');
                 const tag = isCampo ? '🟢 No Campo' : isCaminho ? '🟡 A Caminho' : '🔴 Longe';
-                opt.text = `${a.nome} (${a.posicao || 'ATA'}) — [${tag}]`;
+                opt.text = `${a.nome || a.name} (${a.posicao || a.position || 'ATA'}) — [${tag}]`;
+                if (currentVal && idVal === currentVal) {
+                    opt.selected = true;
+                }
                 sel.appendChild(opt);
             });
 
-            if (currentVal) sel.value = currentVal;
+            if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+                sel.value = currentVal;
+            }
         }
 
         async function aplicarSimulacaoGpsAdmin(status) {
             const sel = document.getElementById('select-atleta-gps-admin');
             if (!sel || !sel.value) return;
             const val = sel.value;
-            const atleta = (listaConfirmados || []).find(a => (a.id && a.id === val) || a.nome === val);
+            const fonteAtletas = (Array.isArray(cadastroGeralAtletas) && cadastroGeralAtletas.length > 0)
+                ? cadastroGeralAtletas
+                : ((Array.isArray(listaConfirmados) && listaConfirmados.length > 0) ? listaConfirmados : []);
+            const atleta = fonteAtletas.find(a => (a.id && String(a.id) === String(val)) || a.nome === val);
             if (!atleta) return;
 
+            let distMetros = 3800;
+            let statusTag = status;
+            if (status === 'chegou') { distMetros = 120; statusTag = 'campo'; }
+            else if (status === 'proximo') { distMetros = 850; statusTag = 'proximo'; }
+            else if (status === 'longe') { distMetros = 3800; statusTag = 'longe'; }
+            else if (status === 'resetar' || status === 'reset' || status === 'desfazer') { distMetros = 0; statusTag = 'reset'; }
+
+            // Atualização otimista imediata
+            atleta.distanciaMetros = distMetros;
+            atleta.statusAproximacao = statusTag;
+            if (statusTag === 'campo') {
+                atleta.chegadaConfirmada = true;
+                atleta.statusPresenca = 'chegou';
+            } else if (statusTag === 'reset') {
+                atleta.chegadaConfirmada = false;
+                atleta.statusPresenca = 'confirmado';
+            }
+            popularSeletorGpsAdmin();
+            renderizarListaJogadores();
+            renderizarListaGestaoAdmin();
+
             try {
-                const resp = await fetch('/api/admin/simular-gps', {
+                // Dispara assincronamente para a rota v2 e admin/simular-gps
+                await fetch('/api/v2/geofence-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        athleteId: atleta.id || val,
+                        distanceMeters: distMetros,
+                        customStatus: statusTag
+                    })
+                });
+
+                await fetch('/api/admin/simular-gps', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -4211,14 +4256,13 @@
                         statusDistancia: status
                     })
                 });
-                const res = await resp.json();
-                if (res && res.sucesso) {
-                    await sincronizarServidor();
-                    renderizarListaJogadores();
-                    renderizarListaGestaoAdmin();
-                                    }
+
+                await sincronizarServidor();
+                popularSeletorGpsAdmin();
+                renderizarListaJogadores();
+                renderizarListaGestaoAdmin();
             } catch (err) {
-                console.warn('Simulação GPS local:', err);
+                console.warn('Simulação GPS:', err);
             }
         }
 
