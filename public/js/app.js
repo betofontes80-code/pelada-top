@@ -700,8 +700,10 @@ function renderGpsSelect() {
     const opt = document.createElement('option');
     opt.value = String(a.id);
     const nome = a.name || a.nome;
+    opt.setAttribute('data-nome', nome);
     const pos = a.position || a.posicao || 'MEI';
-    const dist = (a.distance !== undefined && a.distance !== null) ? a.distance + 'm' : (a.distanciaMetros !== null && a.distanciaMetros !== undefined ? a.distanciaMetros + 'm' : 'Sem GPS');
+    let distVal = (a.distance !== undefined && a.distance !== null && !isNaN(Number(a.distance))) ? Number(a.distance) : ((a.distanciaMetros !== undefined && a.distanciaMetros !== null && !isNaN(Number(a.distanciaMetros))) ? Number(a.distanciaMetros) : null);
+    const dist = distVal !== null ? `${distVal}m` : 'Sem GPS';
     const st = (a.status || 'longe').toUpperCase();
     const check = a.checkedIn ? '⚽ OK' : '⏳ Pend';
     opt.textContent = `${nome} (${pos}) — ${dist} [${st}] [${check}]`;
@@ -744,12 +746,20 @@ function renderListaAtletasGPS() {
       ? '<span class="text-emerald-600 font-bold">⚽ Sim</span>'
       : '<span class="text-slate-400">⏳ Não</span>';
 
+    let distVal = null;
+    if (a.distance !== undefined && a.distance !== null && !isNaN(Number(a.distance))) {
+      distVal = Number(a.distance);
+    } else if (a.distanciaMetros !== undefined && a.distanciaMetros !== null && !isNaN(Number(a.distanciaMetros))) {
+      distVal = Number(a.distanciaMetros);
+    }
+    const distTexto = distVal !== null ? `${distVal}m` : '-';
+
     tr.innerHTML = `
       <td class="px-2.5 py-1.5 flex items-center gap-1.5">
         <span>${a.name || a.nome}</span>
       </td>
       <td class="px-2 py-1.5 text-center font-mono text-[10px] text-slate-600">${a.position || a.posicao || 'MEI'}</td>
-      <td class="px-2 py-1.5 text-right font-mono font-semibold">${a.distance !== undefined ? a.distance + 'm' : '-'}</td>
+      <td class="px-2 py-1.5 text-right font-mono font-semibold">${distTexto}</td>
       <td class="px-2 py-1.5 text-center">${statusBadge}</td>
       <td class="px-2 py-1.5 text-center text-[10px]">${checkBadge}</td>
     `;
@@ -865,14 +875,40 @@ function atualizarDisplayAtleta(athleteId) {
 
 // 2. Dispara a simulação de distância para o atleta selecionado (POST /api/v2/geofence-test)
 async function dispararSimulacaoGPS(distancia, statusTag) {
-  // Sincroniza de forma estrita com o ID selecionado no dropdown
+  // Sincroniza de forma estrita com o ID e nome selecionados no dropdown no momento do clique
   const selectGps = document.getElementById('gps-athlete-select');
-  if (selectGps && selectGps.value) {
-    currentAthleteId = String(selectGps.value);
+  let selectedId = null;
+  let selectedNome = null;
+
+  if (selectGps) {
+    if (selectGps.value && selectGps.value !== 'null' && selectGps.value !== 'undefined') {
+      selectedId = String(selectGps.value).trim();
+    }
+    if (selectGps.selectedIndex >= 0 && selectGps.options[selectGps.selectedIndex]) {
+      const opt = selectGps.options[selectGps.selectedIndex];
+      selectedNome = opt.getAttribute('data-nome') || opt.getAttribute('data-name');
+    }
   }
 
-  const athlete = state.athletes.find(a => String(a.id) === String(currentAthleteId));
-  const athleteNome = athlete ? (athlete.name || athlete.nome) : `Atleta #${currentAthleteId}`;
+  if (!selectedId && currentAthleteId) {
+    selectedId = String(currentAthleteId).trim();
+  }
+
+  // Fallback seguro se o select ainda estiver inicializando
+  if ((!selectedId || selectedId === '') && Array.isArray(state.athletes) && state.athletes.length > 0) {
+    selectedId = String(state.athletes[0].id);
+  }
+
+  if (!selectedId || selectedId === '' || selectedId === 'null' || selectedId === 'undefined') {
+    logTerminal('GPS_SIM_ERR', 'Nenhum atleta selecionado no dropdown para simulação de GPS!', 'error');
+    alert('Por favor, selecione um atleta válido no seletor de GPS antes de simular a distância.');
+    return;
+  }
+
+  currentAthleteId = selectedId;
+  const athlete = state.athletes.find(a => String(a.id) === String(selectedId));
+  const athleteNome = (athlete && (athlete.name || athlete.nome)) ? (athlete.name || athlete.nome) : (selectedNome || `Atleta #${selectedId}`);
+  const distNum = (distancia !== null && distancia !== undefined && !isNaN(Number(distancia))) ? Number(distancia) : 0;
 
   // 1. Atualização otimista imediata na interface para feedback instantâneo sem recarregar
   if (athlete) {
@@ -897,9 +933,16 @@ async function dispararSimulacaoGPS(distancia, statusTag) {
 
   try {
     const payload = {
-      athleteId: currentAthleteId,
-      distanceMeters: distancia,
-      customStatus: statusTag
+      athleteId: selectedId,
+      id: selectedId,
+      nome: athleteNome,
+      nomeAtleta: athleteNome,
+      athleteName: athleteNome,
+      distanceMeters: distNum,
+      distance: distNum,
+      customStatus: statusTag,
+      status: statusTag,
+      statusDistancia: statusTag
     };
 
     const response = await fetch(getApiUrl('/api/v2/geofence-test'), {

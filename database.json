@@ -693,9 +693,10 @@
       "distanciaTexto": "No Campo",
       "statusAproximacao": "reset",
       "horaChegada": null,
-      "distance": 3800,
-      "status": "longe",
-      "canCheckIn": false
+      "distance": 0,
+      "status": "reset",
+      "canCheckIn": false,
+      "checkedIn": false
     },
     {
       "id": "1",
@@ -1491,5 +1492,5 @@
     "finalizada": false,
     "tempoRestante": 600
   },
-  "version": 1790728881217
+  "version": 1790730353525
 }

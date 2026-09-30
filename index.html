@@ -1466,6 +1466,9 @@
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
             );
             if (eu) {
+                if (eu.distanciaMetros !== undefined && eu.distanciaMetros !== null) {
+                    distanciaAtualMetros = Number(eu.distanciaMetros);
+                }
                 if (usuarioAtual.foto && !eu.foto) {
                     eu.foto = usuarioAtual.foto;
                 } else if (eu.foto && !usuarioAtual.foto) {
@@ -1680,6 +1683,8 @@
                             atletasConhecidosIds.clear();
                             aplicarDadosAtualizados();
                             exibirToastJogadorOnline({ nome: 'Pelada Top', posicao: 'SYS' }, 'Lista zerada após a meia-noite! Nova presença liberada.');
+                        } else if (msg.type === 'GEOFENCE_UPDATE' || msg.type === 'GEOFENCE') {
+                            tratarEventoGeofence(msg);
                         } else if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
                             aplicarSincronizacaoRemota(msg);
                         }
@@ -1708,6 +1713,81 @@
                     badge.title = 'Modo local';
                 }
             }
+        }
+
+        // ==============================================================
+        // REAVALIAÇÃO INSTANTÂNEA DE PROXIMIDADE E GEOFENCING VIA SSE / SIMULADOR
+        // ==============================================================
+        function tratarEventoGeofence(msg) {
+            if (!msg) return;
+            const athleteId = String(msg.athleteId || (msg.athlete && msg.athlete.id) || '').trim();
+            const athleteName = String(msg.athleteName || (msg.athlete && (msg.athlete.name || msg.athlete.nome)) || '').trim();
+            const distNum = (msg.distance !== undefined && msg.distance !== null && !isNaN(Number(msg.distance))) ? Number(msg.distance) : null;
+            const st = msg.status || 'longe';
+
+            // 1. Atualiza no cadastro permanente
+            if (Array.isArray(cadastroGeralAtletas)) {
+                const a = cadastroGeralAtletas.find(j => (athleteId && String(j.id) === athleteId) || (athleteName && j.nome && j.nome.trim().toLowerCase() === athleteName.toLowerCase()));
+                if (a) {
+                    a.distanciaMetros = distNum;
+                    a.statusAproximacao = st;
+                    if (distNum !== null && distNum <= 500) {
+                        a.statusPresenca = 'confirmado';
+                    } else if (st === 'reset') {
+                        a.chegadaConfirmada = false;
+                    }
+                }
+            }
+
+            // 2. Atualiza ou inclui na listaConfirmados da rodada
+            if (Array.isArray(listaConfirmados)) {
+                let conf = listaConfirmados.find(c => (athleteId && String(c.id) === athleteId) || (athleteName && c.nome && c.nome.trim().toLowerCase() === athleteName.toLowerCase()));
+                if (conf) {
+                    conf.distanciaMetros = distNum;
+                    conf.statusAproximacao = st;
+                    if (distNum !== null && distNum <= 500) {
+                        if (conf.statusPresenca === 'pendente') conf.statusPresenca = 'confirmado';
+                    } else if (st === 'reset') {
+                        conf.chegadaConfirmada = false;
+                        conf.statusPresenca = 'confirmado';
+                    }
+                } else if (distNum !== null && distNum <= 500) {
+                    conf = {
+                        id: athleteId,
+                        nome: athleteName,
+                        posicao: (msg.athlete && (msg.athlete.posicao || msg.athlete.position)) || 'MEI',
+                        statusPresenca: 'confirmado',
+                        chegadaConfirmada: false,
+                        distanciaMetros: distNum,
+                        statusAproximacao: st,
+                        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    };
+                    listaConfirmados.unshift(conf);
+                }
+            }
+
+            // 3. Sincroniza usuário logado se for o atleta simulado ou se ainda não tiver atleta logado
+            const ehUsuarioLogado = (usuarioAtual.id && String(usuarioAtual.id) === athleteId) ||
+                                    (usuarioAtual.nome && athleteName && (usuarioAtual.nome || '').trim().toLowerCase() === athleteName.toLowerCase());
+
+            if (ehUsuarioLogado || (!usuarioAtual.nome || usuarioAtual.nome.trim() === '')) {
+                if (distNum !== null) {
+                    distanciaAtualMetros = distNum;
+                }
+                if ((!usuarioAtual.nome || usuarioAtual.nome.trim() === '') && athleteName) {
+                    usuarioAtual = { id: athleteId, nome: athleteName, role: 'jogador' };
+                    localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                    try { sincronizarPerfilCamposUi(); } catch(e) {}
+                }
+                if (distNum !== null && distNum <= 500) {
+                    exibirToastJogadorOnline({ nome: athleteName, posicao: 'GPS' }, `⚽ Você está a ${distNum}m do campo! Chegada liberada para confirmação.`);
+                }
+            }
+
+            // 4. Salva localmente e renderiza todos os componentes instantaneamente sem recarregar a página
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+            aplicarDadosAtualizados();
         }
 
         function aplicarDadosAtualizados() {
@@ -2508,7 +2588,7 @@
                     btn.innerHTML = '<span class="material-symbols-outlined text-base">sports_soccer</span> CHEGADA CONFIRMADA NO CAMPO!';
                     btn.disabled = true;
                 } else if (jaConfirmado) {
-                    const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
+                    const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
                     if (dist !== null && dist <= 500) {
                         btn.className = "mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider animate-pulse";
                         btn.innerHTML = '<span>Confirmar Chegada no Local ⚽</span><span class="material-symbols-outlined text-sm">sports_soccer</span>';
@@ -2801,7 +2881,7 @@
                 return;
             }
 
-            const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
+            const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
 
             if (dist !== null && dist <= 500) {
                 confirmarChegadaLocal();
@@ -3051,7 +3131,7 @@
                     }
                 } else {
                     const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou';
-                    const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : (atletaLogado.distanciaMetros !== undefined ? atletaLogado.distanciaMetros : null);
+                    const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
 
                     if (chegouConfirmado) {
                         // ESTADO 4: Chegada física confirmada no local (2ª etapa concluída!)

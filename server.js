@@ -630,17 +630,29 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const athleteId = String(payload.athleteId || payload.id);
-        const distanceMeters = Number(payload.distanceMeters !== undefined ? payload.distanceMeters : (payload.distance || 0));
-        const customStatus = payload.customStatus || payload.status;
+        const athleteId = String(payload.athleteId || payload.id || '').trim();
+        const athleteName = String(payload.nome || payload.nomeAtleta || payload.athleteName || '').trim();
+
+        let distanceMeters = 0;
+        if (payload.distanceMeters !== undefined && payload.distanceMeters !== null && !isNaN(Number(payload.distanceMeters))) {
+          distanceMeters = Number(payload.distanceMeters);
+        } else if (payload.distance !== undefined && payload.distance !== null && !isNaN(Number(payload.distance))) {
+          distanceMeters = Number(payload.distance);
+        }
+
+        const customStatus = String(payload.customStatus || payload.status || payload.statusDistancia || '').toLowerCase().trim();
 
         // Atualiza tanto no database.json quanto em athletesDatabase
         const dados = lerDados();
         let lista = Array.isArray(dados.atletas) && dados.atletas.length > 0 ? dados.atletas : (dados.listaConfirmados || []);
-        let athlete = lista.find(a => String(a.id) === athleteId || (a.nome && a.nome.toLowerCase() === athleteId.toLowerCase()));
+        let athlete = lista.find(a => (athleteId && String(a.id) === athleteId) || (athleteName && a.nome && a.nome.toLowerCase() === athleteName.toLowerCase()));
 
-        if (!athlete) {
-          athlete = athletesDatabase.find(a => String(a.id) === athleteId);
+        if (!athlete && athleteId) {
+          athlete = athletesDatabase.find(a => String(a.id) === athleteId || (athleteName && a.name && a.name.toLowerCase() === athleteName.toLowerCase()));
+        }
+
+        if (!athlete && athleteName) {
+          athlete = athletesDatabase.find(a => a.name && a.name.toLowerCase() === athleteName.toLowerCase());
         }
 
         if (!athlete) {
@@ -683,13 +695,29 @@ const requestHandler = (req, res) => {
 
         appData.atletas = dados.atletas;
         if (Array.isArray(appData.listaConfirmados)) {
-          const conf = appData.listaConfirmados.find(c => String(c.id) === String(athlete.id) || (c.nome && c.nome.toLowerCase() === (athlete.nome || athlete.name || '').toLowerCase()));
-          if (conf) {
+          let conf = appData.listaConfirmados.find(c => String(c.id) === String(athlete.id) || (c.nome && c.nome.toLowerCase() === (athlete.nome || athlete.name || '').toLowerCase()));
+          if (!conf && distanceMeters <= 500) {
+            conf = {
+              id: athlete.id,
+              nome: athlete.nome || athlete.name,
+              posicao: athlete.posicao || athlete.position || 'MEI',
+              condicao: 'excelente',
+              idade: athlete.idade || 28,
+              fitness: athlete.fitness || 90,
+              foto: athlete.foto || '',
+              hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              statusPresenca: 'confirmado',
+              chegadaConfirmada: false,
+              distanciaMetros: distanceMeters,
+              statusAproximacao: athlete.status
+            };
+            appData.listaConfirmados.unshift(conf);
+          } else if (conf) {
             conf.distanciaMetros = athlete.distanciaMetros;
             conf.statusAproximacao = athlete.status;
-            conf.chegadaConfirmada = (athlete.status === 'campo');
-            if (athlete.status === 'campo') conf.statusPresenca = 'chegou';
-            else if (athlete.status === 'reset') {
+            if (athlete.status === 'campo' || distanceMeters <= 500) {
+              if (conf.statusPresenca === 'pendente') conf.statusPresenca = 'confirmado';
+            } else if (athlete.status === 'reset') {
               conf.chegadaConfirmada = false;
               conf.statusPresenca = 'confirmado';
             }
