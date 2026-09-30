@@ -1845,9 +1845,9 @@
                     sincronizarPerfilCamposUi();
                 } else if (aba === 'admin') {
                     renderizarStatusCheckin();
-                    renderizarListaGestaoAdmin();
-                    // Consome imediatamente GET /api/atletas para garantir que o painel admin exiba todos os cadastros atualizados da nuvem
+                    // Consome e renderiza imediatamente da rota oficial da nuvem (/api/atletas / database.json)
                     carregarListaOficialAtletas();
+                    renderizarListaGestaoAdmin();
                     buscarDadosServidor();
                     atualizarLocalizacaoGps(false);
                 } else if (aba === 'equipes') {
@@ -4351,7 +4351,46 @@
         }
 
 
+        let _buscandoAtletasAdmin = false;
+        async function sincronizarCadastrosOficiaisNuvemAdmin() {
+            if (_buscandoAtletasAdmin || !window.location.protocol.startsWith('http')) return;
+            _buscandoAtletasAdmin = true;
+            try {
+                const resp = await fetch('/api/atletas?t=' + Date.now(), {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (resp.ok) {
+                    const dadosRetornados = await resp.json();
+                    let arrayAtletas = [];
+                    if (Array.isArray(dadosRetornados)) {
+                        arrayAtletas = dadosRetornados;
+                    } else if (dadosRetornados && Array.isArray(dadosRetornados.atletas)) {
+                        arrayAtletas = dadosRetornados.atletas;
+                    } else if (dadosRetornados && Array.isArray(dadosRetornados.listaConfirmados)) {
+                        arrayAtletas = dadosRetornados.listaConfirmados;
+                    }
+                    const atletasValidos = arrayAtletas.filter(a => a && typeof a === 'object' && a.nome);
+                    if (atletasValidos.length > 0) {
+                        cadastroGeralAtletas = atletasValidos;
+                        localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+                        desenharListaGestaoAdmin();
+                    }
+                }
+            } catch (err) {
+                console.warn('[Admin] Erro ao sincronizar cadastros da nuvem:', err);
+            } finally {
+                _buscandoAtletasAdmin = false;
+            }
+        }
+
         function renderizarListaGestaoAdmin() {
+            // Consome e renderiza os dados diretamente da rota oficial de cadastros da nuvem (/api/atletas / database.json)
+            // de forma imediata e automática ao abrir a aba, sem depender de cliques manuais ou do status de lista aberta
+            sincronizarCadastrosOficiaisNuvemAdmin();
+            desenharListaGestaoAdmin();
+        }
+
+        function desenharListaGestaoAdmin() {
             const container = document.getElementById('admin-lista-atletas-gestao');
             const badgeCount = document.getElementById('admin-contador-atletas');
 
@@ -4380,24 +4419,6 @@
             if (!container) return;
 
             if (atletasValidos.length === 0) {
-                // Tenta puxar de /api/atletas imediatamente para garantir exibição permanente
-                if (window.location.protocol.startsWith('http')) {
-                    fetch('/api/atletas?t=' + Date.now())
-                        .then(r => r.json())
-                        .then(data => {
-                            const atletasRecebidos = Array.isArray(data)
-                                ? data
-                                : (Array.isArray(data.atletas) ? data.atletas : (Array.isArray(data.listaConfirmados) ? data.listaConfirmados : []));
-                            if (Array.isArray(atletasRecebidos) && atletasRecebidos.length > 0) {
-                                cadastroGeralAtletas = atletasRecebidos.filter(j => j && typeof j === 'object' && j.nome);
-                                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
-                                renderizarListaGestaoAdmin();
-                                renderizarListaJogadores();
-                            }
-                        })
-                        .catch(() => {});
-                }
-
                 container.innerHTML = `
                     <div class="p-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-secondary text-2xl">person_off</span>
@@ -4452,29 +4473,6 @@
                     distTxt = 'Aguardando check-in';
                 }
 
-                // Botão de ação rápida de presença/chegada
-                let btnPresencaAdmin = '';
-                if (chegou) {
-                    btnPresencaAdmin = `<span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0" title="Atleta presente no campo">✅ No Campo</span>`;
-                } else if (estaConfirmado) {
-                    btnPresencaAdmin = `
-                        <button onclick="confirmarChegadaAtletaAdmin('${jId}')" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-300 flex items-center gap-0.5 active:scale-95 shadow-xs shrink-0" title="Confirmar Chegada Física no Campo">
-                            <span class="material-symbols-outlined text-xs">sports_score</span>
-                            <span>Chegou</span>
-                        </button>
-                        <button onclick="alternarPresencaAtletaAdmin('${jId}')" class="px-1.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant text-[10px] font-bold border border-surface-container-highest flex items-center gap-0.5 active:scale-95 shadow-xs shrink-0" title="Desmarcar Presença nesta Partida">
-                            <span class="material-symbols-outlined text-xs text-amber-600">close</span>
-                        </button>
-                    `;
-                } else {
-                    btnPresencaAdmin = `
-                        <button onclick="alternarPresencaAtletaAdmin('${jId}')" class="px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-bold border border-primary/30 flex items-center gap-0.5 active:scale-95 shadow-xs shrink-0" title="Confirmar Presença do Atleta nesta Partida">
-                            <span class="material-symbols-outlined text-xs">how_to_reg</span>
-                            <span>+ Presença</span>
-                        </button>
-                    `;
-                }
-
                 html += `
                     <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} bg-surface">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -4490,8 +4488,7 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            ${btnPresencaAdmin}
+                        <div class="flex items-center gap-1.5 shrink-0">
                             <button onclick="abrirModalEditarAtleta('${jId}')" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Editar Atleta">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
