@@ -1,5 +1,5 @@
 // Service Worker do Pelada Top PWA
-const CACHE_NAME = 'pelada-top-v6.8';
+const CACHE_NAME = 'pelada-top-v7.0';
 
 // Mantenha nesta lista apenas arquivos que existem no projeto.
 const ASSETS_TO_CACHE = [
@@ -38,7 +38,15 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // API, SSE e outros requests dinâmicos nunca devem ser respondidos pelo cache.
-  if (url.pathname.startsWith('/api/') || request.method !== 'GET') {
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/events/') ||
+    url.pathname.startsWith('/events') ||
+    url.pathname.startsWith('/teste') ||
+    request.method !== 'GET' ||
+    (request.headers.get('accept') && request.headers.get('accept').includes('text/event-stream'))
+  ) {
     return;
   }
 

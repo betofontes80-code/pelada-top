@@ -652,7 +652,7 @@ function normalizarAtleta(a, idx) {
     else status = 'longe';
   }
 
-  const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'confirmado';
+  const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
 
   return {
     ...a,
@@ -743,9 +743,9 @@ function renderListaAtletasGPS() {
     tr.className = `cursor-pointer transition-all hover:bg-slate-50 ${isSelected ? 'bg-emerald-50/70 font-bold border-l-4 border-emerald-500' : ''}`;
 
     let statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-red-100 text-red-800">Longe</span>';
-    if (a.status === 'campo' || (a.distance !== undefined && a.distance <= 500 && a.status !== 'reset')) {
+    if (a.status === 'campo' || a.checkedIn || (a.distance !== undefined && a.distance !== null && a.distance <= 500 && a.status !== 'reset')) {
       statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-emerald-100 text-emerald-800 font-bold">No Campo</span>';
-    } else if (a.status === 'proximo' || (a.distance > 500 && a.distance <= 1500)) {
+    } else if (a.status === 'proximo' || (a.distance !== null && a.distance > 500 && a.distance <= 1500)) {
       statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-amber-100 text-amber-800">Próximo</span>';
     } else if (a.status === 'reset') {
       statusBadge = '<span class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-slate-100 text-slate-700">Reset</span>';
@@ -823,21 +823,21 @@ function atualizarDisplayAtleta(athleteId) {
   }
 
   // Regra de Faixa e Botão de Check-in
-  if (status === 'reset' || dist === 0) {
+  if (status === 'reset' || dist === 0 || dist === null) {
     if (tagEl) {
-      tagEl.textContent = 'RESETADO';
+      tagEl.textContent = status === 'reset' ? 'RESETADO' : 'AGUARDANDO';
       tagEl.className = 'font-mono font-bold text-xs text-slate-500';
     }
     if (faixaBadge) {
-      faixaBadge.textContent = '⚪ STATUS RESETADO: Posição desfeita';
+      faixaBadge.textContent = status === 'reset' ? '⚪ STATUS RESETADO: Posição desfeita' : '⚪ AGUARDANDO LOCALIZAÇÃO GPS';
       faixaBadge.className = 'p-2.5 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold';
     }
     if (btnCheckin) {
       btnCheckin.disabled = true;
       btnCheckin.className = 'w-full py-2.5 px-4 bg-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider rounded-lg cursor-not-allowed';
-      btnCheckin.textContent = '1. CHECK-IN BLOQUEADO (RESETADO / SEM DISTÂNCIA)';
+      btnCheckin.textContent = status === 'reset' ? '1. CHECK-IN BLOQUEADO (RESETADO)' : '1. CHECK-IN BLOQUEADO (SEM DISTÂNCIA)';
     }
-  } else if (dist <= 500) {
+  } else if (dist !== null && dist <= 500) {
     if (tagEl) {
       tagEl.textContent = 'NO CAMPO (≤500m)';
       tagEl.className = 'font-mono font-bold text-xs text-emerald-700';
@@ -1603,6 +1603,8 @@ function bootApp() {
     carregarAtletas();
     logTerminal('SISTEMA', 'Status e dados sincronizados com o servidor.', 'info');
   });
+  // Polling de fallback a cada 3.5s para garantir atualização mesmo em reconexões
+  setInterval(carregarAtletas, 3500);
 }
 
 if (document.readyState === 'loading') {

@@ -114,6 +114,40 @@ function salvarDados(dados) {
       dados.listaConfirmados = [];
     }
 
+    // Sincroniza bidirecionalmente dados.atletas e dados.listaConfirmados
+    if (Array.isArray(dados.atletas) && Array.isArray(dados.listaConfirmados)) {
+      dados.atletas.forEach(a => {
+        if (!a || !a.id) return;
+        const conf = dados.listaConfirmados.find(c => String(c.id) === String(a.id) || (c.nome && a.nome && c.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
+        if (conf) {
+          if (a.chegadaConfirmada || a.statusPresenca === 'chegou' || a.statusAproximacao === 'campo' || (a.distanciaMetros !== null && a.distanciaMetros <= 500 && a.distanciaMetros !== undefined)) {
+            conf.chegadaConfirmada = true;
+            conf.statusPresenca = 'chegou';
+            conf.statusAproximacao = 'campo';
+            conf.status = 'campo';
+            conf.distanciaMetros = a.distanciaMetros;
+            conf.horaChegada = a.horaChegada || conf.horaChegada || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            conf.checkedIn = true;
+            conf.canCheckIn = true;
+          } else if (a.statusAproximacao === 'reset' || a.status === 'reset') {
+            conf.chegadaConfirmada = false;
+            conf.checkedIn = false;
+            conf.canCheckIn = false;
+            conf.statusAproximacao = 'reset';
+            conf.status = 'reset';
+            conf.distanciaMetros = 0;
+            conf.horaChegada = null;
+          } else if (a.distanciaMetros !== undefined) {
+            conf.distanciaMetros = a.distanciaMetros;
+            conf.statusAproximacao = a.statusAproximacao || (a.distanciaMetros <= 1500 ? 'proximo' : 'longe');
+            conf.status = conf.statusAproximacao;
+            conf.chegadaConfirmada = a.chegadaConfirmada || false;
+            conf.checkedIn = a.checkedIn || false;
+          }
+        }
+      });
+    }
+
     const dir = path.dirname(DATABASE_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -329,7 +363,7 @@ function obterAtletasCompletos() {
       else status = 'longe';
     }
 
-    const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'confirmado';
+    const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
 
     return {
       ...a,
@@ -365,10 +399,124 @@ function broadcastSse(tipo, payload) {
   for (const client of sseClients) {
     try {
       client.write(dataString);
+      if (typeof client.flush === 'function') client.flush();
     } catch (e) {
       sseClients.delete(client);
     }
   }
+}
+
+// Sincronizador Centralizado e Universal de Status do Atleta (Garante integridade entre atletas e listaConfirmados)
+function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros, customStatus, options = {}) {
+  const dados = lerDados();
+  if (!Array.isArray(dados.atletas)) dados.atletas = [];
+  if (!Array.isArray(dados.listaConfirmados)) dados.listaConfirmados = [];
+
+  const aId = atletaId ? String(atletaId).trim() : '';
+  const aNome = athleteName ? String(athleteName).trim().toLowerCase() : '';
+
+  let atleta = dados.atletas.find(a => (aId && String(a.id) === aId) || (aNome && (a.nome || a.name || '').trim().toLowerCase() === aNome));
+  let conf = dados.listaConfirmados.find(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
+
+  if (!atleta && conf) atleta = { ...conf };
+  if (!atleta) {
+    const fromDb = athletesDatabase.find(a => (aId && String(a.id) === aId) || (aNome && (a.name || a.nome || '').trim().toLowerCase() === aNome));
+    if (fromDb) atleta = { ...fromDb };
+  }
+
+  if (!atleta) return null;
+
+  const distNum = (distanciaMetros !== null && distanciaMetros !== undefined && !isNaN(Number(distanciaMetros))) ? Number(distanciaMetros) : null;
+  const st = String(customStatus || '').toLowerCase().trim();
+  const horaAgora = options.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  let isCampo = false;
+  let isProximo = false;
+  let isLonge = false;
+  let isReset = false;
+
+  if (st === 'reset' || st === 'resetar' || st === 'desfazer' || (distNum === 0 && st !== 'campo' && st !== 'chegou')) {
+    isReset = true;
+  } else if (st === 'campo' || st === 'chegou' || st === 'no_campo' || (distNum !== null && distNum <= 500)) {
+    isCampo = true;
+  } else if (st === 'proximo' || (distNum !== null && distNum <= 1500)) {
+    isProximo = true;
+  } else {
+    isLonge = true;
+  }
+
+  const distTexto = isCampo ? 'No Campo' : (isReset ? 'Na Lista' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
+  const statusAprox = isCampo ? 'campo' : (isProximo ? 'proximo' : (isReset ? 'reset' : 'longe'));
+  const statusPres = isCampo ? 'chegou' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado'));
+  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
+  const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
+
+  const atletaAtualizado = {
+    ...atleta,
+    ...(conf || {}),
+    id: atleta.id || aId,
+    nome: atleta.nome || atleta.name || athleteName,
+    name: atleta.name || atleta.nome || athleteName,
+    posicao: atleta.posicao || atleta.position || 'MEI',
+    position: atleta.position || atleta.posicao || 'MEI',
+    distanciaMetros: isReset ? null : distNum,
+    distance: isReset ? 0 : distNum,
+    distanciaTexto: distTexto,
+    statusAproximacao: statusAprox,
+    status: statusAprox,
+    statusPresenca: statusPres,
+    chegadaConfirmada: chegadaConf,
+    checkedIn: chegadaConf,
+    canCheckIn: isCampo,
+    horaChegada: horaCheg
+  };
+
+  // 1. Sincroniza em dados.atletas
+  const idxAtleta = dados.atletas.findIndex(a => (aId && String(a.id) === aId) || (aNome && (a.nome || a.name || '').trim().toLowerCase() === aNome));
+  if (idxAtleta >= 0) {
+    dados.atletas[idxAtleta] = { ...dados.atletas[idxAtleta], ...atletaAtualizado };
+  } else {
+    dados.atletas.push({ ...atletaAtualizado });
+  }
+
+  // 2. Sincroniza em dados.listaConfirmados
+  const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
+  if (idxConf >= 0) {
+    dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
+  } else {
+    dados.listaConfirmados.push({ ...atletaAtualizado });
+  }
+
+  salvarDados(dados);
+
+  appData.atletas = dados.atletas;
+  appData.listaConfirmados = dados.listaConfirmados;
+  appData.version = Date.now();
+  salvarDadosDisco();
+  athletesDatabase = obterAtletasCompletos();
+
+  broadcastSse('GEOFENCE_UPDATE', {
+    athleteId: atletaAtualizado.id,
+    athleteName: atletaAtualizado.name || atletaAtualizado.nome,
+    distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+    status: atletaAtualizado.statusAproximacao,
+    canCheckIn: atletaAtualizado.canCheckIn,
+    chegadaConfirmada: atletaAtualizado.chegadaConfirmada,
+    athlete: atletaAtualizado
+  });
+
+  if (isCampo) {
+    broadcastSse('CHECKIN_CONFIRMED', {
+      athleteId: atletaAtualizado.id,
+      athleteName: atletaAtualizado.name || atletaAtualizado.nome,
+      distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+      athlete: atletaAtualizado
+    });
+  }
+
+  broadcastSse('SYNC', appData);
+
+  return atletaAtualizado;
 }
 
 // Heartbeat SSE otimizado para manter conexões ativas no Render e dispositivos móveis (15s)
@@ -620,7 +768,6 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 0.4 API v2: Teste de Geofencing 500m Individual
     // 0.4 API v2: Teste de Geofencing 500m Individual (Suporta POST e PUT)
     if (pathname === '/api/v2/geofence-test' && (req.method === 'POST' || req.method === 'PUT')) {
       lerCorpoRequisicao(req, (err, payload) => {
@@ -644,126 +791,12 @@ const requestHandler = (req, res) => {
 
         const customStatus = String(payload.customStatus || payload.status || payload.statusDistancia || '').toLowerCase().trim();
 
-        // Atualiza tanto no database.json quanto em athletesDatabase
-        const dados = lerDados();
-        let lista = Array.isArray(dados.atletas) && dados.atletas.length > 0 ? dados.atletas : (dados.listaConfirmados || []);
-        let athlete = lista.find(a => (athleteId && String(a.id) === athleteId) || (athleteName && a.nome && a.nome.toLowerCase() === athleteName.toLowerCase()));
-
-        if (!athlete && athleteId) {
-          athlete = athletesDatabase.find(a => String(a.id) === athleteId || (athleteName && a.name && a.name.toLowerCase() === athleteName.toLowerCase()));
-        }
-
-        if (!athlete && athleteName) {
-          athlete = athletesDatabase.find(a => a.name && a.name.toLowerCase() === athleteName.toLowerCase());
-        }
-
-        if (!athlete) {
+        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus);
+        if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
           res.end(JSON.stringify({ success: false, message: "Atleta não encontrado." }));
           return;
         }
-
-        athlete.distance = distanceMeters;
-        athlete.distanciaMetros = distanceMeters;
-
-        // Regra de Negócio: Geofence de 500 metros
-        if (customStatus === 'reset') {
-          athlete.status = 'reset';
-          athlete.statusAproximacao = 'reset';
-          athlete.checkedIn = false;
-          athlete.chegadaConfirmada = false;
-          athlete.distance = 0;
-          athlete.distanciaMetros = 0;
-          athlete.canCheckIn = false;
-        } else if (distanceMeters <= 500) {
-          athlete.status = 'campo';
-          athlete.statusAproximacao = 'campo';
-          athlete.canCheckIn = true;
-          if (customStatus === 'campo' || customStatus === 'chegou') {
-            athlete.checkedIn = true;
-            athlete.chegadaConfirmada = true;
-            athlete.statusPresenca = 'chegou';
-            athlete.horaChegada = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          }
-        } else if (distanceMeters <= 1500) {
-          athlete.status = 'proximo';
-          athlete.statusAproximacao = 'proximo';
-          athlete.canCheckIn = false;
-          athlete.chegadaConfirmada = false;
-          athlete.checkedIn = false;
-        } else {
-          athlete.status = 'longe';
-          athlete.statusAproximacao = 'longe';
-          athlete.canCheckIn = false;
-          athlete.chegadaConfirmada = false;
-          athlete.checkedIn = false;
-        }
-
-        // Persiste alteração no database.json e sincroniza appData
-        if (lista.length > 0) {
-          dados.atletas = lista;
-          salvarDados(dados);
-        }
-
-        appData.atletas = dados.atletas;
-        if (Array.isArray(appData.listaConfirmados)) {
-          let conf = appData.listaConfirmados.find(c => String(c.id) === String(athlete.id) || (c.nome && c.nome.toLowerCase() === (athlete.nome || athlete.name || '').toLowerCase()));
-          if (!conf && distanceMeters <= 500) {
-            conf = {
-              id: athlete.id,
-              nome: athlete.nome || athlete.name,
-              posicao: athlete.posicao || athlete.position || 'MEI',
-              condicao: 'excelente',
-              idade: athlete.idade || 28,
-              fitness: athlete.fitness || 90,
-              foto: athlete.foto || '',
-              hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-              statusPresenca: 'confirmado',
-              chegadaConfirmada: false,
-              distanciaMetros: distanceMeters,
-              statusAproximacao: athlete.status
-            };
-            appData.listaConfirmados.unshift(conf);
-          } else if (conf) {
-            conf.distanciaMetros = athlete.distanciaMetros;
-            conf.statusAproximacao = athlete.status;
-            if (athlete.status === 'campo' || distanceMeters <= 500) {
-              if (conf.statusPresenca === 'pendente') conf.statusPresenca = 'confirmado';
-            } else if (athlete.status === 'reset') {
-              conf.chegadaConfirmada = false;
-              conf.statusPresenca = 'confirmado';
-            }
-          }
-        }
-        appData.version = Date.now();
-        salvarDadosDisco();
-        athletesDatabase = obterAtletasCompletos();
-
-        const athleteObj = {
-          ...athlete,
-          id: athlete.id,
-          name: athlete.name || athlete.nome,
-          nome: athlete.nome || athlete.name,
-          position: athlete.position || athlete.posicao || 'MEI',
-          posicao: athlete.posicao || athlete.position || 'MEI',
-          distance: athlete.distance,
-          distanciaMetros: athlete.distance,
-          status: athlete.status,
-          checkedIn: athlete.checkedIn || athlete.chegadaConfirmada || false,
-          canCheckIn: athlete.canCheckIn
-        };
-
-        // Notifica painel e celulares conectados via SSE
-        broadcastSse('GEOFENCE_UPDATE', {
-          athleteId: athlete.id,
-          athleteName: athlete.name || athlete.nome,
-          distance: athlete.distance,
-          status: athlete.status,
-          canCheckIn: athlete.status === 'campo' || distanceMeters <= 500,
-          chegadaConfirmada: athlete.chegadaConfirmada || false,
-          athlete: athleteObj
-        });
-        broadcastSse('SYNC', appData);
 
         res.writeHead(200, {
           'Content-Type': 'application/json; charset=utf-8',
@@ -771,10 +804,10 @@ const requestHandler = (req, res) => {
         });
         res.end(JSON.stringify({
           success: true,
-          distance: athleteObj.distance,
-          status: athleteObj.status,
-          athlete: athleteObj,
-          allowed: athlete.distance <= 500 && athlete.status !== 'reset'
+          distance: updated.distance,
+          status: updated.status,
+          athlete: updated,
+          allowed: updated.canCheckIn
         }));
       });
       return;
@@ -789,13 +822,18 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const athleteId = String(payload.athleteId);
+        const athleteId = String(payload.athleteId || payload.id || payload.atletaId || '').trim();
+        const athleteName = String(payload.athleteName || payload.nome || payload.nomeAtleta || '').trim();
         const dados = lerDados();
         let lista = Array.isArray(dados.atletas) && dados.atletas.length > 0 ? dados.atletas : (dados.listaConfirmados || []);
-        let athlete = lista.find(a => String(a.id) === athleteId || (a.nome && a.nome.toLowerCase() === athleteId.toLowerCase()));
+        let athlete = lista.find(a => (athleteId && String(a.id) === athleteId) || (athleteName && (a.nome || a.name || '').toLowerCase() === athleteName.toLowerCase()));
 
-        if (!athlete) {
-          athlete = athletesDatabase.find(a => String(a.id) === athleteId);
+        if (!athlete && athleteId) {
+          athlete = athletesDatabase.find(a => String(a.id) === athleteId || (athleteName && a.name && a.name.toLowerCase() === athleteName.toLowerCase()));
+        }
+
+        if (!athlete && athleteName) {
+          athlete = athletesDatabase.find(a => a.name && a.name.toLowerCase() === athleteName.toLowerCase());
         }
 
         if (!athlete) {
@@ -806,9 +844,9 @@ const requestHandler = (req, res) => {
 
         const currentDist = athlete.distanciaMetros !== undefined && athlete.distanciaMetros !== null
           ? Number(athlete.distanciaMetros)
-          : (athlete.distance !== undefined ? Number(athlete.distance) : 9999);
+          : (athlete.distance !== undefined ? Number(athlete.distance) : 50);
 
-        if (currentDist > 500) {
+        if (currentDist > 500 && athlete.status !== 'campo' && !athlete.chegadaConfirmada) {
           broadcastSse('CHECKIN_REJECTED', {
             athleteId: athlete.id,
             athleteName: athlete.name || athlete.nome,
@@ -820,36 +858,10 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        athlete.checkedIn = true;
-        athlete.chegadaConfirmada = true;
-        athlete.statusPresenca = 'confirmado';
-        athlete.status = 'campo';
-        athlete.statusAproximacao = 'campo';
-
-        if (lista.length > 0) {
-          dados.atletas = lista;
-          salvarDados(dados);
-        }
-
-        const athleteObj = {
-          ...athlete,
-          id: athlete.id,
-          name: athlete.name || athlete.nome,
-          nome: athlete.nome || athlete.name,
-          position: athlete.position || athlete.posicao || 'MEI',
-          posicao: athlete.posicao || athlete.position || 'MEI',
-          distance: currentDist,
-          distanciaMetros: currentDist,
-          status: 'campo',
-          checkedIn: true,
-          canCheckIn: true
-        };
-
-        broadcastSse('CHECKIN_CONFIRMED', {
-          athleteId: athlete.id,
-          athleteName: athlete.name || athlete.nome,
-          distance: currentDist,
-          athlete: athleteObj
+        const athleteObj = sincronizarStatusAtletaUniversal(athlete.id, athlete.nome || athlete.name, currentDist <= 500 ? currentDist : 50, 'campo', {
+          chegadaConfirmada: true,
+          statusPresenca: 'chegou',
+          checkedIn: true
         });
 
         res.writeHead(200, {
@@ -1437,20 +1449,17 @@ const requestHandler = (req, res) => {
 
           if (pathname === '/api/pelada/confirmar-chegada') {
             // Confirmação de chegada no local (<= 500m)
-            const idx = appData.listaConfirmados.findIndex(j => 
-              (payload.id && String(j.id) === String(payload.id)) ||
-              (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
-            );
-            if (idx >= 0) {
-              appData.listaConfirmados[idx] = {
-                ...appData.listaConfirmados[idx],
-                ...payload,
-                chegadaConfirmada: true,
-                statusPresenca: 'chegou',
-                statusAproximacao: 'chegou',
-                horaChegada: horaAgora
-              };
-            }
+            const idAtleta = payload.id ? String(payload.id).trim() : '';
+            const nomeAtleta = payload.nome ? String(payload.nome).trim() : '';
+            const dist = (payload.distanciaMetros !== undefined && payload.distanciaMetros !== null) ? Number(payload.distanciaMetros) : 50;
+            const updated = sincronizarStatusAtletaUniversal(idAtleta, nomeAtleta, dist, 'campo', {
+              chegadaConfirmada: true,
+              statusPresenca: 'chegou',
+              checkedIn: true
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ sucesso: true, atleta: updated, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+            return;
           } else {
             // 1ª Confirmação: Entrar na Lista da Pelada (coloca na 1ª POSIÇÃO)
             const usuarioBase = (appData.usuarios || []).find(u => 
@@ -1497,6 +1506,14 @@ const requestHandler = (req, res) => {
 
             // Coloca o atleta na 1ª POSIÇÃO (índice 0)
             appData.listaConfirmados.unshift(atletaFinal);
+            if (Array.isArray(appData.atletas)) {
+              const aIdx = appData.atletas.findIndex(a => (atletaFinal.id && String(a.id) === String(atletaFinal.id)) || (atletaFinal.nome && (a.nome || a.name || '').toLowerCase() === atletaFinal.nome.toLowerCase()));
+              if (aIdx >= 0) {
+                appData.atletas[aIdx] = { ...appData.atletas[aIdx], ...atletaFinal };
+              } else {
+                appData.atletas.unshift(atletaFinal);
+              }
+            }
 
             // Transmite evento específico de jogador online para todos os donos e participantes
             broadcastSse('JOGADOR_ONLINE', {
@@ -1640,37 +1657,6 @@ const requestHandler = (req, res) => {
         const atletaId = String(payload.atletaId || payload.athleteId || payload.id || '').trim();
         const nomeAtleta = String(payload.nomeAtleta || payload.athleteName || payload.nome || '').trim();
         const statusDistancia = String(payload.statusDistancia || payload.customStatus || payload.status || '').trim();
-        const busca = (nomeAtleta || atletaId || '').toLowerCase().trim();
-
-        if (!appData.listaConfirmados) appData.listaConfirmados = [];
-
-        let atleta = appData.listaConfirmados.find(j => 
-          (atletaId && String(j.id) === String(atletaId)) ||
-          (j.nome && j.nome.toLowerCase() === busca) ||
-          (j.email && j.email.toLowerCase() === busca)
-        );
-
-        if (!atleta) {
-          const dadosAtletas = lerDados();
-          const atletaCadastrado = (dadosAtletas.atletas || []).find(j => 
-            (atletaId && String(j.id) === String(atletaId)) ||
-            (j.nome && j.nome.toLowerCase() === busca)
-          );
-
-          atleta = {
-            id: atletaId || (atletaCadastrado && atletaCadastrado.id) || ('jog_' + Date.now()),
-            nome: nomeAtleta || (atletaCadastrado && atletaCadastrado.nome) || 'Atleta Teste',
-            posicao: (atletaCadastrado && (atletaCadastrado.posicao || atletaCadastrado.position)) || 'ATA',
-            condicao: (atletaCadastrado && atletaCadastrado.condicao) || 'excelente',
-            idade: (atletaCadastrado && atletaCadastrado.idade) || 28,
-            fitness: (atletaCadastrado && atletaCadastrado.fitness) || 90,
-            foto: (atletaCadastrado && atletaCadastrado.foto) || '',
-            hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            statusPresenca: 'confirmado',
-            chegadaConfirmada: false
-          };
-          appData.listaConfirmados.unshift(atleta);
-        }
 
         let distMetrosNum = null;
         if (payload.distanceMeters !== undefined && payload.distanceMeters !== null && !isNaN(Number(payload.distanceMeters))) {
@@ -1681,70 +1667,19 @@ const requestHandler = (req, res) => {
           distMetrosNum = Number(payload.distanciaMetros);
         }
 
-        const st = String(statusDistancia || '').toLowerCase().trim();
-        if (st === 'chegou' || st === 'chegar' || st === 'campo' || st === 'no_campo' || (distMetrosNum !== null && distMetrosNum <= 500 && st !== 'resetar' && st !== 'reset')) {
-          atleta.distanciaMetros = distMetrosNum !== null ? distMetrosNum : 50;
-          atleta.distanciaTexto = atleta.distanciaMetros <= 500 ? 'No Campo' : `${atleta.distanciaMetros}m`;
-          atleta.statusAproximacao = 'chegou';
-          atleta.chegadaConfirmada = true;
-          atleta.statusPresenca = 'chegou';
-          atleta.horaChegada = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        } else if (st === 'proximo' || st === 'proxima' || st === '850' || (distMetrosNum !== null && distMetrosNum > 500 && distMetrosNum <= 1500)) {
-          atleta.distanciaMetros = distMetrosNum !== null ? distMetrosNum : 850;
-          atleta.distanciaTexto = `${atleta.distanciaMetros}m`;
-          atleta.statusAproximacao = 'proximo';
-          atleta.chegadaConfirmada = false;
-          atleta.statusPresenca = 'confirmado';
-          atleta.horaChegada = null;
-        } else if (st === 'longe' || st === '3800' || (distMetrosNum !== null && distMetrosNum > 1500)) {
-          atleta.distanciaMetros = distMetrosNum !== null ? distMetrosNum : 3800;
-          atleta.distanciaTexto = 'Longe';
-          atleta.statusAproximacao = 'longe';
-          atleta.chegadaConfirmada = false;
-          atleta.statusPresenca = 'confirmado';
-          atleta.horaChegada = null;
-        } else if (st === 'resetar' || st === 'reset' || st === 'desfazer') {
-          atleta.distanciaMetros = null;
-          atleta.distanciaTexto = 'Na Lista';
-          atleta.statusAproximacao = 'longe';
-          atleta.chegadaConfirmada = false;
-          atleta.statusPresenca = 'confirmado';
-          atleta.horaChegada = null;
+        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia);
+        if (!updated) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: 'Atleta não encontrado' }));
+          return;
         }
-
-        const dadosGps = lerDados();
-        if (Array.isArray(dadosGps.atletas)) {
-          const atletaBanco = dadosGps.atletas.find(a => (atletaId && String(a.id) === String(atleta.id)) || (a.nome && a.nome.toLowerCase() === atleta.nome.toLowerCase()));
-          if (atletaBanco) {
-            atletaBanco.distanciaMetros = atleta.distanciaMetros;
-            atletaBanco.statusAproximacao = atleta.statusAproximacao;
-            atletaBanco.status = atleta.statusAproximacao;
-            atletaBanco.chegadaConfirmada = atleta.chegadaConfirmada;
-            atletaBanco.checkedIn = atleta.chegadaConfirmada;
-            if (atleta.horaChegada) atletaBanco.horaChegada = atleta.horaChegada;
-            salvarDados(dadosGps);
-          }
-        }
-        athletesDatabase = obterAtletasCompletos();
-
-        appData.version = Date.now();
-        salvarDadosDisco();
-        broadcastSse('GEOFENCE_UPDATE', {
-          athleteId: atleta.id,
-          athleteName: atleta.nome,
-          distance: atleta.distanciaMetros !== null ? atleta.distanciaMetros : 0,
-          status: atleta.statusAproximacao,
-          canCheckIn: atleta.distanciaMetros !== null && atleta.distanciaMetros <= 500,
-          chegadaConfirmada: atleta.chegadaConfirmada || false,
-          athlete: atleta
-        });
-        broadcastSse('SYNC', appData);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           sucesso: true,
-          statusDistancia: st,
-          atleta: atleta,
+          statusDistancia: updated.statusAproximacao,
+          atleta: updated,
+          athlete: updated,
           listaConfirmados: appData.listaConfirmados
         }));
       });
