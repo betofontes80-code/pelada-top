@@ -510,6 +510,20 @@ function initSSE() {
       }
     };
 
+    // Suporte explícito a eventos nomeados no padrão SSE
+    state.eventSource.addEventListener('geofence_update', (event) => {
+      try { handleSSEEvent(JSON.parse(event.data)); } catch (e) {}
+    });
+    state.eventSource.addEventListener('GEOFENCE_UPDATE', (event) => {
+      try { handleSSEEvent(JSON.parse(event.data)); } catch (e) {}
+    });
+    state.eventSource.addEventListener('checkin_confirmed', (event) => {
+      try { handleSSEEvent(JSON.parse(event.data)); } catch (e) {}
+    });
+    state.eventSource.addEventListener('CHECKIN_CONFIRMED', (event) => {
+      try { handleSSEEvent(JSON.parse(event.data)); } catch (e) {}
+    });
+
     state.eventSource.onerror = () => {
       state.sseConnected = false;
       if (sseBadge) {
@@ -527,13 +541,13 @@ function initSSE() {
 // Manipulador de eventos SSE
 function handleSSEEvent(data) {
   if (!data) return;
-  const tipo = data.type || 'EVENT';
+  const tipo = String(data.type || data.event || 'EVENT').toUpperCase();
 
   if (tipo === 'PING') return;
 
   if (tipo === 'INIT_STATE') {
     if (Array.isArray(data.athletes) && data.athletes.length > 0) {
-      state.athletes = data.athletes;
+      state.athletes = data.athletes.map(normalizarAtleta);
     }
     renderAtletasDropdown();
     renderGpsSelect();
@@ -544,7 +558,7 @@ function handleSSEEvent(data) {
     return;
   }
 
-  if (tipo === 'SYNC') {
+  if (tipo === 'SYNC' || tipo === 'SYNC_UPDATE') {
     if (Array.isArray(data.atletas) && data.atletas.length > 0) {
       state.athletes = data.atletas.map(normalizarAtleta);
     } else if (Array.isArray(data.listaConfirmados) && data.listaConfirmados.length > 0) {
@@ -574,42 +588,56 @@ function handleSSEEvent(data) {
     return;
   }
 
-
-  if (tipo === 'GEOFENCE_UPDATE') {
-    const aId = String(data.athleteId || (data.athlete && data.athlete.id) || '');
-    const aNome = data.athleteName || (data.athlete && (data.athlete.name || data.athlete.nome)) || '';
+  if (tipo === 'GEOFENCE_UPDATE' || data.distanceMeters !== undefined || data.statusGeofence !== undefined) {
+    const aId = String(data.athleteId || data.atletaId || data.id || (data.athlete && data.athlete.id) || '');
+    const aNome = data.athleteName || data.nome || data.name || (data.athlete && (data.athlete.name || data.athlete.nome)) || '';
     const athlete = state.athletes.find(a => (aId && String(a.id) === aId) || (aNome && (a.name || a.nome).toLowerCase() === aNome.toLowerCase()));
+    
+    let distVal = (data.distance !== undefined && data.distance !== null && !isNaN(Number(data.distance)))
+      ? Number(data.distance)
+      : ((data.distanceMeters !== undefined && data.distanceMeters !== null && !isNaN(Number(data.distanceMeters)))
+        ? Number(data.distanceMeters)
+        : ((data.distanciaMetros !== undefined && data.distanciaMetros !== null && !isNaN(Number(data.distanciaMetros)))
+          ? Number(data.distanciaMetros)
+          : null));
+
+    const st = String(data.status || data.statusGeofence || data.customStatus || (data.athlete && data.athlete.status) || 'longe').toLowerCase();
+    const isReset = st === 'reset' || st === 'resetar' || (distVal === 0 && st !== 'campo');
+    const isCampo = !isReset && (st === 'campo' || (distVal !== null && distVal <= 500));
+
     if (athlete) {
-      athlete.distance = data.distance;
-      athlete.distanciaMetros = data.distance;
-      athlete.status = data.status;
-      athlete.canCheckIn = data.canCheckIn;
-      if (data.chegadaConfirmada !== undefined) {
-        athlete.checkedIn = data.chegadaConfirmada;
+      athlete.distance = isReset ? null : distVal;
+      athlete.distanciaMetros = isReset ? null : distVal;
+      athlete.status = isCampo ? 'campo' : (isReset ? 'reset' : st);
+      athlete.canCheckIn = isCampo;
+      athlete.checkedIn = isCampo && (data.chegadaConfirmada === true || data.checkedIn === true);
+    }
+    atualizarDisplayAtleta(currentAthleteId);
+    renderListaAtletasGPS();
+    renderGpsSelect();
+    atualizarKpis();
+    const isOk = isCampo;
+    logTerminal('SSE_GEOFENCE', `[Tempo Real] Atleta #${aId || 'ID'} (${aNome || 'Atleta'}) -> ${distVal !== null ? distVal + 'm' : 'Na Lista'} | Status: ${st.toUpperCase()}`, isOk ? 'success' : (isReset ? 'info' : 'warning'));
+    return;
+  }
+
+  if (tipo === 'CHECKIN_CONFIRMED') {
+    const aId = String(data.athleteId || (data.athlete && data.athlete.id) || '');
+    const athlete = state.athletes.find(a => (aId && String(a.id) === aId));
+    if (athlete) {
+      athlete.checkedIn = true;
+      athlete.status = 'campo';
+      athlete.canCheckIn = true;
+      if (data.distance !== undefined) {
+        athlete.distance = data.distance;
+        athlete.distanciaMetros = data.distance;
       }
     }
     atualizarDisplayAtleta(currentAthleteId);
     renderListaAtletasGPS();
     renderGpsSelect();
     atualizarKpis();
-    const isOk = data.status === 'campo' || (data.distance !== undefined && data.distance <= 500);
-    logTerminal('SSE_GEOFENCE', `[Tempo Real] Atleta #${data.athleteId} (${data.athleteName || 'Atleta'}) -> ${data.distance}m | Status: ${(data.status || '').toUpperCase()}`, isOk ? 'success' : 'warning');
-    return;
-  }
-
-  if (tipo === 'CHECKIN_CONFIRMED') {
-    const athlete = state.athletes.find(a => String(a.id) === String(data.athleteId));
-    if (athlete) {
-      athlete.checkedIn = true;
-      athlete.status = 'campo';
-      athlete.distance = data.distance;
-      athlete.distanciaMetros = data.distance;
-    }
-    atualizarDisplayAtleta(currentAthleteId);
-    renderListaAtletasGPS();
-    renderGpsSelect();
-    atualizarKpis();
-    logTerminal('CHECK-IN SUCESSO', `${data.athleteName} confirmado na lista! Distância: ${data.distance}m`, 'success');
+    logTerminal('CHECK-IN SUCESSO', `${data.athleteName || 'Atleta'} confirmado no campo! Check-in concluído.`, 'success');
     return;
   }
 
@@ -626,7 +654,6 @@ function handleSSEEvent(data) {
 
   logTerminal('SSE', `Evento [${tipo}]: ${JSON.stringify(data)}`, 'sse');
 }
-
 
 // Função universal para normalização de atletas da base real (database.json)
 function normalizarAtleta(a, idx) {
@@ -652,7 +679,9 @@ function normalizarAtleta(a, idx) {
     else status = 'longe';
   }
 
-  const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
+  const isReset = status === 'reset' || distance === null;
+  const isCampo = !isReset && (status === 'campo' || (distance !== null && distance <= 500));
+  const checkedIn = isCampo && (a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou');
 
   return {
     ...a,
@@ -671,7 +700,7 @@ function normalizarAtleta(a, idx) {
     distanciaMetros: distance,
     status,
     checkedIn,
-    canCheckIn: distance !== null && distance <= 500
+    canCheckIn: isCampo
   };
 }
 
@@ -885,17 +914,20 @@ function atualizarDisplayAtleta(athleteId) {
 // 2. Dispara a simulação de distância para o atleta selecionado (POST /api/v2/geofence-test)
 async function dispararSimulacaoGPS(distancia, statusTag) {
   // Sincroniza de forma estrita com o ID e nome selecionados no dropdown no momento do clique
-  const selectGps = document.getElementById('gps-athlete-select');
+  const selectGps = document.getElementById('gps-athlete-select') || 
+                    document.getElementById('selectAtleta') || 
+                    document.getElementById('gps-player-select') || 
+                    document.getElementById('player-select');
   let selectedId = null;
   let selectedNome = null;
 
   if (selectGps) {
-    if (selectGps.value && selectGps.value !== 'null' && selectGps.value !== 'undefined') {
+    if (selectGps.value && selectGps.value !== 'null' && selectGps.value !== 'undefined' && selectGps.value !== '') {
       selectedId = String(selectGps.value).trim();
     }
     if (selectGps.selectedIndex >= 0 && selectGps.options[selectGps.selectedIndex]) {
       const opt = selectGps.options[selectGps.selectedIndex];
-      selectedNome = opt.getAttribute('data-nome') || opt.getAttribute('data-name');
+      selectedNome = opt.getAttribute('data-nome') || opt.getAttribute('data-name') || opt.text;
     }
   }
 
@@ -1553,6 +1585,11 @@ function bootApp() {
   if (gpsSelect) {
     gpsSelect.addEventListener('change', (e) => {
       currentAthleteId = e.target.value;
+      const selectAtleta = document.getElementById('selectAtleta');
+      if (selectAtleta && Array.from(selectAtleta.options).some(o => o.value === currentAthleteId)) {
+        selectAtleta.value = currentAthleteId;
+        preencherFormularioAtleta();
+      }
       atualizarDisplayAtleta(currentAthleteId);
       renderListaAtletasGPS();
       logTerminal('SELETOR', `Atleta ativo alterado para ID #${currentAthleteId}`);
@@ -1562,7 +1599,19 @@ function bootApp() {
   // Dropdown de atleta (Espaço do Jogador)
   const selectAtleta = document.getElementById('selectAtleta');
   if (selectAtleta) {
-    selectAtleta.addEventListener('change', preencherFormularioAtleta);
+    selectAtleta.addEventListener('change', (e) => {
+      preencherFormularioAtleta();
+      if (e.target.value) {
+        currentAthleteId = e.target.value;
+        const gpsSelect = document.getElementById('gps-athlete-select');
+        if (gpsSelect && Array.from(gpsSelect.options).some(o => o.value === currentAthleteId)) {
+          gpsSelect.value = currentAthleteId;
+        }
+        atualizarDisplayAtleta(currentAthleteId);
+        renderListaAtletasGPS();
+        logTerminal('SELETOR', `Atleta selecionado sincronizado para ID #${currentAthleteId}`);
+      }
+    });
   }
 
   // Ping button

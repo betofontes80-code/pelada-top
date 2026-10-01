@@ -1071,9 +1071,11 @@
       chipGreen.className = 'p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between transition-all opacity-60';
 
       let statusDist = 'reset';
+      let distMeters = 0;
 
       if (mode === 'far') {
         statusDist = 'longe';
+        distMeters = 3800;
         chipRed.className = 'p-3.5 rounded-xl border-2 border-red-500 bg-red-100/70 flex items-center justify-between transition-all shadow-sm';
         liveBadge.textContent = 'Longe (> 1.5 km)';
         liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 border border-red-300';
@@ -1084,6 +1086,7 @@
         logToTerminal(`[SSE DISPATCH] Event "GEOFENCE_PROXIMITY": { athlete: "${athleteName}", distanceMeters: 3820, allowedCheckIn: false }`, 'json');
       } else if (mode === 'close') {
         statusDist = 'proximo';
+        distMeters = 850;
         chipYellow.className = 'p-3.5 rounded-xl border-2 border-amber-500 bg-amber-100/70 flex items-center justify-between transition-all shadow-sm';
         liveBadge.textContent = 'Próximo (850 m)';
         liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300';
@@ -1093,7 +1096,8 @@
         logToTerminal(`[GPS EVENT] 🟡 Atleta "${athleteName}" se aproximando: Lat -23.5450, Lng -46.6290. Distância: 850m.`, 'warn');
         logToTerminal(`[SSE DISPATCH] Event "GEOFENCE_PROXIMITY": { athlete: "${athleteName}", distanceMeters: 850, allowedCheckIn: false }`, 'json');
       } else if (mode === 'atPitch') {
-        statusDist = 'chegou';
+        statusDist = 'campo';
+        distMeters = 120;
         chipGreen.className = 'p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-100/80 flex items-center justify-between transition-all shadow-md glow-green';
         liveBadge.textContent = 'No Campo (≤ 500m)';
         liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white border border-emerald-600 animate-pulse';
@@ -1105,6 +1109,7 @@
         logToTerminal(`[NOTIFICAÇÃO PUSH] Enviado alerta para o app: "Você está no campo! Toque em Confirmar Presença".`, 'info');
       } else if (mode === 'reset') {
         statusDist = 'reset';
+        distMeters = 0;
         chipGreen.className = 'p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 flex items-center justify-between transition-all shadow-xs';
         liveBadge.textContent = 'Aguardando Sinal GPS';
         liveBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-600 border border-slate-300';
@@ -1114,36 +1119,28 @@
         logToTerminal(`[GPS RESET] Telemetria de GPS resetada para "${athleteName}".`, 'info');
       }
 
-      
-      // Opcional: Replicar GPS no Servidor Online (Nuvem)
-      const syncCloud = document.getElementById('sync-gps-to-cloud');
-      if (syncCloud && syncCloud.checked) {
-        try {
-          const cloudUrl = getCloudUrl();
-          fetch(cloudUrl + '/api/teste/simular-gps', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              atletaId: athleteId,
-              nomeAtleta: athleteName,
-              statusDistancia: statusDist
-            })
-          }).then(() => {
-            logToTerminal(`[NUVEM SYNC] 📡 GPS de "${athleteName}" replicado em tempo real na nuvem online!`, 'success');
-          }).catch(() => {});
-        } catch(e) {}
-      }
-
-      // Envia simulação real para o servidor
+      // Envia simulação real para o servidor via /api/v2/geofence-test e fallback
       try {
+        const payload = {
+          athleteId: athleteId,
+          atletaId: athleteId,
+          nomeAtleta: athleteName,
+          statusDistancia: statusDist,
+          customStatus: statusDist,
+          status: statusDist,
+          distanceMeters: distMeters,
+          distance: distMeters,
+          distanciaMetros: distMeters
+        };
+        await fetch('/api/v2/geofence-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
         await fetch('/api/teste/simular-gps', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            atletaId: athleteId,
-            nomeAtleta: athleteName,
-            statusDistancia: statusDist
-          })
+          body: JSON.stringify(payload)
         });
       } catch (err) {}
     }

@@ -395,10 +395,24 @@ const sseClients = new Set();
 
 function broadcastSse(tipo, payload) {
   const timestamp = new Date().toLocaleTimeString('pt-BR');
-  const dataString = `data: ${JSON.stringify({ type: tipo, timestamp, ...payload })}\n\n`;
+  const eventName = String(tipo || 'message').trim();
+  const lowerEvent = eventName.toLowerCase();
+  const upperEvent = eventName.toUpperCase();
+
+  const payloadObj = { type: upperEvent, event: lowerEvent, timestamp, ...payload };
+  const jsonStr = JSON.stringify(payloadObj);
+
+  // 1. Mensagem sem campo 'event:' para compatibilidade com eventSource.onmessage
+  const defaultMsg = `data: ${jsonStr}\n\n`;
+  // 2. Mensagem com campo 'event:' para clientes usando addEventListener('geofence_update', ...)
+  const lowerMsg = `event: ${lowerEvent}\ndata: ${jsonStr}\n\n`;
+  const upperMsg = `event: ${upperEvent}\ndata: ${jsonStr}\n\n`;
+
   for (const client of sseClients) {
     try {
-      client.write(dataString);
+      client.write(defaultMsg);
+      if (lowerEvent !== 'message') client.write(lowerMsg);
+      if (upperEvent !== lowerEvent && upperEvent !== 'MESSAGE') client.write(upperMsg);
       if (typeof client.flush === 'function') client.flush();
     } catch (e) {
       sseClients.delete(client);
@@ -447,9 +461,34 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
 
   const distTexto = isCampo ? 'No Campo' : (isReset ? 'Na Lista' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusAprox = isCampo ? 'campo' : (isProximo ? 'proximo' : (isReset ? 'reset' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado'));
-  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
-  const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
+
+  // Regra de presenca e chegada fisica:
+  // Se estiver no campo (<=500m), check-in fica liberado. Se houver confirmacao explicita (options), chegaConfirmada = true.
+  let chegadaConf = false;
+  let statusPres = 'confirmado';
+  let horaCheg = null;
+
+  if (isCampo) {
+    if (options.chegadaConfirmada !== undefined) {
+      chegadaConf = Boolean(options.chegadaConfirmada);
+    } else if (st === 'chegou') {
+      chegadaConf = true;
+    } else {
+      chegadaConf = (atleta.chegadaConfirmada === true && (atleta.statusPresenca === 'chegou' || atleta.status === 'chegou')) ||
+                    (conf && conf.chegadaConfirmada === true && (conf.statusPresenca === 'chegou' || conf.status === 'chegou'));
+    }
+    statusPres = chegadaConf ? 'chegou' : 'confirmado';
+    horaCheg = chegadaConf ? (options.horaChegada || atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : null;
+  } else if (isReset) {
+    chegadaConf = false;
+    statusPres = 'confirmado';
+    horaCheg = null;
+  } else {
+    // Proximo ou Longe (> 500m): atleta esta fora do campo, chegada fisica NAO esta confirmada
+    chegadaConf = false;
+    statusPres = isProximo ? 'a_caminho' : (options.statusPresenca || 'confirmado');
+    horaCheg = null;
+  }
 
   const atletaAtualizado = {
     ...atleta,
@@ -460,14 +499,19 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     posicao: atleta.posicao || atleta.position || 'MEI',
     position: atleta.position || atleta.posicao || 'MEI',
     distanciaMetros: isReset ? null : distNum,
+    distanciaMeters: isReset ? null : distNum,
     distance: isReset ? 0 : distNum,
+    distanceMeters: isReset ? 0 : distNum,
     distanciaTexto: distTexto,
     statusAproximacao: statusAprox,
+    statusGeofence: statusAprox,
+    customStatus: statusAprox,
     status: statusAprox,
     statusPresenca: statusPres,
     chegadaConfirmada: chegadaConf,
     checkedIn: chegadaConf,
     canCheckIn: isCampo,
+    checkinLiberado: isCampo,
     horaChegada: horaCheg
   };
 
@@ -495,26 +539,44 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   salvarDadosDisco();
   athletesDatabase = obterAtletasCompletos();
 
-  broadcastSse('GEOFENCE_UPDATE', {
-    athleteId: atletaAtualizado.id,
-    athleteName: atletaAtualizado.name || atletaAtualizado.nome,
-    distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
-    status: atletaAtualizado.statusAproximacao,
-    canCheckIn: atletaAtualizado.canCheckIn,
-    chegadaConfirmada: atletaAtualizado.chegadaConfirmada,
-    athlete: atletaAtualizado
-  });
-
-  if (isCampo) {
-    broadcastSse('CHECKIN_CONFIRMED', {
-      athleteId: atletaAtualizado.id,
-      athleteName: atletaAtualizado.name || atletaAtualizado.nome,
-      distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
-      athlete: atletaAtualizado
-    });
+  // Versão leve do atleta (sem imagem base64) para transmissão SSE rápida e eficiente
+  const athleteSse = { ...atletaAtualizado };
+  if (athleteSse.foto && athleteSse.foto.length > 200) {
+    athleteSse.foto = '';
   }
 
-  broadcastSse('SYNC', appData);
+  const ssePayload = {
+    athleteId: atletaAtualizado.id,
+    atletaId: atletaAtualizado.id,
+    id: atletaAtualizado.id,
+    athleteName: atletaAtualizado.name || atletaAtualizado.nome,
+    nome: atletaAtualizado.nome || atletaAtualizado.name,
+    name: atletaAtualizado.name || atletaAtualizado.nome,
+    distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+    distanceMeters: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+    distanciaMeters: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+    distanciaMetros: atletaAtualizado.distanciaMetros,
+    status: atletaAtualizado.statusAproximacao,
+    statusGeofence: atletaAtualizado.statusAproximacao,
+    customStatus: atletaAtualizado.statusAproximacao,
+    statusAproximacao: atletaAtualizado.statusAproximacao,
+    statusPresenca: atletaAtualizado.statusPresenca,
+    canCheckIn: atletaAtualizado.canCheckIn,
+    checkinLiberado: atletaAtualizado.canCheckIn,
+    chegadaConfirmada: atletaAtualizado.chegadaConfirmada,
+    checkedIn: atletaAtualizado.checkedIn,
+    horaChegada: atletaAtualizado.horaChegada,
+    athlete: athleteSse,
+    atleta: athleteSse
+  };
+
+  broadcastSse('GEOFENCE_UPDATE', ssePayload);
+  broadcastSse('geofence_update', ssePayload);
+
+  if (chegadaConf) {
+    broadcastSse('CHECKIN_CONFIRMED', ssePayload);
+    broadcastSse('checkin_confirmed', ssePayload);
+  }
 
   return atletaAtualizado;
 }
@@ -947,6 +1009,9 @@ const requestHandler = (req, res) => {
         'X-Accel-Buffering': 'no',
         'Access-Control-Allow-Origin': '*'
       });
+      if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+      }
 
       // Envia comentário inicial e estado consolidado
       res.write(': keepalive\n\n');
