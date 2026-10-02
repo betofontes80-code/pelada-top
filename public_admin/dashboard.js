@@ -269,7 +269,7 @@ async function carregarConfiguracao() {
 // ==============================================================
 // 2. STATUS DA PELADA (TRAVAR / LIBERAR LISTA)
 // ==============================================================
-function atualizarUiTravaLista() {
+function atualizarUiTravaLista(aberta) {
   const btnTop = document.getElementById('btn-top-trava');
   const iconeTop = document.getElementById('icone-top-trava');
   const textoTop = document.getElementById('texto-top-trava');
@@ -278,20 +278,42 @@ function atualizarUiTravaLista() {
   const kpiSub = document.getElementById('kpi-status-sub');
   const kpiIcon = document.getElementById('kpi-status-icon');
 
-  if (btnTop) btnTop.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white';
-  if (iconeTop) iconeTop.innerText = 'check_circle';
-  if (textoTop) textoTop.innerText = 'PRESENÇA LIVRE';
+  if (aberta) {
+    if (btnTop) btnTop.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white';
+    if (iconeTop) iconeTop.innerText = 'lock_open';
+    if (textoTop) textoTop.innerText = 'LISTA ABERTA';
 
-  if (kpiTexto) {
-    kpiTexto.innerText = 'LIVRE';
-    kpiTexto.className = 'text-xl sm:text-2xl font-black text-emerald-400';
+    if (kpiTexto) {
+      kpiTexto.innerText = 'ABERTO';
+      kpiTexto.className = 'text-xl sm:text-2xl font-black text-emerald-400';
+    }
+    if (kpiSub) kpiSub.innerText = 'Atletas podem confirmar';
+    if (kpiIcon) kpiIcon.className = 'p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400';
+  } else {
+    if (btnTop) btnTop.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white';
+    if (iconeTop) iconeTop.innerText = 'lock';
+    if (textoTop) textoTop.innerText = 'LISTA TRAVADA';
+
+    if (kpiTexto) {
+      kpiTexto.innerText = 'TRAVADO';
+      kpiTexto.className = 'text-xl sm:text-2xl font-black text-red-400';
+    }
+    if (kpiSub) kpiSub.innerText = 'Check-in bloqueado';
+    if (kpiIcon) kpiIcon.className = 'p-1.5 rounded-xl bg-red-500/10 text-red-400';
   }
-  if (kpiSub) kpiSub.innerText = 'Presença e geofencing ativos';
-  if (kpiIcon) kpiIcon.className = 'p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400';
 }
 
 async function alternarTravaLista() {
-  atualizarUiTravaLista();
+  try {
+    const res = await fetch('/api/admin/trava-lista', { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      atualizarUiTravaLista(data.listaAberta);
+      carregarLogs();
+    }
+  } catch (e) {
+    alert('Erro ao alterar status da lista: ' + e.message);
+  }
 }
 
 // ==============================================================

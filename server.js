@@ -484,12 +484,21 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     dados.atletas.push({ ...atletaAtualizado });
   }
 
-  // 2. Sincroniza em dados.listaConfirmados
-  const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
-  if (idxConf >= 0) {
-    dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
+  // 2. Sincroniza em dados.listaConfirmados (Apenas confirmados permanecem)
+  if (isReset) {
+    dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
+  } else if (isCampo || chegadaConf) {
+    const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
+    if (idxConf >= 0) {
+      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
+    } else {
+      dados.listaConfirmados.push({ ...atletaAtualizado });
+    }
   } else {
-    dados.listaConfirmados.push({ ...atletaAtualizado });
+    const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
+    if (idxConf >= 0) {
+      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
+    }
   }
 
   salvarDados(dados);
@@ -500,11 +509,16 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   salvarDadosDisco();
   athletesDatabase = obterAtletasCompletos();
 
+  const isConfirmado = !isReset && (isCampo || chegadaConf || atletaAtualizado.checkinLiberado || atletaAtualizado.statusPresenca === 'chegou');
+
   // Transmissão SSE em tempo real (compatível com addEventListener('geofence_update') e onmessage)
   broadcastSse('geofence_update', {
     athleteId: atletaAtualizado.id,
     distanceMeters: atletaAtualizado.distanciaMeters,
+    distance: atletaAtualizado.distanciaMetros,
     status: atletaAtualizado.statusAproximacao,
+    statusGeofence: atletaAtualizado.statusGeofence,
+    dispararApito: isConfirmado,
     athlete: atletaAtualizado
   });
 
@@ -514,8 +528,11 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
     distanceMeters: atletaAtualizado.distanciaMeters,
     status: atletaAtualizado.statusAproximacao,
+    statusGeofence: atletaAtualizado.statusGeofence,
     canCheckIn: atletaAtualizado.canCheckIn,
+    checkinLiberado: atletaAtualizado.checkinLiberado,
     chegadaConfirmada: atletaAtualizado.chegadaConfirmada,
+    dispararApito: isConfirmado,
     athlete: atletaAtualizado
   });
 
@@ -524,6 +541,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
       athleteId: atletaAtualizado.id,
       athleteName: atletaAtualizado.name || atletaAtualizado.nome,
       distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+      dispararApito: true,
       athlete: atletaAtualizado
     });
   }
@@ -816,10 +834,16 @@ const requestHandler = (req, res) => {
           'Content-Type': 'application/json; charset=utf-8',
           'Access-Control-Allow-Origin': '*'
         });
+        const isConfirmado = (updated.status === 'campo' || updated.checkinLiberado || updated.chegadaConfirmada || updated.statusPresenca === 'chegou') && updated.status !== 'reset';
         res.end(JSON.stringify({
+          sucesso: true,
           success: true,
+          athleteId: updated.id,
+          distanceMeters: updated.distanciaMeters,
           distance: updated.distance,
           status: updated.status,
+          customStatus: updated.status,
+          dispararApito: isConfirmado,
           athlete: updated,
           allowed: updated.canCheckIn
         }));
