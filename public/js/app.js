@@ -57,14 +57,13 @@ function tocarApitoJuiz() {
   }
 }
 
-// Substitua esta função no app.js para listar APENAS os jogadores que confirmaram presença:
+// ATUALIZAÇÃO EXATA: Lista Oficial de Presença (Apenas Jogadores Confirmados)
 function renderizarListaPresencaOficial(atletas) {
     if (!atletas || !Array.isArray(atletas)) atletas = state.athletes || [];
     const container = document.getElementById('lista-presenca-oficial') || document.querySelector('.lista-presenca-container');
     
-    // FILTRA ESTRITAMENTE: Apenas os atletas que tiveram a presença confirmada
-    // Quem estiver como AGUARDANDO, LONGE ou PRÓXIMO fica oculto da lista oficial.
-    const confirmados = atletas.filter(a => a.statusGeofence === 'confirmado' || a.statusGeofence === 'campo' || a.checkinLiberado === true);
+    // FILTRO ESTRITO: Lista APENAS quem confirmou a presença (clicou em confirmar/chegar)
+    const confirmados = atletas.filter(a => a.statusGeofence === 'campo' || a.checkinLiberado === true);
     
     // Atualiza o contador de confirmados no topo (ex: 4/23 Confirmados)
     const contadorEl = document.getElementById('kpiConfirmados');
@@ -88,7 +87,7 @@ function renderizarListaPresencaOficial(atletas) {
                     <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">#${index + 1}</span>
                     <div>
                         <div class="font-bold text-slate-900 text-sm">${a.nome || a.name}</div>
-                        <div class="text-[11px] text-slate-500">${a.posicao || a.position || 'MEI'} • Confirmado</div>
+                        <div class="text-[11px] text-slate-500">${a.posicao || 'MEI'} • Confirmado</div>
                     </div>
                 </div>
                 <span class="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
