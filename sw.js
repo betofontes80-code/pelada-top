@@ -1,5 +1,5 @@
 // Service Worker do Pelada Top PWA
-const CACHE_NAME = 'pelada-top-v8.0';
+const CACHE_NAME = 'pelada-top-v9.0';
 
 // Mantenha nesta lista apenas arquivos que existem no projeto.
 const ASSETS_TO_CACHE = [
