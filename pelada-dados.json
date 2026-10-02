@@ -679,26 +679,6 @@
   ],
   "listaConfirmados": [
     {
-      "id": "jog_1790559444604",
-      "nome": "Lucas Silva",
-      "posicao": "ATA",
-      "condicao": "excelente",
-      "idade": 28,
-      "fitness": 90,
-      "foto": "",
-      "hora": "22:37",
-      "statusPresenca": "chegou",
-      "chegadaConfirmada": true,
-      "distanciaMetros": 120,
-      "distanciaTexto": "No Campo",
-      "statusAproximacao": "campo",
-      "horaChegada": "20:27",
-      "distance": 0,
-      "status": "campo",
-      "canCheckIn": true,
-      "checkedIn": true
-    },
-    {
       "id": "1",
       "nome": "Lucas",
       "posicao": "ATA",
@@ -1145,17 +1125,22 @@
       "foto": "",
       "hora": "22:37",
       "statusPresenca": "chegou",
-      "chegadaConfirmada": true,
-      "distanciaMetros": 120,
-      "distanciaTexto": "No Campo",
-      "statusAproximacao": "campo",
-      "horaChegada": "20:27",
-      "distance": 120,
-      "status": "campo",
-      "canCheckIn": true,
-      "checkedIn": true,
+      "chegadaConfirmada": false,
+      "distanciaMetros": null,
+      "distanciaTexto": "Na Lista",
+      "statusAproximacao": "reset",
+      "horaChegada": null,
+      "distance": 0,
+      "status": "reset",
+      "canCheckIn": false,
+      "checkedIn": false,
       "name": "Lucas Silva",
-      "position": "ATA"
+      "position": "ATA",
+      "distanciaMeters": null,
+      "distanceMeters": null,
+      "statusGeofence": "reset",
+      "customStatus": "reset",
+      "checkinLiberado": true
     },
     {
       "id": "1",
@@ -1565,5 +1550,5 @@
     "finalizada": false,
     "tempoRestante": 600
   },
-  "version": 1790898793502
+  "version": 1790904619508
 }

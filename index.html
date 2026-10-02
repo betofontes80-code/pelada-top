@@ -1678,7 +1678,6 @@
             if (sseInstancia) {
                 try { sseInstancia.close(); } catch(e) {}
             }
-            // SSE ativo em todas as hospedagens com heartbeat automático
             // SSE ativo em todas as hospedagens com heartbeat automático (/events/match-stream)
             try {
                 sseInstancia = new EventSource('/events/match-stream');
@@ -1686,7 +1685,7 @@
                     sseConectado = true;
                     atualizarBadgeConexao(true);
                 };
-                
+
                 const processarMensagemSse = (raw) => {
                     try {
                         const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -1707,7 +1706,6 @@
                             exibirToastJogadorOnline({ nome: 'Pelada Top', posicao: 'SYS' }, 'Lista zerada após a meia-noite! Nova presença liberada.');
                         } else if (msg.type === 'GEOFENCE_UPDATE' || msg.type === 'geofence_update' || msg.type === 'GEOFENCE' || msg.type === 'CHECKIN_CONFIRMED' || msg.type === 'ATHLETE_UPDATED' || msg.athleteId) {
                             tratarEventoGeofence(msg);
-                            carregarListaOficialAtletas();
                         } else if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
                             aplicarSincronizacaoRemota(msg);
                         }
@@ -1717,7 +1715,7 @@
                 sseInstancia.onmessage = (event) => processarMensagemSse(event.data);
                 sseInstancia.addEventListener('geofence_update', (event) => processarMensagemSse(event.data));
                 sseInstancia.addEventListener('GEOFENCE_UPDATE', (event) => processarMensagemSse(event.data));
-                sseInstancia.addEventListener('checkin_confirmed', (event) => processarMensagemSse(event.data));
+                sseInstancia.addEventListener('CHECKIN_CONFIRMED', (event) => processarMensagemSse(event.data));
 
                 sseInstancia.onerror = () => {
                     sseConectado = false;
@@ -2699,10 +2697,6 @@
 
         // 1ª CONFIRMAÇÃO: PARTICIPAR DA LISTA DE PRESENÇA (FEITA A QUALQUER DISTÂNCIA)
         async function confirmarPresencaLista() {
-            if (!peladaConfig.listaAberta) {
-                alert('A lista está temporariamente fechada pelo administrador.');
-                return;
-            }
             if (!usuarioAtual || !usuarioAtual.nome) {
                 abrirModalCadastro();
                 return;

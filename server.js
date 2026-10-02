@@ -484,15 +484,15 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     dados.atletas.push({ ...atletaAtualizado });
   }
 
-  // 2. Sincroniza em dados.listaConfirmados (Apenas confirmados permanecem)
+  // 2. Sincroniza em dados.listaConfirmados (Apenas atletas que confirmaram presença/chegada permanecem; no reset, remove da lista)
   if (isReset) {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (isCampo || chegadaConf) {
+  } else if (isCampo || chegadaConf || atletaAtualizado.statusPresenca === 'confirmado' || atletaAtualizado.statusPresenca === 'chegou' || options.entrarNaLista) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
       dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     } else {
-      dados.listaConfirmados.push({ ...atletaAtualizado });
+      dados.listaConfirmados.unshift({ ...atletaAtualizado });
     }
   } else {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
@@ -509,7 +509,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   salvarDadosDisco();
   athletesDatabase = obterAtletasCompletos();
 
-  const isConfirmado = !isReset && (isCampo || chegadaConf || atletaAtualizado.checkinLiberado || atletaAtualizado.statusPresenca === 'chegou');
+  const isConfirmado = !isReset && (isCampo || chegadaConf || atletaAtualizado.checkinLiberado || atletaAtualizado.statusPresenca === 'chegou' || atletaAtualizado.statusPresenca === 'confirmado');
 
   // Transmissão SSE em tempo real (compatível com addEventListener('geofence_update') e onmessage)
   broadcastSse('geofence_update', {
@@ -518,6 +518,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     distance: atletaAtualizado.distanciaMetros,
     status: atletaAtualizado.statusAproximacao,
     statusGeofence: atletaAtualizado.statusGeofence,
+    customStatus: atletaAtualizado.customStatus,
     dispararApito: isConfirmado,
     athlete: atletaAtualizado
   });
@@ -834,7 +835,7 @@ const requestHandler = (req, res) => {
           'Content-Type': 'application/json; charset=utf-8',
           'Access-Control-Allow-Origin': '*'
         });
-        const isConfirmado = (updated.status === 'campo' || updated.checkinLiberado || updated.chegadaConfirmada || updated.statusPresenca === 'chegou') && updated.status !== 'reset';
+        const isConfirmado = (updated.status === 'campo' || updated.checkinLiberado || updated.chegadaConfirmada || updated.statusPresenca === 'chegou' || updated.statusPresenca === 'confirmado') && updated.status !== 'reset';
         res.end(JSON.stringify({
           sucesso: true,
           success: true,
@@ -906,7 +907,14 @@ const requestHandler = (req, res) => {
           'Content-Type': 'application/json; charset=utf-8',
           'Access-Control-Allow-Origin': '*'
         });
-        res.end(JSON.stringify({ success: true, message: "Check-in confirmado com sucesso!", athlete: athleteObj }));
+        res.end(JSON.stringify({
+          sucesso: true,
+          success: true,
+          message: "Check-in confirmado com sucesso!",
+          dispararApito: true,
+          athlete: athleteObj,
+          atleta: athleteObj
+        }));
       });
       return;
     }
@@ -1496,75 +1504,74 @@ const requestHandler = (req, res) => {
               checkedIn: true
             });
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ sucesso: true, atleta: updated, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+            res.end(JSON.stringify({
+              sucesso: true,
+              success: true,
+              dispararApito: true,
+              atleta: updated,
+              athlete: updated,
+              listaConfirmados: appData.listaConfirmados,
+              version: appData.version
+            }));
             return;
           } else {
             // 1ª Confirmação: Entrar na Lista da Pelada (coloca na 1ª POSIÇÃO)
+            const idAtleta = payload.id ? String(payload.id).trim() : '';
+            const nomeAtleta = payload.nome ? String(payload.nome).trim() : '';
+            const dist = (payload.distanciaMetros !== undefined && payload.distanciaMetros !== null) ? Number(payload.distanciaMetros) : null;
+            const statusDist = dist !== null ? (dist <= 500 ? 'campo' : (dist <= 1500 ? 'proximo' : 'longe')) : 'longe';
+            
             const usuarioBase = (appData.usuarios || []).find(u => 
-              (payload.id && String(u.id) === String(payload.id)) ||
-              (payload.nome && (u.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
+              (idAtleta && String(u.id) === idAtleta) ||
+              (nomeAtleta && (u.nome || '').trim().toLowerCase() === nomeAtleta.toLowerCase())
             );
 
-            const idx = appData.listaConfirmados.findIndex(j => 
-              (payload.id && String(j.id) === String(payload.id)) ||
-              (payload.nome && (j.nome || '').trim().toLowerCase() === payload.nome.trim().toLowerCase())
-            );
+            // Sincroniza através do sincronizador universal
+            const updated = sincronizarStatusAtletaUniversal(idAtleta, nomeAtleta, dist, statusDist, {
+              statusPresenca: 'confirmado',
+              online: true,
+              entrarNaLista: true,
+              posicao: payload.posicao || (usuarioBase ? usuarioBase.posicao : 'MEI'),
+              idade: payload.idade || (usuarioBase ? usuarioBase.idade : 28),
+              foto: payload.foto || (usuarioBase ? usuarioBase.foto : '')
+            });
 
-            let atletaFinal;
-            if (idx >= 0) {
-              const [antigo] = appData.listaConfirmados.splice(idx, 1);
-              atletaFinal = {
-                ...antigo,
-                ...(usuarioBase || {}),
-                ...payload,
-                online: true,
-                statusPresenca: 'confirmado',
-                hora: antigo.hora || horaAgora,
-                horaOnline: horaAgora,
-                entrouEm: Date.now()
-              };
-            } else {
-              atletaFinal = {
-                id: payload.id || (usuarioBase ? usuarioBase.id : ('jog_' + Date.now())),
-                nome: payload.nome || (usuarioBase ? usuarioBase.nome : 'Jogador'),
-                posicao: payload.posicao || (usuarioBase ? usuarioBase.posicao : 'MEI'),
-                condicao: payload.condicao || (usuarioBase ? usuarioBase.condicao : 'excelente'),
-                idade: payload.idade || (usuarioBase ? usuarioBase.idade : 28),
-                fitness: calcularFitnessAtleta(payload.condicao ? payload : usuarioBase),
-                foto: payload.foto || (usuarioBase ? usuarioBase.foto : ''),
-                online: true,
-                statusPresenca: 'confirmado',
-                chegadaConfirmada: false,
-                distanciaMetros: payload.distanciaMetros !== undefined ? payload.distanciaMetros : null,
-                hora: horaAgora,
-                horaOnline: horaAgora,
-                entrouEm: Date.now()
-              };
-            }
-
-            // Coloca o atleta na 1ª POSIÇÃO (índice 0)
-            appData.listaConfirmados.unshift(atletaFinal);
-            if (Array.isArray(appData.atletas)) {
-              const aIdx = appData.atletas.findIndex(a => (atletaFinal.id && String(a.id) === String(atletaFinal.id)) || (atletaFinal.nome && (a.nome || a.name || '').toLowerCase() === atletaFinal.nome.toLowerCase()));
-              if (aIdx >= 0) {
-                appData.atletas[aIdx] = { ...appData.atletas[aIdx], ...atletaFinal };
+            // Garante que o atleta fique na 1ª POSIÇÃO da listaConfirmados
+            if (updated && Array.isArray(appData.listaConfirmados)) {
+              const cIdx = appData.listaConfirmados.findIndex(c => String(c.id) === String(updated.id));
+              if (cIdx >= 0) {
+                const [item] = appData.listaConfirmados.splice(cIdx, 1);
+                appData.listaConfirmados.unshift(item);
               } else {
-                appData.atletas.unshift(atletaFinal);
+                appData.listaConfirmados.unshift(updated);
               }
             }
 
             // Transmite evento específico de jogador online para todos os donos e participantes
             broadcastSse('JOGADOR_ONLINE', {
-              atleta: atletaFinal,
-              mensagem: `${atletaFinal.nome} acabou de entrar na lista da pelada!`,
+              atleta: updated,
+              mensagem: `${(updated && (updated.nome || updated.name)) || nomeAtleta} acabou de entrar na lista da pelada!`,
               listaConfirmados: appData.listaConfirmados,
+              dispararApito: true,
               version: appData.version
             });
-          }
 
-          appData.version = Date.now();
-          salvarDadosDisco();
-          broadcastSse('SYNC', appData);
+            appData.version = Date.now();
+            salvarDadosDisco();
+            broadcastSse('SYNC', appData);
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+              sucesso: true,
+              success: true,
+              dispararApito: true,
+              atleta: updated,
+              athlete: updated,
+              listaConfirmados: appData.listaConfirmados,
+              version: appData.version
+            }));
+            return;
+          }
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados, version: appData.version }));
@@ -1712,10 +1719,14 @@ const requestHandler = (req, res) => {
           return;
         }
 
+        const isConfirmado = (updated.status === 'campo' || updated.checkinLiberado || updated.chegadaConfirmada || updated.statusPresenca === 'chegou' || updated.statusPresenca === 'confirmado') && updated.status !== 'reset';
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           sucesso: true,
+          success: true,
           statusDistancia: updated.statusAproximacao,
+          dispararApito: isConfirmado,
           atleta: updated,
           athlete: updated,
           listaConfirmados: appData.listaConfirmados
