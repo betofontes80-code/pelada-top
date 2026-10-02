@@ -57,42 +57,49 @@ function tocarApitoJuiz() {
   }
 }
 
-// Renderização exclusiva da Lista Oficial de Presença (somente confirmados no campo)
-function renderizarListaPresencaConfirmados() {
-  const container = document.getElementById('lista-presenca-oficial');
-  const kpiEl = document.getElementById('kpiConfirmados');
-  if (!container) return;
+// Substitua esta função no app.js para listar APENAS os jogadores que confirmaram presença:
+function renderizarListaPresencaOficial(atletas) {
+    if (!atletas || !Array.isArray(atletas)) atletas = state.athletes || [];
+    const container = document.getElementById('lista-presenca-oficial') || document.querySelector('.lista-presenca-container');
+    
+    // FILTRA ESTRITAMENTE: Apenas os atletas que tiveram a presença confirmada
+    // Quem estiver como AGUARDANDO, LONGE ou PRÓXIMO fica oculto da lista oficial.
+    const confirmados = atletas.filter(a => a.statusGeofence === 'confirmado' || a.statusGeofence === 'campo' || a.checkinLiberado === true);
+    
+    // Atualiza o contador de confirmados no topo (ex: 4/23 Confirmados)
+    const contadorEl = document.getElementById('kpiConfirmados');
+    if (contadorEl) {
+        contadorEl.textContent = `${confirmados.length}/23 Confirmados`;
+    }
 
-  const confirmados = (state.athletes || []).filter(a => {
-    const st = String(a.status || a.statusGeofence || a.statusAproximacao || '').toLowerCase();
-    const dist = (a.distanciaMetros !== null && a.distanciaMetros !== undefined) ? Number(a.distanciaMetros) : (a.distance !== null && a.distance !== undefined ? Number(a.distance) : null);
-    const chegou = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || st === 'campo' || (dist !== null && dist <= 500 && st !== 'reset');
-    return chegou && st !== 'reset';
-  });
+    if (container) {
+        container.innerHTML = '';
+        
+        if (confirmados.length === 0) {
+            container.innerHTML = '<div class="text-xs text-slate-400 p-3 text-center">Nenhum jogador confirmado na presença ainda.</div>';
+            return;
+        }
 
-  if (kpiEl) {
-    kpiEl.textContent = `/ ${confirmados.length} Confirmados`;
-  }
-
-  if (confirmados.length === 0) {
-    container.innerHTML = '<div class="text-center text-slate-400 py-3 text-xs">Nenhum atleta confirmado no campo no momento.</div>';
-    return;
-  }
-
-  container.innerHTML = confirmados.map((a, i) => `
-    <div class="flex items-center justify-between p-2 bg-[#1e293b]/70 border border-emerald-500/30 rounded-lg text-xs">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="font-mono font-bold text-emerald-400 text-[11px]">#${i + 1}</span>
-        <span class="font-bold text-white truncate">${a.nome || a.name || 'Atleta'}</span>
-        <span class="text-[10px] text-slate-300 bg-slate-700/60 px-1.5 py-0.5 rounded font-mono">${a.posicao || a.position || 'MEI'}</span>
-      </div>
-      <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-        ⚽ NO CAMPO
-      </span>
-    </div>
-  `).join('');
+        confirmados.forEach((a, index) => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-xs my-1.5';
+            item.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">#${index + 1}</span>
+                    <div>
+                        <div class="font-bold text-slate-900 text-sm">${a.nome || a.name}</div>
+                        <div class="text-[11px] text-slate-500">${a.posicao || a.position || 'MEI'} • Confirmado</div>
+                    </div>
+                </div>
+                <span class="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
+                    ⚽ CONFIRMADO
+                </span>
+            `;
+            container.appendChild(item);
+        });
+    }
 }
+const renderizarListaPresencaConfirmados = renderizarListaPresencaOficial;
 
 // ID do Atleta atualmente selecionado na aba de simulação de GPS
 let currentAthleteId = 'jog_1790559444604'; // Padrão: Lucas Silva
@@ -759,7 +766,8 @@ function normalizarAtleta(a, idx) {
     else status = 'longe';
   }
 
-  const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
+  const statusGeofence = a.statusGeofence || (checkedIn || status === 'campo' ? 'campo' : (status === 'proximo' ? 'proximo' : (status === 'reset' ? 'aguardando' : 'longe')));
+  const checkinLiberado = a.checkinLiberado !== undefined ? a.checkinLiberado : (checkedIn || (distance !== null && distance <= 500 && status !== 'reset'));
 
   return {
     ...a,
@@ -777,6 +785,9 @@ function normalizarAtleta(a, idx) {
     distance,
     distanciaMetros: distance,
     status,
+    statusGeofence,
+    checkinLiberado,
+    confirmadoSorteio: checkinLiberado,
     checkedIn,
     canCheckIn: distance !== null && distance <= 500
   };
@@ -802,7 +813,7 @@ async function carregarAtletas() {
   atualizarDisplayAtleta(currentAthleteId);
   renderListaAtletasGPS();
   atualizarKpis();
-  renderizarListaPresencaConfirmados();
+  renderizarListaPresencaOficial(state.athletes);
 }
 
 // Renderiza seletor de atletas da Seção 4 de GPS
@@ -1717,7 +1728,7 @@ function bootApp() {
             try { tocarApitoJuiz(); } catch (e) {}
           }
           await carregarAtletas();
-          renderizarListaPresencaConfirmados();
+          renderizarListaPresencaOficial(state.athletes);
         }
       } catch (e) {
         console.error('Erro na requisição de geofence:', e);
