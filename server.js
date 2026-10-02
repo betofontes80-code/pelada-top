@@ -243,6 +243,7 @@ const MIME_TYPES = {
 
 // Dados padrão iniciais
 const DEFAULT_CONFIG = {
+  listaAberta: true,
   local: 'R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB',
   lat: -7.190405,
   lng: -34.870103,
@@ -392,19 +393,12 @@ let athletesDatabase = obterAtletasCompletos();
 // Conexões ativas de Server-Sent Events (SSE) para transmissão em tempo real
 const sseClients = new Set();
 
-function broadcastSSE(event, data) {
-  broadcastSse(event, data);
-}
-
 function broadcastSse(tipo, payload) {
   const timestamp = new Date().toLocaleTimeString('pt-BR');
-  const safePayload = payload || {};
-  const eventFrame = `event: ${tipo}\ndata: ${JSON.stringify(safePayload)}\n\n`;
-  const defaultFrame = `data: ${JSON.stringify({ type: tipo, timestamp, ...safePayload })}\n\n`;
+  const dataString = `data: ${JSON.stringify({ type: tipo, timestamp, ...payload })}\n\n`;
   for (const client of sseClients) {
     try {
-      client.write(eventFrame);
-      client.write(defaultFrame);
+      client.write(dataString);
       if (typeof client.flush === 'function') client.flush();
     } catch (e) {
       sseClients.delete(client);
@@ -466,14 +460,19 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     posicao: atleta.posicao || atleta.position || 'MEI',
     position: atleta.position || atleta.posicao || 'MEI',
     distanciaMetros: isReset ? null : distNum,
+    distanciaMeters: isReset ? null : distNum,
+    distanceMeters: isReset ? null : distNum,
     distance: isReset ? 0 : distNum,
     distanciaTexto: distTexto,
     statusAproximacao: statusAprox,
+    statusGeofence: statusAprox,
+    customStatus: statusAprox,
     status: statusAprox,
     statusPresenca: statusPres,
     chegadaConfirmada: chegadaConf,
     checkedIn: chegadaConf,
     canCheckIn: isCampo,
+    checkinLiberado: distNum !== null && distNum <= 500,
     horaChegada: horaCheg
   };
 
@@ -501,10 +500,19 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   salvarDadosDisco();
   athletesDatabase = obterAtletasCompletos();
 
+  // Transmissão SSE em tempo real (compatível com addEventListener('geofence_update') e onmessage)
+  broadcastSse('geofence_update', {
+    athleteId: atletaAtualizado.id,
+    distanceMeters: atletaAtualizado.distanciaMeters,
+    status: atletaAtualizado.statusAproximacao,
+    athlete: atletaAtualizado
+  });
+
   broadcastSse('GEOFENCE_UPDATE', {
     athleteId: atletaAtualizado.id,
     athleteName: atletaAtualizado.name || atletaAtualizado.nome,
     distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
+    distanceMeters: atletaAtualizado.distanciaMeters,
     status: atletaAtualizado.statusAproximacao,
     canCheckIn: atletaAtualizado.canCheckIn,
     chegadaConfirmada: atletaAtualizado.chegadaConfirmada,
@@ -809,13 +817,9 @@ const requestHandler = (req, res) => {
           'Access-Control-Allow-Origin': '*'
         });
         res.end(JSON.stringify({
-          sucesso: true,
           success: true,
-          athleteId: updated.id,
-          distanceMeters: updated.distanciaMeters,
           distance: updated.distance,
           status: updated.status,
-          customStatus: updated.status,
           athlete: updated,
           allowed: updated.canCheckIn
         }));
@@ -1003,16 +1007,8 @@ const requestHandler = (req, res) => {
         if (saved.version) appData.version = saved.version;
       } catch (e) {}
 
-      const dbPayload = {
-        ...appData,
-        atletas: appData.atletas,
-        configuracoes: {
-          gpsRaioMeters: (appData.peladaConfig && appData.peladaConfig.raioMaximoMetros) || 500,
-          partidaAtiva: Boolean(appData.partidaEstado && appData.partidaEstado.emAndamento)
-        }
-      };
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify(dbPayload));
+      res.end(JSON.stringify(appData));
       return;
     }
 
@@ -1562,6 +1558,7 @@ const requestHandler = (req, res) => {
         uptime: process.uptime(),
         clientesConectados: sseClients.size,
         totalAtletas: (appData.listaConfirmados || []).length,
+        listaAberta: appData.peladaConfig ? appData.peladaConfig.listaAberta : true,
         version: appData.version
       }));
       return;
@@ -1622,10 +1619,15 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // 12. API Admin: Trava Lista (Desativada - lista sempre livre)
+    // 12. API Admin: Trava Lista
     if (pathname === '/api/admin/trava-lista' && req.method === 'POST') {
+      if (!appData.peladaConfig) appData.peladaConfig = { ...DEFAULT_CONFIG };
+      appData.peladaConfig.listaAberta = !appData.peladaConfig.listaAberta;
+      appData.version = Date.now();
+      salvarDadosDisco();
+      broadcastSse('SYNC', appData);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ sucesso: true, mensagem: 'Lista sempre aberta e livre para confirmação' }));
+      res.end(JSON.stringify({ sucesso: true, listaAberta: appData.peladaConfig.listaAberta }));
       return;
     }
 
