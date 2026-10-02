@@ -1124,23 +1124,24 @@
       "fitness": 90,
       "foto": "",
       "hora": "22:37",
-      "statusPresenca": "chegou",
+      "statusPresenca": "pendente",
       "chegadaConfirmada": false,
       "distanciaMetros": null,
-      "distanciaTexto": "Na Lista",
-      "statusAproximacao": "reset",
+      "distanciaTexto": "Aguardando",
+      "statusAproximacao": "aguardando",
       "horaChegada": null,
       "distance": 0,
-      "status": "reset",
+      "status": "aguardando",
       "canCheckIn": false,
       "checkedIn": false,
       "name": "Lucas Silva",
       "position": "ATA",
       "distanciaMeters": null,
       "distanceMeters": null,
-      "statusGeofence": "reset",
-      "customStatus": "reset",
-      "checkinLiberado": true
+      "statusGeofence": "aguardando",
+      "customStatus": "aguardando",
+      "checkinLiberado": false,
+      "confirmadoSorteio": false
     },
     {
       "id": "1",
@@ -1550,5 +1551,5 @@
     "finalizada": false,
     "tempoRestante": 600
   },
-  "version": 1790904619508
+  "version": 1790905455934
 }

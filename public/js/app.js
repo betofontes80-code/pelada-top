@@ -802,6 +802,7 @@ async function carregarAtletas() {
   atualizarDisplayAtleta(currentAthleteId);
   renderListaAtletasGPS();
   atualizarKpis();
+  renderizarListaPresencaConfirmados();
 }
 
 // Renderiza seletor de atletas da Seção 4 de GPS
@@ -1696,14 +1697,43 @@ function bootApp() {
   document.getElementById('btnSalvarAtleta')?.addEventListener('click', salvarAlteracoesAtleta);
   document.getElementById('btnExcluirAtleta')?.addEventListener('click', excluirAtleta);
 
-  // Botões de Simulação de GPS conectando à função dispararSimulacaoGPS:
-  document.getElementById('btnGpsLonge')?.addEventListener('click', () => dispararSimulacaoGPS(3800, 'longe'));
-  document.getElementById('btnGpsProximo')?.addEventListener('click', () => dispararSimulacaoGPS(850, 'proximo'));
-  document.getElementById('btnGpsChegou')?.addEventListener('click', () => dispararSimulacaoGPS(120, 'campo'));
-  document.getElementById('btnGpsReset')?.addEventListener('click', () => dispararSimulacaoGPS(0, 'reset'));
+  // Vinculação e disparos dos botões de simulação e confirmação presencial
+  const configurarAcoesGeofence = () => {
+    const dispararSimulacao = async (distancia, status) => {
+      const select = document.getElementById('gps-athlete-select') || document.getElementById('selectAtleta');
+      const atletaId = select ? select.value : (currentAthleteId || null);
+      if (!atletaId) return;
 
-  // Botão de Check-in Ativo
-  document.getElementById('btnExecutarConfirmacao')?.addEventListener('click', executarCheckinAtivo);
+      try {
+        const res = await fetch(getApiUrl('/api/v2/geofence-test'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ athleteId: atletaId, distanceMeters: distancia, customStatus: status })
+        });
+        const data = await res.json();
+        if (data.sucesso) {
+          console.log(`[Status Atualizado]: ${status.toUpperCase()}`);
+          if (data.dispararApito) {
+            try { tocarApitoJuiz(); } catch (e) {}
+          }
+          await carregarAtletas();
+          renderizarListaPresencaConfirmados();
+        }
+      } catch (e) {
+        console.error('Erro na requisição de geofence:', e);
+      }
+    };
+
+    // Botões de Teste de Status
+    document.getElementById('btnGpsLonge')?.addEventListener('click', () => dispararSimulacao(3800, 'longe'));
+    document.getElementById('btnGpsProximo')?.addEventListener('click', () => dispararSimulacao(850, 'proximo'));
+
+    // Regra da 2ª fase: Botão Chegou valida a proximidade (≤500m) e alista direto no sorteio
+    document.getElementById('btnGpsChegou')?.addEventListener('click', () => dispararSimulacao(120, 'campo'));
+    document.getElementById('btnGpsReset')?.addEventListener('click', () => dispararSimulacao(null, 'reset'));
+    document.getElementById('btnExecutarConfirmacao')?.addEventListener('click', () => dispararSimulacao(120, 'campo'));
+  };
+  configurarAcoesGeofence();
 
   // Copiar link
   document.getElementById('btnCopiarLink')?.addEventListener('click', copiarLinkPublico);

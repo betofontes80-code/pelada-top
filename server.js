@@ -435,7 +435,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   let isLonge = false;
   let isReset = false;
 
-  if (st === 'reset' || st === 'resetar' || st === 'desfazer' || (distNum === 0 && st !== 'campo' && st !== 'chegou')) {
+  if (st === 'reset' || st === 'resetar' || st === 'desfazer') {
     isReset = true;
   } else if (st === 'campo' || st === 'chegou' || st === 'no_campo' || (distNum !== null && distNum <= 500)) {
     isCampo = true;
@@ -445,9 +445,11 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     isLonge = true;
   }
 
-  const distTexto = isCampo ? 'No Campo' : (isReset ? 'Na Lista' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
-  const statusAprox = isCampo ? 'campo' : (isProximo ? 'proximo' : (isReset ? 'reset' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado'));
+  const dentroDoRaio = !isReset && ((distNum !== null && distNum <= 500) || isCampo);
+  const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
+  const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
+  const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
+  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
   const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
   const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
 
@@ -465,14 +467,15 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     distance: isReset ? 0 : distNum,
     distanciaTexto: distTexto,
     statusAproximacao: statusAprox,
-    statusGeofence: statusAprox,
-    customStatus: statusAprox,
-    status: statusAprox,
+    statusGeofence: statusGeof,
+    customStatus: statusGeof,
+    status: statusGeof,
     statusPresenca: statusPres,
-    chegadaConfirmada: chegadaConf,
-    checkedIn: chegadaConf,
-    canCheckIn: isCampo,
-    checkinLiberado: distNum !== null && distNum <= 500,
+    chegadaConfirmada: dentroDoRaio || chegadaConf,
+    checkedIn: dentroDoRaio || chegadaConf,
+    canCheckIn: dentroDoRaio,
+    checkinLiberado: dentroDoRaio,
+    confirmadoSorteio: dentroDoRaio,
     horaChegada: horaCheg
   };
 
@@ -484,10 +487,10 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     dados.atletas.push({ ...atletaAtualizado });
   }
 
-  // 2. Sincroniza em dados.listaConfirmados (Apenas atletas que confirmaram presença/chegada permanecem; no reset, remove da lista)
+  // 2. Sincroniza em dados.listaConfirmados (Regra da 2ª fase: Alista no sorteio se dentro do raio; remove se reset)
   if (isReset) {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (isCampo || chegadaConf || atletaAtualizado.statusPresenca === 'confirmado' || atletaAtualizado.statusPresenca === 'chegou' || options.entrarNaLista) {
+  } else if (atletaAtualizado.confirmadoSorteio || isCampo || chegadaConf || atletaAtualizado.statusPresenca === 'confirmado' || atletaAtualizado.statusPresenca === 'chegou' || options.entrarNaLista) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
       dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
@@ -509,17 +512,19 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   salvarDadosDisco();
   athletesDatabase = obterAtletasCompletos();
 
-  const isConfirmado = !isReset && (isCampo || chegadaConf || atletaAtualizado.checkinLiberado || atletaAtualizado.statusPresenca === 'chegou' || atletaAtualizado.statusPresenca === 'confirmado');
+  const isConfirmado = !isReset && (atletaAtualizado.confirmadoSorteio || isCampo || chegadaConf || atletaAtualizado.checkinLiberado || atletaAtualizado.statusPresenca === 'chegou' || atletaAtualizado.statusPresenca === 'confirmado');
 
   // Transmissão SSE em tempo real (compatível com addEventListener('geofence_update') e onmessage)
   broadcastSse('geofence_update', {
     athleteId: atletaAtualizado.id,
     distanceMeters: atletaAtualizado.distanciaMeters,
     distance: atletaAtualizado.distanciaMetros,
-    status: atletaAtualizado.statusAproximacao,
+    status: atletaAtualizado.statusGeofence,
     statusGeofence: atletaAtualizado.statusGeofence,
-    customStatus: atletaAtualizado.customStatus,
-    dispararApito: isConfirmado,
+    customStatus: atletaAtualizado.statusGeofence,
+    checkinLiberado: atletaAtualizado.checkinLiberado,
+    confirmadoSorteio: atletaAtualizado.confirmadoSorteio,
+    dispararApito: atletaAtualizado.confirmadoSorteio,
     athlete: atletaAtualizado
   });
 
@@ -813,7 +818,7 @@ const requestHandler = (req, res) => {
         const athleteId = String(payload.athleteId || payload.atletaId || payload.id || '').trim();
         const athleteName = String(payload.nome || payload.nomeAtleta || payload.athleteName || '').trim();
 
-        let distanceMeters = 0;
+        let distanceMeters = null;
         if (payload.distanceMeters !== undefined && payload.distanceMeters !== null && !isNaN(Number(payload.distanceMeters))) {
           distanceMeters = Number(payload.distanceMeters);
         } else if (payload.distance !== undefined && payload.distance !== null && !isNaN(Number(payload.distance))) {
@@ -840,11 +845,14 @@ const requestHandler = (req, res) => {
           sucesso: true,
           success: true,
           athleteId: updated.id,
+          status: customStatus,
+          customStatus: customStatus,
+          statusGeofence: updated.statusGeofence,
           distanceMeters: updated.distanciaMeters,
           distance: updated.distance,
-          status: updated.status,
-          customStatus: updated.status,
-          dispararApito: isConfirmado,
+          checkinLiberado: updated.checkinLiberado,
+          confirmadoSorteio: updated.confirmadoSorteio,
+          dispararApito: updated.confirmadoSorteio,
           athlete: updated,
           allowed: updated.canCheckIn
         }));
