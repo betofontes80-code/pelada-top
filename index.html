@@ -2596,6 +2596,28 @@
                             );
                         }
                     }
+
+                    // Sincroniza a distância do usuário logado na lista de presença
+                    const atletaLogado = (listaConfirmados || []).find(j => 
+                        (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                        (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                    );
+                    if (atletaLogado) {
+                        atletaLogado.distanciaMetros = distanciaAtualMetros;
+                        if (distanciaAtualMetros <= raio) {
+                            atletaLogado.statusAproximacao = 'campo';
+                            atletaLogado.status = 'campo';
+                        } else if (distanciaAtualMetros <= 1500) {
+                            atletaLogado.statusAproximacao = 'proximo';
+                            atletaLogado.status = 'proximo';
+                        } else {
+                            atletaLogado.statusAproximacao = 'longe';
+                            atletaLogado.status = 'longe';
+                        }
+                        localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                    }
+
+                    renderizarListaJogadores();
                     renderizarStatusCheckin();
                 },
                 (err) => {
@@ -2718,11 +2740,15 @@
                 atleta.horaOnline = hora;
                 atleta.online = true;
                 atleta.distanciaMetros = dist;
-                atleta.statusAproximacao = dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe');
+                const raioMax = peladaConfig.raioMaximoMetros || 500;
+                atleta.statusAproximacao = dist <= raioMax ? 'campo' : (dist <= 1500 ? 'proximo' : 'longe');
+                atleta.status = atleta.statusAproximacao;
                 atleta.entrouEm = Date.now();
                 atleta._notificadoToast = true;
                 if (usuarioAtual.foto) atleta.foto = usuarioAtual.foto;
             } else {
+                const raioMax = peladaConfig.raioMaximoMetros || 500;
+                const statusAprox = dist <= raioMax ? 'campo' : (dist <= 1500 ? 'proximo' : 'longe');
                 atleta = {
                     id: usuarioAtual.id || ('jog_' + Date.now()),
                     nome: usuarioAtual.nome,
@@ -2737,7 +2763,8 @@
                     statusPresenca: 'confirmado',
                     chegadaConfirmada: false,
                     distanciaMetros: dist,
-                    statusAproximacao: dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe'),
+                    statusAproximacao: statusAprox,
+                    status: statusAprox,
                     entrouEm: Date.now(),
                     _notificadoToast: true
                 };
@@ -3089,50 +3116,61 @@
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
 
-            // 1. Pega todos os atletas cadastrados/confirmados
-            let baseAtletas = (Array.isArray(listaConfirmados) && listaConfirmados.length > 0)
-                ? listaConfirmados
-                : (Array.isArray(cadastroGeralAtletas) ? cadastroGeralAtletas : [...ATLETAS_INICIAIS_PADRAO]);
+            // Garante que o cadastro geral permanente de atletas cadastrados seja sempre a base
+            let baseAtletas = (Array.isArray(cadastroGeralAtletas) && cadastroGeralAtletas.length > 0)
+                ? cadastroGeralAtletas
+                : ((Array.isArray(listaConfirmados) && listaConfirmados.length > 0) ? listaConfirmados : [...ATLETAS_INICIAIS_PADRAO]);
 
-            // Mapeia detalhes cadastrais caso disponíveis
-            const mapaCadastro = new Map();
-            if (Array.isArray(cadastroGeralAtletas)) {
-                cadastroGeralAtletas.forEach(a => {
-                    if (a && a.id) mapaCadastro.set(String(a.id), a);
-                    if (a && a.nome) mapaCadastro.set(a.nome.trim().toLowerCase(), a);
+            // Mapeia o status temporário de presença (se houver na listaConfirmados)
+            const mapaPresenca = new Map();
+            if (Array.isArray(listaConfirmados)) {
+                listaConfirmados.forEach(c => {
+                    if (c && c.id) mapaPresenca.set(String(c.id), c);
+                    if (c && c.nome) mapaPresenca.set(c.nome.trim().toLowerCase(), c);
                 });
             }
 
-            // 2. FILTRA APENAS OS JOGADORES QUE FORAM CONFIRMADOS OU CHEGARAM AO CAMPO
-            let atletasCompletos = baseAtletas.filter(atleta => {
-                if (!atleta) return false;
-                const isReset = atleta.status === 'reset' || atleta.statusGeofence === 'reset' || atleta.statusAproximacao === 'reset';
-                if (isReset) return false;
-                return atleta.statusPresenca === 'confirmado' || 
-                       atleta.statusPresenca === 'chegou' || 
-                       atleta.statusGeofence === 'confirmado' ||
-                       atleta.statusGeofence === 'campo' ||
-                       atleta.status === 'campo' ||
-                       atleta.chegadaConfirmada === true ||
-                       atleta.checkinLiberado === true;
-            }).map(atleta => {
-                const cad = (atleta.id && mapaCadastro.get(String(atleta.id))) ||
-                            (atleta.nome && mapaCadastro.get(atleta.nome.trim().toLowerCase()));
-                if (cad) {
+            const atletasCompletos = baseAtletas.map(atleta => {
+                const conf = (atleta && atleta.id && mapaPresenca.get(String(atleta.id))) ||
+                             (atleta && atleta.nome && mapaPresenca.get(atleta.nome.trim().toLowerCase()));
+                if (conf) {
+                    const isReset = conf.statusAproximacao === 'reset' || conf.status === 'reset' || atleta.statusAproximacao === 'reset' || atleta.status === 'reset';
+                    const isCampo = !isReset && (
+                        conf.chegadaConfirmada === true || conf.statusPresenca === 'chegou' || conf.statusAproximacao === 'campo' || conf.status === 'campo' || conf.statusAproximacao === 'chegou' ||
+                        atleta.chegadaConfirmada === true || atleta.statusPresenca === 'chegou' || atleta.statusAproximacao === 'campo' || atleta.status === 'campo' || atleta.statusAproximacao === 'chegou' ||
+                        (conf.distanciaMetros !== null && conf.distanciaMetros !== undefined && conf.distanciaMetros <= 500) ||
+                        (atleta.distanciaMetros !== null && atleta.distanciaMetros !== undefined && atleta.distanciaMetros <= 500)
+                    );
+                    const distMetros = isReset ? null : (conf.distanciaMetros !== undefined && conf.distanciaMetros !== null ? conf.distanciaMetros : atleta.distanciaMetros);
+                    const statusAprox = isCampo ? 'campo' : (isReset ? 'reset' : (conf.statusAproximacao || atleta.statusAproximacao || 'longe'));
+                    const statusPres = isCampo ? 'chegou' : (isReset ? 'confirmado' : (conf.statusPresenca || atleta.statusPresenca || 'confirmado'));
+                    const chegadaConf = isCampo ? true : (isReset ? false : (conf.chegadaConfirmada || atleta.chegadaConfirmada || false));
                     return {
-                        ...cad,
                         ...atleta,
-                        foto: atleta.foto || cad.foto || '',
-                        posicao: atleta.posicao || cad.posicao || 'MEI'
+                        ...conf,
+                        statusPresenca: statusPres,
+                        chegadaConfirmada: chegadaConf,
+                        distanciaMetros: distMetros,
+                        distanciaTexto: isCampo ? 'No Campo' : (isReset ? 'Na Lista' : (conf.distanciaTexto || atleta.distanciaTexto)),
+                        statusAproximacao: statusAprox,
+                        status: statusAprox,
+                        horaChegada: isCampo ? (conf.horaChegada || atleta.horaChegada || conf.hora || atleta.hora) : (isReset ? null : (conf.horaChegada || atleta.horaChegada)),
+                        hora: conf.hora || atleta.hora
                     };
                 }
                 return { ...atleta };
             });
 
-            const totalConfirmados = atletasCompletos.length;
+            const totalCadastrados = atletasCompletos.length;
+            const confirmados = atletasCompletos.filter(j => 
+                j.statusPresenca === 'chegou' || 
+                j.statusPresenca === 'confirmado' || 
+                j.chegadaConfirmada === true
+            );
+            const totalConfirmados = confirmados.length;
 
             if (badge) {
-                badge.innerText = `${totalConfirmados} Confirmados`;
+                badge.innerText = `${totalConfirmados}/${totalCadastrados} Confirmados`;
             }
 
             // Atualiza o aviso e botão de presença/chegada no topo da tela de jogadores
@@ -3259,15 +3297,7 @@
 
             if (!container) return;
             if (atletasCompletos.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full rounded-2xl border-2 border-dashed border-surface-container-highest p-8 text-center flex flex-col items-center justify-center my-6 bg-surface-container-lowest/60 shadow-xs">
-                        <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3">
-                            <span class="material-symbols-outlined text-2xl">sports_soccer</span>
-                        </div>
-                        <h4 class="font-headline-md text-sm font-bold text-on-surface">Nenhum jogador confirmou presença ainda</h4>
-                        <p class="text-xs text-on-surface-variant mt-1.5 max-w-xs leading-relaxed">Toque em <strong>Confirmar Presença</strong> acima para garantir sua vaga e aparecer na lista oficial.</p>
-                    </div>
-                `;
+                container.innerHTML = '<p class="text-center text-xs text-on-surface-variant py-6">Carregando lista de atletas cadastrados...</p>';
                 return;
             }
 
@@ -3301,46 +3331,52 @@
                 const corFitness = overallReal >= 90 ? 'text-success-green' : (overallReal >= 75 ? 'text-warning-amber' : 'text-primary');
 
                 // DETERMINAÇÃO DO STATUS VISUAL DE PRESENÇA
-                const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? j.distanciaMetros : null;
-                const isReset = j.statusAproximacao === 'reset' || j.status === 'reset';
-                const chegou = !isReset && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou' || j.statusAproximacao === 'campo' || j.status === 'campo' || (distMetros !== null && distMetros <= 500));
-                const estaConfirmado = j.statusPresenca === 'confirmado' || (!j.statusPresenca && j.hora) || j.statusPresenca === 'presente';
-                const estaPendente = !chegou && (j.statusPresenca === 'pendente' || j.statusPresenca === 'ausente' || j.statusPresenca === 'aguardando' || !estaConfirmado);
+                const distMetros = (j.distanciaMetros !== undefined && j.distanciaMetros !== null) ? Number(j.distanciaMetros) : null;
+                const isReset = j.statusAproximacao === 'reset' || j.status === 'reset' || j.statusGeofence === 'reset';
+                const raioMaximoCampo = peladaConfig.raioMaximoMetros || 500;
+                const chegou = !isReset && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou' || j.statusAproximacao === 'campo' || j.status === 'campo' || j.statusGeofence === 'campo' || (distMetros !== null && distMetros <= raioMaximoCampo));
 
-                let corBadge, corBorda, statusTexto, iconeStatus, distTexto;
+                let corBadge, borderLeft, labelStatus, iconeStatus, distTexto;
 
+                // Lógica corrigida baseada estritamente no raio do campo (500m) e proximidade
                 if (chegou) {
-                    corBadge = 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
-                    corBorda = 'border-l-4 border-l-emerald-500';
-                    statusTexto = 'NO CAMPO';
+                    corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
+                    borderLeft = 'border-l-4 border-l-emerald-500';
+                    labelStatus = '🟢 No Campo';
                     iconeStatus = 'sports_soccer';
-                    distTexto = `<span class="text-emerald-600 font-bold">No Campo (${j.horaChegada || j.hora || '19:00'})</span>`;
-                } else if (estaPendente) {
-                    corBadge = 'bg-slate-500/15 text-slate-600 border border-slate-400/30';
-                    corBorda = 'border-l-4 border-l-slate-400';
-                    statusTexto = 'AGUARDANDO';
-                    iconeStatus = 'schedule';
-                    distTexto = `<span class="text-on-surface-variant font-medium">Aguardando confirmação</span>`;
+                    distTexto = `<span class="text-emerald-600 font-bold">No Campo</span>`;
+                } else if (distMetros !== null && distMetros <= raioMaximoCampo) {
+                    // Se estiver dentro de 500 metros do endereço da pelada, já conta como próximo/no raio de check-in
+                    corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
+                    borderLeft = 'border-l-4 border-l-emerald-500';
+                    labelStatus = '🟢 No Campo';
+                    iconeStatus = 'sports_soccer';
+                    distTexto = `<span class="text-emerald-600 font-bold">${distMetros}m do campo</span>`;
                 } else if (distMetros !== null && distMetros <= 1500) {
-                    corBadge = 'bg-amber-500/15 text-amber-700 border border-amber-500/30';
-                    corBorda = 'border-l-4 border-l-amber-500';
-                    statusTexto = 'PRÓXIMO';
+                    // Entre 500m e 1.5km
+                    corBadge = 'bg-amber-500/15 text-amber-700 border-amber-500/30';
+                    borderLeft = 'border-l-4 border-l-amber-500';
+                    labelStatus = '🟡 Próximo';
                     iconeStatus = 'near_me';
                     distTexto = `<span class="text-amber-600 font-bold">${distMetros}m do campo</span>`;
                 } else if (distMetros !== null && distMetros > 1500) {
-                    corBadge = 'bg-red-500/15 text-red-700 border border-red-500/30';
-                    corBorda = 'border-l-4 border-l-red-500';
-                    statusTexto = 'LONGE';
+                    // Acima de 1.5km
+                    corBadge = 'bg-red-500/15 text-red-700 border-red-500/30';
+                    borderLeft = 'border-l-4 border-l-red-500';
+                    labelStatus = '🔴 Longe';
                     iconeStatus = 'navigation';
                     const km = distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`;
                     distTexto = `<span class="text-red-500 font-bold">${km} do campo</span>`;
                 } else {
-                    corBadge = 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
-                    corBorda = 'border-l-4 border-l-emerald-500';
-                    statusTexto = 'CONFIRMADO';
-                    iconeStatus = 'check_circle';
-                    distTexto = `<span class="text-emerald-600 font-bold">Confirmado (${j.hora || '19:00'})</span>`;
+                    corBadge = 'bg-gray-500/15 text-gray-600 border-gray-400/30';
+                    borderLeft = 'border-l-4 border-l-gray-300';
+                    labelStatus = '⚪ Aguardando';
+                    iconeStatus = 'schedule';
+                    distTexto = `<span class="text-on-surface-variant font-medium">Aguardando GPS</span>`;
                 }
+
+                const corBorda = borderLeft;
+                const statusTexto = labelStatus;
 
                 const ehPrimeiraPosicao = (idx === 0);
                 const badgePrimeiraPosicao = ehPrimeiraPosicao
@@ -3352,8 +3388,8 @@
                     : '';
 
                 const cardClasses = ehUsuarioLogado
-                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${corBorda} ${destaquePrimeiro}`
-                    : `bg-surface-container-lowest ${estaPendente ? 'opacity-90' : 'shadow-sm'} rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${corBorda} ${destaquePrimeiro}`;
+                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${borderLeft} ${destaquePrimeiro}`
+                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${borderLeft} ${destaquePrimeiro}`;
 
                 const badgeVoce = ehUsuarioLogado
                     ? `<span class="bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase shadow-xs flex items-center gap-0.5">⭐ VOCÊ (#1)</span>`

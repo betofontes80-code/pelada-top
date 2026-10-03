@@ -435,9 +435,11 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   let isLonge = false;
   let isReset = false;
 
+  const raioCampo = (dados.peladaConfig && dados.peladaConfig.raioMaximoMetros) || (appData.peladaConfig && appData.peladaConfig.raioMaximoMetros) || 500;
+
   if (st === 'reset' || st === 'resetar' || st === 'desfazer') {
     isReset = true;
-  } else if (st === 'campo' || st === 'chegou' || st === 'no_campo' || (distNum !== null && distNum <= 500)) {
+  } else if (st === 'campo' || st === 'chegou' || st === 'no_campo' || (distNum !== null && distNum <= raioCampo)) {
     isCampo = true;
   } else if (st === 'proximo' || (distNum !== null && distNum <= 1500)) {
     isProximo = true;
@@ -445,7 +447,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     isLonge = true;
   }
 
-  const dentroDoRaio = !isReset && ((distNum !== null && distNum <= 500) || isCampo);
+  const dentroDoRaio = !isReset && ((distNum !== null && distNum <= raioCampo) || isCampo);
   const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
   const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
