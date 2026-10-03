@@ -57,53 +57,42 @@ function tocarApitoJuiz() {
   }
 }
 
-// Renderização exclusiva da Lista Oficial de Presença (somente confirmados)
-function renderizarListaPresencaOficial(atletas) {
-  const container = document.getElementById('lista-presenca-oficial') || document.querySelector('.lista-presenca-container');
+// Renderização exclusiva da Lista Oficial de Presença (somente confirmados no campo)
+function renderizarListaPresencaConfirmados() {
+  const container = document.getElementById('lista-presenca-oficial');
   const kpiEl = document.getElementById('kpiConfirmados');
-  const baseAtletas = Array.isArray(atletas) && atletas.length > 0 ? atletas : (state.athletes || []);
   if (!container) return;
 
-  // FILTRA ESTRITAMENTE: Apenas os atletas que tiveram a presença confirmada
-  const confirmados = baseAtletas.filter(a => {
-    const isReset = a.status === 'reset' || a.statusGeofence === 'reset' || a.statusAproximacao === 'reset';
-    if (isReset) return false;
+  const confirmados = (state.athletes || []).filter(a => {
+    const st = String(a.status || a.statusGeofence || a.statusAproximacao || '').toLowerCase();
     const dist = (a.distanciaMetros !== null && a.distanciaMetros !== undefined) ? Number(a.distanciaMetros) : (a.distance !== null && a.distance !== undefined ? Number(a.distance) : null);
-    const estaNoCampo = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusGeofence === 'campo' || (dist !== null && dist <= 500);
-    const estaConfirmado = a.statusPresenca === 'confirmado' || a.statusPresenca === 'presente' || a.confirmadoSorteio === true || a.checkinLiberado === true;
-    return (estaNoCampo || estaConfirmado) && a.statusPresenca !== 'pendente';
+    const chegou = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || st === 'campo' || (dist !== null && dist <= 500 && st !== 'reset');
+    return chegou && st !== 'reset';
   });
 
   if (kpiEl) {
-    kpiEl.textContent = `${confirmados.length}/23 Confirmados`;
+    kpiEl.textContent = `/ ${confirmados.length} Confirmados`;
   }
 
   if (confirmados.length === 0) {
-    container.innerHTML = '<div class="text-xs text-slate-400 p-3 text-center">Nenhum jogador confirmado na presença ainda.</div>';
+    container.innerHTML = '<div class="text-center text-slate-400 py-3 text-xs">Nenhum atleta confirmado no campo no momento.</div>';
     return;
   }
 
-  container.innerHTML = confirmados.map((a, index) => {
-    const dist = (a.distanciaMetros !== null && a.distanciaMetros !== undefined) ? Number(a.distanciaMetros) : (a.distance !== null && a.distance !== undefined ? Number(a.distance) : null);
-    const noCampo = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusGeofence === 'campo' || (dist !== null && dist <= 500);
-    const badgeText = noCampo ? '⚽ NO CAMPO' : '⚽ CONFIRMADO';
-    return `
-      <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-xs my-1.5">
-        <div class="flex items-center gap-3">
-          <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">#${index + 1}</span>
-          <div>
-            <div class="font-bold text-slate-900 text-sm">${a.nome || a.name || 'Atleta'}</div>
-            <div class="text-[11px] text-slate-500">${a.posicao || a.position || 'MEI'} • ${noCampo ? 'Chegou' : 'Confirmado'}</div>
-          </div>
-        </div>
-        <span class="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
-          ${badgeText}
-        </span>
+  container.innerHTML = confirmados.map((a, i) => `
+    <div class="flex items-center justify-between p-2 bg-[#1e293b]/70 border border-emerald-500/30 rounded-lg text-xs">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="font-mono font-bold text-emerald-400 text-[11px]">#${i + 1}</span>
+        <span class="font-bold text-white truncate">${a.nome || a.name || 'Atleta'}</span>
+        <span class="text-[10px] text-slate-300 bg-slate-700/60 px-1.5 py-0.5 rounded font-mono">${a.posicao || a.position || 'MEI'}</span>
       </div>
-    `;
-  }).join('');
+      <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+        ⚽ NO CAMPO
+      </span>
+    </div>
+  `).join('');
 }
-const renderizarListaPresencaConfirmados = renderizarListaPresencaOficial;
 
 // ID do Atleta atualmente selecionado na aba de simulação de GPS
 let currentAthleteId = 'jog_1790559444604'; // Padrão: Lucas Silva
@@ -771,8 +760,6 @@ function normalizarAtleta(a, idx) {
   }
 
   const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
-  const statusGeofence = a.statusGeofence || (checkedIn || status === 'campo' ? 'campo' : (status === 'proximo' ? 'proximo' : (status === 'reset' ? 'aguardando' : 'longe')));
-  const checkinLiberado = a.checkinLiberado !== undefined ? a.checkinLiberado : (checkedIn || (distance !== null && distance <= 500 && status !== 'reset'));
 
   return {
     ...a,
@@ -790,9 +777,6 @@ function normalizarAtleta(a, idx) {
     distance,
     distanciaMetros: distance,
     status,
-    statusGeofence,
-    checkinLiberado,
-    confirmadoSorteio: checkinLiberado,
     checkedIn,
     canCheckIn: distance !== null && distance <= 500
   };
@@ -818,7 +802,6 @@ async function carregarAtletas() {
   atualizarDisplayAtleta(currentAthleteId);
   renderListaAtletasGPS();
   atualizarKpis();
-  renderizarListaPresencaOficial(state.athletes);
 }
 
 // Renderiza seletor de atletas da Seção 4 de GPS
