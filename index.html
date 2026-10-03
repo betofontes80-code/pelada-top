@@ -3110,60 +3110,150 @@
         // ==============================================================
         // RENDERIZAÇÃO DA LISTA DE JOGADORES (TODOS OS ATLETAS COM INDICADOR VISUAL)
         // ==============================================================
+        // ==============================================================
+        // AVISO E BOTÃO DE CHECK-IN / PROMPT NO TOPO
+        // ==============================================================
+        function atualizarBannerJogadoresCheckinPrompt(baseAtletas, atletasCompletos) {
+            const bannerPrompt = document.getElementById('banner-jogadores-checkin-prompt');
+            if (!bannerPrompt) return;
+
+            const atletaLogado = (baseAtletas || []).find(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+
+            const presencaConfirmada = atletaLogado && (
+                atletaLogado.statusPresenca === 'confirmado' || 
+                atletaLogado.statusPresenca === 'chegou' || 
+                atletaLogado.chegadaConfirmada === true
+            );
+
+            if (!atletaLogado || !presencaConfirmada) {
+                if (!peladaConfig.listaAberta) {
+                    bannerPrompt.className = 'shrink-0 bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
+                            <span class="material-symbols-outlined text-amber-600 text-xl">lock</span>
+                            <div>
+                                <span class="block leading-tight text-amber-800">Check-in Temporariamente Fechado</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">Aguarde o administrador abrir a lista no vestiário</span>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 bg-amber-500/20 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                            Bloqueada
+                        </span>
+                    `;
+                } else {
+                    bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
+                            <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
+                            <div>
+                                <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
+                            </div>
+                        </div>
+                        <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
+                            <span>Confirmar Presença</span>
+                            <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                        </button>
+                    `;
+                }
+            } else {
+                const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou' || atletaLogado.statusAproximacao === 'campo' || atletaLogado.status === 'campo';
+                const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
+
+                if (chegouConfirmado) {
+                    bannerPrompt.className = 'shrink-0 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center gap-2 text-emerald-700 text-xs font-bold">
+                            <span class="material-symbols-outlined text-emerald-600 text-xl">sports_soccer</span>
+                            <div>
+                                <span class="block leading-tight">Chegada Confirmada no Campo! ⚽</span>
+                                <span class="text-[10px] text-emerald-600 font-normal">Chegou às ${atletaLogado.horaChegada || atletaLogado.hora || 'No Local'} • Presença validada!</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 shadow-xs">
+                                <span class="material-symbols-outlined text-xs">done_all</span> No Campo
+                            </span>
+                            <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença">
+                                Sair
+                            </button>
+                        </div>
+                    `;
+                } else if (dist !== null && dist <= 500 && atletaLogado.statusAproximacao !== 'reset') {
+                    bannerPrompt.className = 'shrink-0 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl p-3 shadow-md flex flex-col gap-2 border-2 border-emerald-300 animate-pulse';
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-2xl animate-bounce">sports_soccer</span>
+                                <div>
+                                    <h4 class="font-headline-md text-xs font-black uppercase tracking-wide">Você está a ${dist}m do Campo! (&le;500m)</h4>
+                                    <p class="text-[10px] text-emerald-100 font-medium">Toque abaixo para confirmar sua chegada física para o Administrador:</p>
+                                </div>
+                            </div>
+                            <span class="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">2ª ETAPA</span>
+                        </div>
+                        <button onclick="confirmarChegadaLocal()" class="w-full py-2.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded-lg text-xs font-black uppercase tracking-wider active:scale-[0.98] shadow-sm flex items-center justify-center gap-1.5 transition-all">
+                            <span class="material-symbols-outlined text-base">check_circle</span>
+                            <span>Confirmar Chegada no Local ⚽</span>
+                        </button>
+                    `;
+                } else {
+                    const distTexto = dist !== null ? (dist >= 1000 ? `${(dist/1000).toFixed(1)} km` : `${dist}m`) : 'Aguardando GPS';
+                    const statusDist = dist !== null && dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE';
+                    const badgeCor = dist !== null && dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30';
+
+                    bannerPrompt.className = 'shrink-0 bg-surface-container-low border border-surface-container-highest rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                    bannerPrompt.innerHTML = `
+                        <div class="flex items-center gap-2 text-on-surface text-xs font-bold min-w-0">
+                            <span class="material-symbols-outlined text-primary text-xl shrink-0">radar</span>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeCor}">${statusDist}</span>
+                                    <span class="text-xs font-bold text-on-surface truncate">${distTexto} do Campo</span>
+                                </div>
+                                <p class="text-[10px] text-on-surface-variant font-normal truncate">O botão de chegada surgirá quando você estiver a &le;500m.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="atualizarLocalizacaoGps(true)" class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-[10px] font-bold text-primary flex items-center gap-0.5 active:scale-95" title="Medir GPS">
+                                <span class="material-symbols-outlined text-xs">my_location</span>
+                                <span>GPS</span>
+                            </button>
+                            <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença">
+                                Sair
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // ==============================================================
+        // RENDERIZAÇÃO DA LISTA DE JOGADORES (APENAS CONFIRMADOS/CHEGOU)
+        // ==============================================================
         function renderizarListaJogadores() {
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
 
-            // Garante que o cadastro geral permanente de atletas cadastrados seja sempre a base
-            let baseAtletas = (Array.isArray(cadastroGeralAtletas) && cadastroGeralAtletas.length > 0)
-                ? cadastroGeralAtletas
-                : ((Array.isArray(listaConfirmados) && listaConfirmados.length > 0) ? listaConfirmados : [...ATLETAS_INICIAIS_PADRAO]);
+            // 1. Pega a base de atletas cadastrados/confirmados
+            let baseAtletas = (Array.isArray(listaConfirmados) && listaConfirmados.length > 0)
+                ? listaConfirmados
+                : (Array.isArray(cadastroGeralAtletas) ? cadastroGeralAtletas : [...ATLETAS_INICIAIS_PADRAO]);
 
-            // Mapeia o status temporário de presença (se houver na listaConfirmados)
-            const mapaPresenca = new Map();
-            if (Array.isArray(listaConfirmados)) {
-                listaConfirmados.forEach(c => {
-                    if (c && c.id) mapaPresenca.set(String(c.id), c);
-                    if (c && c.nome) mapaPresenca.set(c.nome.trim().toLowerCase(), c);
-                });
-            }
+            // 2. FILTRA RIGOROSAMENTE APENAS QUEM JÁ CONFIRMOU PRESENÇA OU CHEGOU AO CAMPO
+            let atletasCompletos = baseAtletas.filter(atleta => {
+                const isChegou = atleta.chegadaConfirmada === true || 
+                                 atleta.statusPresenca === 'chegou' || 
+                                 atleta.statusAproximacao === 'chegou' || 
+                                 atleta.status === 'campo';
 
-            const todosAtletas = baseAtletas.map(atleta => {
-                const conf = (atleta && atleta.id && mapaPresenca.get(String(atleta.id))) ||
-                             (atleta && atleta.nome && mapaPresenca.get(atleta.nome.trim().toLowerCase()));
-                if (conf) {
-                    const isReset = conf.statusAproximacao === 'reset' || conf.status === 'reset' || atleta.statusAproximacao === 'reset' || atleta.status === 'reset';
-                    const isCampo = !isReset && (
-                        conf.chegadaConfirmada === true || conf.statusPresenca === 'chegou' || conf.statusAproximacao === 'campo' || conf.status === 'campo' || conf.statusAproximacao === 'chegou' ||
-                        atleta.chegadaConfirmada === true || atleta.statusPresenca === 'chegou' || atleta.statusAproximacao === 'campo' || atleta.status === 'campo' || atleta.statusAproximacao === 'chegou' ||
-                        (conf.distanciaMetros !== null && conf.distanciaMetros !== undefined && conf.distanciaMetros <= 500) ||
-                        (atleta.distanciaMetros !== null && atleta.distanciaMetros !== undefined && atleta.distanciaMetros <= 500)
-                    );
-                    const distMetros = isReset ? null : (conf.distanciaMetros !== undefined && conf.distanciaMetros !== null ? conf.distanciaMetros : atleta.distanciaMetros);
-                    const statusAprox = isCampo ? 'campo' : (isReset ? 'reset' : (conf.statusAproximacao || atleta.statusAproximacao || 'longe'));
-                    const statusPres = isCampo ? 'chegou' : (isReset ? 'confirmado' : (conf.statusPresenca || atleta.statusPresenca || 'confirmado'));
-                    const chegadaConf = isCampo ? true : (isReset ? false : (conf.chegadaConfirmada || atleta.chegadaConfirmada || false));
-                    return {
-                        ...atleta,
-                        ...conf,
-                        statusPresenca: statusPres,
-                        chegadaConfirmada: chegadaConf,
-                        distanciaMetros: distMetros,
-                        distanciaTexto: isCampo ? 'No Campo' : (isReset ? 'Na Lista' : (conf.distanciaTexto || atleta.distanciaTexto)),
-                        statusAproximacao: statusAprox,
-                        status: statusAprox,
-                        horaChegada: isCampo ? (conf.horaChegada || atleta.horaChegada || conf.hora || atleta.hora) : (isReset ? null : (conf.horaChegada || atleta.horaChegada)),
-                        hora: conf.hora || atleta.hora
-                    };
-                }
-                return { ...atleta };
-            });
+                const isConfirmado = atleta.statusPresenca === 'confirmado' || 
+                                     (atleta.hora && atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente');
 
-            // 2. FILTRA APENAS OS JOGADORES QUE FORAM CONFIRMADOS OU CHEGARAM AO CAMPO
-            const atletasCompletos = todosAtletas.filter(atleta => {
-                return atleta.statusPresenca === 'confirmado' || 
-                       atleta.statusPresenca === 'chegou' || 
-                       atleta.chegadaConfirmada === true;
+                return isChegou || isConfirmado;
             });
 
             const totalConfirmados = atletasCompletos.length;
@@ -3176,126 +3266,8 @@
                 contadorEl.textContent = `${totalConfirmados}/23 Confirmados`;
             }
 
-            // Atualiza o aviso e botão de presença/chegada no topo da tela de jogadores
-            const bannerPrompt = document.getElementById('banner-jogadores-checkin-prompt');
-            if (bannerPrompt) {
-                const atletaLogado = todosAtletas.find(j => 
-                    (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
-                    (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
-                );
-
-                const presencaConfirmada = atletaLogado && (
-                    atletaLogado.statusPresenca === 'confirmado' || 
-                    atletaLogado.statusPresenca === 'chegou' || 
-                    atletaLogado.chegadaConfirmada === true
-                );
-
-                if (!atletaLogado || !presencaConfirmada) {
-                    if (!peladaConfig.listaAberta) {
-                        // Lista Fechada / Bloqueada pelo Admin (Controle do Vestiário)
-                        bannerPrompt.className = 'shrink-0 bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
-                        bannerPrompt.innerHTML = `
-                            <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
-                                <span class="material-symbols-outlined text-amber-600 text-xl">lock</span>
-                                <div>
-                                    <span class="block leading-tight text-amber-800">Check-in Temporariamente Fechado</span>
-                                    <span class="text-[10px] text-on-surface-variant font-normal">Aguarde o administrador abrir a lista no vestiário</span>
-                                </div>
-                            </div>
-                            <span class="px-2.5 py-1 bg-amber-500/20 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                Bloqueada
-                            </span>
-                        `;
-                    } else {
-                        // ESTADO 1: Ainda não confirmou presença na lista (1ª Confirmação)
-                        bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
-                        bannerPrompt.innerHTML = `
-                            <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
-                                <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
-                                <div>
-                                    <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
-                                    <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
-                                </div>
-                            </div>
-                            <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
-                                <span>Confirmar Presença</span>
-                                <span class="material-symbols-outlined text-xs">arrow_forward</span>
-                            </button>
-                        `;
-                    }
-                } else {
-                    const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou' || atletaLogado.statusAproximacao === 'campo' || atletaLogado.status === 'campo';
-                    const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
-
-                    if (chegouConfirmado) {
-                        // ESTADO 4: Chegada física confirmada no local (2ª etapa concluída!)
-                        bannerPrompt.className = 'shrink-0 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
-                        bannerPrompt.innerHTML = `
-                            <div class="flex items-center gap-2 text-emerald-700 text-xs font-bold">
-                                <span class="material-symbols-outlined text-emerald-600 text-xl">sports_soccer</span>
-                                <div>
-                                    <span class="block leading-tight">Chegada Confirmada no Campo! ⚽</span>
-                                    <span class="text-[10px] text-emerald-600 font-normal">Chegou às ${atletaLogado.horaChegada || atletaLogado.hora || 'No Local'} • Presença validada!</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 shadow-xs">
-                                    <span class="material-symbols-outlined text-xs">done_all</span> No Campo
-                                </span>
-                                <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença">
-                                    Sair
-                                </button>
-                            </div>
-                        `;
-                    } else if (dist !== null && dist <= 500 && atletaLogado.statusAproximacao !== 'reset') {
-                        // ESTADO 3: SURGE O BOTÃO DE CONFIRMAR CHEGADA NO LOCAL (<= 500 METROS)!
-                        bannerPrompt.className = 'shrink-0 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl p-3 shadow-md flex flex-col gap-2 border-2 border-emerald-300 animate-pulse';
-                        bannerPrompt.innerHTML = `
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-2xl animate-bounce">sports_soccer</span>
-                                    <div>
-                                        <h4 class="font-headline-md text-xs font-black uppercase tracking-wide">Você está a ${dist}m do Campo! (&le;500m)</h4>
-                                        <p class="text-[10px] text-emerald-100 font-medium">Toque abaixo para confirmar sua chegada física para o Administrador:</p>
-                                    </div>
-                                </div>
-                                <span class="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">2ª ETAPA</span>
-                            </div>
-                            <button onclick="confirmarChegadaLocal()" class="w-full py-2.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded-lg text-xs font-black uppercase tracking-wider active:scale-[0.98] shadow-sm flex items-center justify-center gap-1.5 transition-all">
-                                <span class="material-symbols-outlined text-base">check_circle</span>
-                                <span>Confirmar Chegada no Local ⚽</span>
-                            </button>
-                        `;
-                    } else {
-                        // ESTADO 2: Confirmado na lista, mas a distância é > 500m
-                        const distTexto = dist !== null ? (dist >= 1000 ? `${(dist/1000).toFixed(1)} km` : `${dist}m`) : 'Aguardando GPS';
-                        const statusDist = dist !== null && dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE';
-                        const badgeCor = dist !== null && dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30';
-
-                        bannerPrompt.className = 'shrink-0 bg-surface-container-low border border-surface-container-highest rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
-                        bannerPrompt.innerHTML = `
-                            <div class="flex items-center gap-2 text-on-surface text-xs font-bold min-w-0">
-                                <span class="material-symbols-outlined text-primary text-xl shrink-0">radar</span>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeCor}">${statusDist}</span>
-                                        <span class="text-xs font-bold text-on-surface truncate">${distTexto} do Campo</span>
-                                    </div>
-                                    <p class="text-[10px] text-on-surface-variant font-normal truncate">O botão de chegada surgirá quando você estiver a &le;500m.</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <button onclick="atualizarLocalizacaoGps(true)" class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-[10px] font-bold text-primary flex items-center gap-0.5 active:scale-95" title="Medir GPS">
-                                    <span class="material-symbols-outlined text-xs">my_location</span>
-                                    <span>GPS</span>
-                                </button>
-                                <button onclick="cancelarPresencaLogado()" class="text-[10px] text-red-500 hover:text-red-700 font-bold active:scale-95 underline" title="Cancelar presença">
-                                    Sair
-                                </button>
-                            </div>
-                        `;
-                    }
-                }
+            if (typeof atualizarBannerJogadoresCheckinPrompt === 'function') {
+                atualizarBannerJogadoresCheckinPrompt(baseAtletas, atletasCompletos);
             }
 
             if (!container) return;
@@ -3304,24 +3276,10 @@
                 return;
             }
 
-            // ORDENAÇÃO: 
-            // 1. Usuário logado no app aparece SEMPRE em 1º lugar (#1)
-            // 2. Atletas com presença confirmada (No Campo / Confirmado)
-            const listaOrdenadaExibicao = [...atletasCompletos].sort((a, b) => {
-                const ehLogadoA = (a.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() || (usuarioAtual.id && String(a.id) === String(usuarioAtual.id));
-                const ehLogadoB = (b.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() || (usuarioAtual.id && String(b.id) === String(usuarioAtual.id));
-                if (ehLogadoA && !ehLogadoB) return -1;
-                if (!ehLogadoA && ehLogadoB) return 1;
-
-                const confA = (a.statusPresenca === 'chegou' || a.chegadaConfirmada === true) ? 1 : 0;
-                const confB = (b.statusPresenca === 'chegou' || b.chegadaConfirmada === true) ? 1 : 0;
-                if (confA !== confB) return confB - confA;
-
-                return 0;
-            });
-
             let html = '';
-            listaOrdenadaExibicao.forEach((j, idx) => {
+            const raioMaximoCampo = peladaConfig.raioMaximoMetros || 500;
+
+            atletasCompletos.forEach((j, idx) => {
                 const ehUsuarioLogado = (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
                                         (usuarioAtual.id && String(j.id) === String(usuarioAtual.id));
 
@@ -3332,15 +3290,15 @@
                 const overallReal = calcularOverallAtleta(j, ehUsuarioLogado ? usuarioAtual : null);
                 const corFitness = overallReal >= 90 ? 'text-success-green' : (overallReal >= 75 ? 'text-warning-amber' : 'text-primary');
 
-                // DETERMINAÇÃO DO STATUS VISUAL DE PRESENÇA
-                const distMetros = (j.distanciaMetros !== undefined && j.distanciaMetros !== null) ? Number(j.distanciaMetros) : null;
-                const isReset = j.statusAproximacao === 'reset' || j.status === 'reset' || j.statusGeofence === 'reset';
-                const raioMaximoCampo = peladaConfig.raioMaximoMetros || 500;
-                const chegou = !isReset && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou' || j.statusAproximacao === 'campo' || j.status === 'campo' || j.statusGeofence === 'campo' || (distMetros !== null && distMetros <= raioMaximoCampo));
+                // Extrai a distância exata em metros do GPS do atleta
+                const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? Number(j.distanciaMetros) : null;
+                const isReset = j.statusAproximacao === 'reset' || j.status === 'reset';
+                
+                // Regra de GEOFENCING E GPS EXATA DO RESUMO:
+                const chegou = !isReset && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou' || j.statusAproximacao === 'campo' || j.status === 'campo' || (distMetros !== null && distMetros <= raioMaximoCampo));
 
                 let corBadge, borderLeft, labelStatus, iconeStatus, distTexto;
 
-                // Lógica corrigida baseada estritamente no raio do campo (500m) e proximidade
                 if (chegou) {
                     corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
                     borderLeft = 'border-l-4 border-l-emerald-500';
@@ -3348,21 +3306,18 @@
                     iconeStatus = 'sports_soccer';
                     distTexto = `<span class="text-emerald-600 font-bold">No Campo (${j.horaChegada || j.hora || '19:00'})</span>`;
                 } else if (distMetros !== null && distMetros <= raioMaximoCampo) {
-                    // Se estiver dentro de 500 metros do endereço da pelada, já conta como próximo/no raio de check-in
                     corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
                     borderLeft = 'border-l-4 border-l-emerald-500';
                     labelStatus = '🟢 No Campo';
                     iconeStatus = 'sports_soccer';
                     distTexto = `<span class="text-emerald-600 font-bold">${distMetros}m do campo</span>`;
                 } else if (distMetros !== null && distMetros <= 1500) {
-                    // Entre 500m e 1.5km
                     corBadge = 'bg-amber-500/15 text-amber-700 border-amber-500/30';
                     borderLeft = 'border-l-4 border-l-amber-500';
                     labelStatus = '🟡 Próximo';
                     iconeStatus = 'near_me';
                     distTexto = `<span class="text-amber-600 font-bold">${distMetros}m do campo</span>`;
                 } else if (distMetros !== null && distMetros > 1500) {
-                    // Acima de 1.5km
                     corBadge = 'bg-red-500/15 text-red-700 border-red-500/30';
                     borderLeft = 'border-l-4 border-l-red-500';
                     labelStatus = '🔴 Longe';
@@ -3377,21 +3332,14 @@
                     distTexto = `<span class="text-on-surface-variant font-medium">Aguardando GPS</span>`;
                 }
 
-                const corBorda = borderLeft;
-                const statusTexto = labelStatus;
-
                 const ehPrimeiraPosicao = (idx === 0);
                 const badgePrimeiraPosicao = ehPrimeiraPosicao
                     ? `<span class="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase flex items-center gap-0.5 shadow-xs ring-1 ring-emerald-400 animate-pulse"><span class="w-1 h-1 rounded-full bg-white"></span> 1ª POSIÇÃO</span>`
                     : '';
 
-                const destaquePrimeiro = ehPrimeiraPosicao
-                    ? 'ring-2 ring-emerald-500/50 bg-emerald-50/20'
-                    : '';
-
                 const cardClasses = ehUsuarioLogado
-                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${borderLeft} ${destaquePrimeiro}`
-                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${borderLeft} ${destaquePrimeiro}`;
+                    ? `bg-emerald-50/50 dark:bg-slate-800/90 border-2 border-emerald-500 shadow-md rounded-xl p-2.5 flex items-center gap-2 relative shrink-0 ring-2 ring-emerald-500/20 ${borderLeft}`
+                    : `bg-surface-container-lowest shadow-sm rounded-lg p-2 flex items-center gap-2 relative border border-surface-container-highest shrink-0 ${borderLeft}`;
 
                 const badgeVoce = ehUsuarioLogado
                     ? `<span class="bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase shadow-xs flex items-center gap-0.5">⭐ VOCÊ (#1)</span>`
@@ -3410,7 +3358,7 @@
                                 ${badgeVoce}
                                 ${badgePrimeiraPosicao}
                                 <span class="${corBadge} text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider flex items-center gap-0.5 shrink-0">
-                                    <span class="material-symbols-outlined text-[10px]">${iconeStatus}</span>${statusTexto}
+                                    <span class="material-symbols-outlined text-[10px]">${iconeStatus}</span>${labelStatus}
                                 </span>
                             </div>
                             <span class="font-label-md text-on-surface-variant text-[10px] flex items-center gap-1 mt-0.5">
