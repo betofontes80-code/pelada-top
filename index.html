@@ -3297,7 +3297,15 @@
 
             if (!container) return;
             if (atletasCompletos.length === 0) {
-                container.innerHTML = '<p class="text-center text-xs text-on-surface-variant py-6">Carregando lista de atletas cadastrados...</p>';
+                container.innerHTML = `
+                    <div class="col-span-full rounded-2xl border-2 border-dashed border-surface-container-highest p-8 text-center flex flex-col items-center justify-center my-6 bg-surface-container-lowest/60 shadow-xs">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3">
+                            <span class="material-symbols-outlined text-2xl">sports_soccer</span>
+                        </div>
+                        <h4 class="font-headline-md text-sm font-bold text-on-surface">Nenhum jogador confirmou presença ainda</h4>
+                        <p class="text-xs text-on-surface-variant mt-1.5 max-w-xs leading-relaxed">Toque em <strong>Confirmar Presença</strong> acima para garantir sua vaga e aparecer na lista oficial.</p>
+                    </div>
+                `;
                 return;
             }
 
