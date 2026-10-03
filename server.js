@@ -280,14 +280,14 @@ try {
       appData.usuarios = dadosIniciais.jogadoresCadastrados;
     }
 
-    const listaInicial = (Array.isArray(dadosIniciais.atletas) && dadosIniciais.atletas.length > 0)
-      ? dadosIniciais.atletas
-      : (Array.isArray(dadosIniciais.listaConfirmados) && dadosIniciais.listaConfirmados.length > 0 ? dadosIniciais.listaConfirmados : []);
-
-    if (listaInicial.length > 0) {
-      appData.listaConfirmados = listaInicial;
-      appData.atletas = listaInicial;
+    if (Array.isArray(dadosIniciais.atletas) && dadosIniciais.atletas.length > 0) {
+      appData.atletas = dadosIniciais.atletas;
       carregou = true;
+    }
+    if (Array.isArray(dadosIniciais.listaConfirmados)) {
+      appData.listaConfirmados = dadosIniciais.listaConfirmados.filter(c => c && (c.statusPresenca === 'chegou' || c.statusPresenca === 'confirmado' || c.chegadaConfirmada === true));
+    } else {
+      appData.listaConfirmados = [];
     }
 
     if (dadosIniciais.peladaConfig) appData.peladaConfig = dadosIniciais.peladaConfig;
@@ -297,7 +297,7 @@ try {
   }
 
   if (carregou) {
-    console.log('[Realtime] Dados da pelada carregados com sucesso do database.json (' + appData.listaConfirmados.length + ' atletas).');
+    console.log('[Realtime] Dados da pelada carregados com sucesso do database.json (' + (appData.atletas ? appData.atletas.length : 0) + ' atletas cadastrados, ' + appData.listaConfirmados.length + ' confirmados).');
   } else {
     salvarDadosDisco();
   }
@@ -449,7 +449,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
   const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
+  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'pendente')));
   const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
   const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
 
@@ -498,10 +498,8 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
       dados.listaConfirmados.unshift({ ...atletaAtualizado });
     }
   } else {
-    const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
-    if (idxConf >= 0) {
-      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
-    }
+    // Atleta com presença não confirmada ou pendente: remove da listaConfirmados
+    dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
   }
 
   salvarDados(dados);
@@ -1036,9 +1034,9 @@ const requestHandler = (req, res) => {
           appData.atletas = saved.atletas;
         }
         if (Array.isArray(saved.listaConfirmados)) {
-          appData.listaConfirmados = saved.listaConfirmados;
-        } else if (Array.isArray(appData.atletas) && (!appData.listaConfirmados || appData.listaConfirmados.length === 0)) {
-          appData.listaConfirmados = [...appData.atletas];
+          appData.listaConfirmados = saved.listaConfirmados.filter(c => c && (c.statusPresenca === 'chegou' || c.statusPresenca === 'confirmado' || c.chegadaConfirmada === true));
+        } else {
+          appData.listaConfirmados = [];
         }
         if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
         if (saved.escalacaoAtiva !== undefined && appData.escalacaoAtiva === undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;

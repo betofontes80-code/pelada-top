@@ -1146,10 +1146,10 @@
             ? salvosCadastroGeral
             : ((Array.isArray(salvosLocal) && salvosLocal.length > 0) ? salvosLocal : [...ATLETAS_INICIAIS_PADRAO]);
 
-        // A lista de confirmados/presença para a partida atual
+        // A lista de confirmados/presença para a partida atual (inicia estritamente apenas com quem confirmou)
         let listaConfirmados = (Array.isArray(salvosLocal) && salvosLocal.length > 0)
-            ? salvosLocal
-            : [...cadastroGeralAtletas];
+            ? salvosLocal.filter(j => j && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusPresenca === 'confirmado' || j.statusAproximacao === 'campo' || j.status === 'campo'))
+            : [];
         let ultimaVersaoSincronizada = parseInt(localStorage.getItem('pelada_version')) || 0;
 
         let roleSelecionadoLogin = 'jogador';
@@ -1455,8 +1455,8 @@
                     listaConfirmados = [];
                 }
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
-            } else if (Array.isArray(data.atletas) && (!listaConfirmados || listaConfirmados.length === 0)) {
-                listaConfirmados = [...data.atletas];
+            } else if (!listaConfirmados) {
+                listaConfirmados = [];
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
             }
 
@@ -1623,9 +1623,9 @@
                         cadastroGeralAtletas = atletasValidos;
                         localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
 
-                        // 2. Sincroniza listaConfirmados se estiver vazia ou nula
-                        if (!Array.isArray(listaConfirmados) || listaConfirmados.length === 0) {
-                            listaConfirmados = [...cadastroGeralAtletas];
+                        // 2. Sincroniza listaConfirmados se for nula
+                        if (!Array.isArray(listaConfirmados)) {
+                            listaConfirmados = [];
                             localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                         }
 
@@ -2953,6 +2953,10 @@
                     j.distanciaMetros = null;
                     j.horaChegada = null;
                 }
+                listaConfirmados = (listaConfirmados || []).filter(x => 
+                    !( (usuarioAtual.id && String(x.id) === String(usuarioAtual.id)) ||
+                       (x.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() )
+                );
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                 aplicarDadosAtualizados();
                 await sincronizarServidor();
@@ -3116,7 +3120,7 @@
                     );
                     const distMetros = isReset ? null : (conf.distanciaMetros !== undefined && conf.distanciaMetros !== null ? conf.distanciaMetros : atleta.distanciaMetros);
                     const statusAprox = isCampo ? 'campo' : (isReset ? 'reset' : (conf.statusAproximacao || atleta.statusAproximacao || 'longe'));
-                    const statusPres = isCampo ? 'chegou' : (isReset ? 'confirmado' : (conf.statusPresenca || atleta.statusPresenca || 'confirmado'));
+                    const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (conf.statusPresenca || atleta.statusPresenca || 'pendente'));
                     const chegadaConf = isCampo ? true : (isReset ? false : (conf.chegadaConfirmada || atleta.chegadaConfirmada || false));
                     return {
                         ...atleta,
@@ -3131,15 +3135,17 @@
                         hora: conf.hora || atleta.hora
                     };
                 }
-                return { ...atleta };
+                return { ...atleta, statusPresenca: atleta.statusPresenca || 'pendente', chegadaConfirmada: atleta.chegadaConfirmada || false };
             });
 
             const totalCadastrados = atletasCompletos.length;
-            const confirmados = atletasCompletos.filter(j => 
-                j.statusPresenca === 'chegou' || 
-                j.statusPresenca === 'confirmado' || 
-                j.chegadaConfirmada === true
-            );
+            const confirmados = atletasCompletos.filter(j => {
+                const isReset = j.statusAproximacao === 'reset' || j.status === 'reset' || j.statusGeofence === 'reset';
+                if (isReset) return false;
+                const estaChegou = j.chegadaConfirmada === true || j.checkedIn === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'campo' || j.status === 'campo' || j.statusAproximacao === 'chegou' || j.statusGeofence === 'campo' || j.checkinLiberado === true || (j.distanciaMetros !== null && j.distanciaMetros !== undefined && Number(j.distanciaMetros) <= 500);
+                const estaConfirmado = j.statusPresenca === 'confirmado' || j.statusPresenca === 'presente' || j.confirmadoSorteio === true;
+                return (estaChegou || estaConfirmado) && j.statusPresenca !== 'pendente' && j.statusPresenca !== 'ausente' && j.statusPresenca !== 'aguardando';
+            });
             const totalConfirmados = confirmados.length;
 
             if (badge) {
@@ -3269,27 +3275,36 @@
             }
 
             if (!container) return;
-            if (atletasCompletos.length === 0) {
-                container.innerHTML = '<p class="text-center text-xs text-on-surface-variant py-6">Carregando lista de atletas cadastrados...</p>';
-                return;
-            }
 
-            // ORDENAÇÃO: 
-            // 1. Usuário logado no app aparece SEMPRE em 1º lugar (#1)
-            // 2. Atletas com presença confirmada (No Campo / Confirmado)
-            // 3. Atletas aguardando confirmação (Pendente / Ausente)
-            const listaOrdenadaExibicao = [...atletasCompletos].sort((a, b) => {
+            // ORDENAÇÃO DA LISTA DE PRESENÇA (EXIBE SOMENTE JOGADORES CONFIRMADOS):
+            // 1. Usuário logado aparece em 1º lugar (#1) se tiver confirmado
+            // 2. Jogadores que já chegaram no campo (No Campo / <= 500m)
+            // 3. Demais jogadores que confirmaram presença na lista
+            const listaOrdenadaExibicao = [...confirmados].sort((a, b) => {
                 const ehLogadoA = (a.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() || (usuarioAtual.id && String(a.id) === String(usuarioAtual.id));
                 const ehLogadoB = (b.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() || (usuarioAtual.id && String(b.id) === String(usuarioAtual.id));
                 if (ehLogadoA && !ehLogadoB) return -1;
                 if (!ehLogadoA && ehLogadoB) return 1;
 
-                const confA = (a.statusPresenca === 'chegou' || a.statusPresenca === 'confirmado' || a.chegadaConfirmada === true) ? 1 : 0;
-                const confB = (b.statusPresenca === 'chegou' || b.statusPresenca === 'confirmado' || b.chegadaConfirmada === true) ? 1 : 0;
+                const confA = (a.statusPresenca === 'chegou' || a.chegadaConfirmada === true || a.status === 'campo' || a.statusAproximacao === 'campo') ? 1 : 0;
+                const confB = (b.statusPresenca === 'chegou' || b.chegadaConfirmada === true || b.status === 'campo' || b.statusAproximacao === 'campo') ? 1 : 0;
                 if (confA !== confB) return confB - confA;
 
                 return 0;
             });
+
+            if (listaOrdenadaExibicao.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full rounded-2xl border-2 border-dashed border-surface-container-highest p-8 text-center flex flex-col items-center justify-center my-6 bg-surface-container-lowest/60 shadow-xs">
+                        <div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+                            <span class="material-symbols-outlined text-2xl">how_to_reg</span>
+                        </div>
+                        <h4 class="font-headline-md text-sm font-bold text-on-surface">Nenhum jogador confirmou presença ainda</h4>
+                        <p class="text-xs text-on-surface-variant mt-1.5 max-w-xs leading-relaxed">A lista da pelada de hoje está aberta! Toque em <strong>Confirmar Presença</strong> acima para garantir sua vaga e aparecer na lista oficial.</p>
+                    </div>
+                `;
+                return;
+            }
 
             let html = '';
             listaOrdenadaExibicao.forEach((j, idx) => {

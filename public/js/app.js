@@ -57,46 +57,51 @@ function tocarApitoJuiz() {
   }
 }
 
-// ATUALIZAÇÃO EXATA: Lista Oficial de Presença (Apenas Jogadores Confirmados)
+// Renderização exclusiva da Lista Oficial de Presença (somente confirmados)
 function renderizarListaPresencaOficial(atletas) {
-    if (!atletas || !Array.isArray(atletas)) atletas = state.athletes || [];
-    const container = document.getElementById('lista-presenca-oficial') || document.querySelector('.lista-presenca-container');
-    
-    // FILTRO ESTRITO: Lista APENAS quem confirmou a presença (clicou em confirmar/chegar)
-    const confirmados = atletas.filter(a => a.statusGeofence === 'campo' || a.checkinLiberado === true);
-    
-    // Atualiza o contador de confirmados no topo (ex: 4/23 Confirmados)
-    const contadorEl = document.getElementById('kpiConfirmados');
-    if (contadorEl) {
-        contadorEl.textContent = `${confirmados.length}/23 Confirmados`;
-    }
+  const container = document.getElementById('lista-presenca-oficial') || document.querySelector('.lista-presenca-container');
+  const kpiEl = document.getElementById('kpiConfirmados');
+  const baseAtletas = Array.isArray(atletas) && atletas.length > 0 ? atletas : (state.athletes || []);
+  if (!container) return;
 
-    if (container) {
-        container.innerHTML = '';
-        
-        if (confirmados.length === 0) {
-            container.innerHTML = '<div class="text-xs text-slate-400 p-3 text-center">Nenhum jogador confirmado na presença ainda.</div>';
-            return;
-        }
+  // FILTRA ESTRITAMENTE: Apenas os atletas que tiveram a presença confirmada
+  const confirmados = baseAtletas.filter(a => {
+    const isReset = a.status === 'reset' || a.statusGeofence === 'reset' || a.statusAproximacao === 'reset';
+    if (isReset) return false;
+    const dist = (a.distanciaMetros !== null && a.distanciaMetros !== undefined) ? Number(a.distanciaMetros) : (a.distance !== null && a.distance !== undefined ? Number(a.distance) : null);
+    const estaNoCampo = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusGeofence === 'campo' || (dist !== null && dist <= 500);
+    const estaConfirmado = a.statusPresenca === 'confirmado' || a.statusPresenca === 'presente' || a.confirmadoSorteio === true || a.checkinLiberado === true;
+    return (estaNoCampo || estaConfirmado) && a.statusPresenca !== 'pendente';
+  });
 
-        confirmados.forEach((a, index) => {
-            const item = document.createElement('div');
-            item.className = 'flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-xs my-1.5';
-            item.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">#${index + 1}</span>
-                    <div>
-                        <div class="font-bold text-slate-900 text-sm">${a.nome || a.name}</div>
-                        <div class="text-[11px] text-slate-500">${a.posicao || 'MEI'} • Confirmado</div>
-                    </div>
-                </div>
-                <span class="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
-                    ⚽ CONFIRMADO
-                </span>
-            `;
-            container.appendChild(item);
-        });
-    }
+  if (kpiEl) {
+    kpiEl.textContent = `${confirmados.length}/23 Confirmados`;
+  }
+
+  if (confirmados.length === 0) {
+    container.innerHTML = '<div class="text-xs text-slate-400 p-3 text-center">Nenhum jogador confirmado na presença ainda.</div>';
+    return;
+  }
+
+  container.innerHTML = confirmados.map((a, index) => {
+    const dist = (a.distanciaMetros !== null && a.distanciaMetros !== undefined) ? Number(a.distanciaMetros) : (a.distance !== null && a.distance !== undefined ? Number(a.distance) : null);
+    const noCampo = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusGeofence === 'campo' || (dist !== null && dist <= 500);
+    const badgeText = noCampo ? '⚽ NO CAMPO' : '⚽ CONFIRMADO';
+    return `
+      <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-xs my-1.5">
+        <div class="flex items-center gap-3">
+          <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">#${index + 1}</span>
+          <div>
+            <div class="font-bold text-slate-900 text-sm">${a.nome || a.name || 'Atleta'}</div>
+            <div class="text-[11px] text-slate-500">${a.posicao || a.position || 'MEI'} • ${noCampo ? 'Chegou' : 'Confirmado'}</div>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
+          ${badgeText}
+        </span>
+      </div>
+    `;
+  }).join('');
 }
 const renderizarListaPresencaConfirmados = renderizarListaPresencaOficial;
 
@@ -765,6 +770,7 @@ function normalizarAtleta(a, idx) {
     else status = 'longe';
   }
 
+  const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
   const statusGeofence = a.statusGeofence || (checkedIn || status === 'campo' ? 'campo' : (status === 'proximo' ? 'proximo' : (status === 'reset' ? 'aguardando' : 'longe')));
   const checkinLiberado = a.checkinLiberado !== undefined ? a.checkinLiberado : (checkedIn || (distance !== null && distance <= 500 && status !== 'reset'));
 
@@ -1707,43 +1713,14 @@ function bootApp() {
   document.getElementById('btnSalvarAtleta')?.addEventListener('click', salvarAlteracoesAtleta);
   document.getElementById('btnExcluirAtleta')?.addEventListener('click', excluirAtleta);
 
-  // Vinculação e disparos dos botões de simulação e confirmação presencial
-  const configurarAcoesGeofence = () => {
-    const dispararSimulacao = async (distancia, status) => {
-      const select = document.getElementById('gps-athlete-select') || document.getElementById('selectAtleta');
-      const atletaId = select ? select.value : (currentAthleteId || null);
-      if (!atletaId) return;
+  // Botões de Simulação de GPS conectando à função dispararSimulacaoGPS:
+  document.getElementById('btnGpsLonge')?.addEventListener('click', () => dispararSimulacaoGPS(3800, 'longe'));
+  document.getElementById('btnGpsProximo')?.addEventListener('click', () => dispararSimulacaoGPS(850, 'proximo'));
+  document.getElementById('btnGpsChegou')?.addEventListener('click', () => dispararSimulacaoGPS(120, 'campo'));
+  document.getElementById('btnGpsReset')?.addEventListener('click', () => dispararSimulacaoGPS(0, 'reset'));
 
-      try {
-        const res = await fetch(getApiUrl('/api/v2/geofence-test'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ athleteId: atletaId, distanceMeters: distancia, customStatus: status })
-        });
-        const data = await res.json();
-        if (data.sucesso) {
-          console.log(`[Status Atualizado]: ${status.toUpperCase()}`);
-          if (data.dispararApito) {
-            try { tocarApitoJuiz(); } catch (e) {}
-          }
-          await carregarAtletas();
-          renderizarListaPresencaOficial(state.athletes);
-        }
-      } catch (e) {
-        console.error('Erro na requisição de geofence:', e);
-      }
-    };
-
-    // Botões de Teste de Status
-    document.getElementById('btnGpsLonge')?.addEventListener('click', () => dispararSimulacao(3800, 'longe'));
-    document.getElementById('btnGpsProximo')?.addEventListener('click', () => dispararSimulacao(850, 'proximo'));
-
-    // Regra da 2ª fase: Botão Chegou valida a proximidade (≤500m) e alista direto no sorteio
-    document.getElementById('btnGpsChegou')?.addEventListener('click', () => dispararSimulacao(120, 'campo'));
-    document.getElementById('btnGpsReset')?.addEventListener('click', () => dispararSimulacao(null, 'reset'));
-    document.getElementById('btnExecutarConfirmacao')?.addEventListener('click', () => dispararSimulacao(120, 'campo'));
-  };
-  configurarAcoesGeofence();
+  // Botão de Check-in Ativo
+  document.getElementById('btnExecutarConfirmacao')?.addEventListener('click', executarCheckinAtivo);
 
   // Copiar link
   document.getElementById('btnCopiarLink')?.addEventListener('click', copiarLinkPublico);
