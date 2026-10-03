@@ -4729,8 +4729,10 @@
 
                 if (window.location.protocol.startsWith('http')) {
                     try {
-                        await fetch('/api/admin/reset', { method: 'POST' });
-                    } catch(e) {}
+                        await fetch('/api/admin/reset-completo', { method: 'POST' });
+                    } catch(e) {
+                        try { await fetch('/api/admin/reset', { method: 'POST' }); } catch(err) {}
+                    }
                 }
 
                 await sincronizarServidor();

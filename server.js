@@ -717,6 +717,16 @@ const requestHandler = (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
+    // Helpers de compatibilidade estilo Express
+    res.json = (data) => {
+      res.writeHead(res.statusCode || 200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(data));
+    };
+    res.status = (code) => {
+      res.statusCode = code;
+      return res;
+    };
+
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
       res.end();
@@ -1672,17 +1682,58 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 13. API Admin: Reset de Partida
-    if (pathname === '/api/admin/reset' && req.method === 'POST') {
-      appData.listaConfirmados = [];
-      appData.escalacaoAtiva = null;
-      appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
-      appData.version = Date.now();
-      salvarDadosDisco();
-      broadcastSse('SYNC', appData);
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ sucesso: true }));
-      return;
+    // 13. API Admin: Reset Completo de Emergência (limpa status 'No Campo' de todos os atletas)
+    if ((pathname === '/api/admin/reset-completo' || pathname === '/api/admin/reset') && req.method === 'POST') {
+      try {
+        let dados = {};
+        if (fs.existsSync(DATABASE_FILE)) {
+          dados = JSON.parse(fs.readFileSync(DATABASE_FILE, 'utf8'));
+        } else if (fs.existsSync(DATA_FILE)) {
+          dados = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+        }
+
+        // Reseta o status de presença e check-in físico de todos os atletas
+        if (Array.isArray(dados.atletas)) {
+          dados.atletas.forEach(a => {
+            a.statusPresenca = 'pendente';
+            a.chegadaConfirmada = false;
+            a.distanciaMetros = null;
+            a.statusAproximacao = 'longe';
+            a.horaChegada = null;
+          });
+        }
+        
+        dados.listaConfirmados = [];
+        dados.escalacaoAtiva = null;
+        dados.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
+        dados.version = Date.now();
+
+        // Atualiza memória em execução do appData
+        if (Array.isArray(dados.atletas)) {
+          appData.atletas = dados.atletas;
+        }
+        appData.listaConfirmados = [];
+        appData.escalacaoAtiva = null;
+        appData.partidaEstado = dados.partidaEstado;
+        appData.version = dados.version;
+
+        const jsonStr = JSON.stringify(dados, null, 2);
+        try { fs.writeFileSync(DATABASE_FILE, jsonStr, 'utf8'); } catch (e) {}
+        try { fs.writeFileSync(DATA_FILE, jsonStr, 'utf8'); } catch (e) {}
+        try {
+          fs.writeFileSync(path.join(TMP_DIR, 'database.json'), jsonStr, 'utf8');
+          fs.writeFileSync(path.join(TMP_DIR, 'pelada-dados.json'), jsonStr, 'utf8');
+        } catch (e) {}
+
+        // Dispara sincronização em tempo real para todos os celulares conectados
+        broadcastSse('SYNC', dados);
+
+        res.json({ sucesso: true, mensagem: "Todos os status 'No Campo' foram limpos com sucesso!" });
+        return;
+      } catch (err) {
+        res.status(500).json({ sucesso: false, erro: err.message });
+        return;
+      }
     }
 
     // 14. API Admin: Backup
