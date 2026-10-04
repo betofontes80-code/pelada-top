@@ -518,13 +518,12 @@
                                 <span class="material-symbols-outlined text-xs">radar</span> Raio: 500m
                             </span>
                         </div>
-                        <div class="flex gap-1.5">
-                            <input type="text" id="input-admin-local" value="R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB" class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
-                                   class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
-                            <button onclick="salvarNovoLocal()" class="px-2.5 py-1.5 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
+                        <div class="flex items-center gap-1.5">
+                            <input type="text" id="input-admin-local" value="R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB" class="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface truncate">
+                            <button onclick="salvarNovoLocal()" class="px-2.5 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm whitespace-nowrap shrink-0">
                                 Salvar
                             </button>
-                            <button onclick="abrirGpsMaps()" class="px-2 py-1.5 bg-gray-900 text-white rounded-lg font-label-md text-xs font-bold flex items-center gap-1 active:scale-95 shadow-sm" title="Abrir no Google Maps">
+                            <button onclick="abrirGpsMaps()" class="p-1.5 bg-gray-900 hover:bg-black text-white rounded-lg font-label-md text-xs font-bold flex items-center justify-center active:scale-95 shadow-sm shrink-0" title="Abrir no Google Maps">
                                 <span class="material-symbols-outlined text-sm">near_me</span>
                             </button>
                         </div>
