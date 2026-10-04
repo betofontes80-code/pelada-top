@@ -451,8 +451,8 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
   const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : 'pendente')));
-  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (conf ? (conf.chegadaConfirmada || false) : (atleta.chegadaConfirmada || false))));
+  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
+  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
   const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
 
   const atletaAtualizado = {
@@ -489,15 +489,20 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     dados.atletas.push({ ...atletaAtualizado });
   }
 
-  // 2. Sincroniza em dados.listaConfirmados (Regra: só insere ou mantém se já confirmado, se chegou no campo ou se optou por entrar)
+  // 2. Sincroniza em dados.listaConfirmados (Regra da 2ª fase: Alista no sorteio se dentro do raio; remove se reset)
   if (isReset) {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (conf || isCampo || options.entrarNaLista) {
+  } else if (atletaAtualizado.confirmadoSorteio || isCampo || chegadaConf || atletaAtualizado.statusPresenca === 'confirmado' || atletaAtualizado.statusPresenca === 'chegou' || options.entrarNaLista) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
       dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     } else {
       dados.listaConfirmados.unshift({ ...atletaAtualizado });
+    }
+  } else {
+    const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
+    if (idxConf >= 0) {
+      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     }
   }
 
@@ -583,17 +588,16 @@ function verificarResetMeiaNoite() {
         console.log(`[Auto-Reset Meia-Noite] Dia da pelada (${dataPeladaStr}) finalizou. Data atual: ${hojeStr}.`);
         console.log(`[Auto-Reset Meia-Noite] Zerando a lista de presença da aba jogadores e mantendo configurações.`);
         
-        appData.listaConfirmados = [];
-        if (Array.isArray(appData.atletas)) {
-          appData.atletas = appData.atletas.map(a => ({
+        if (Array.isArray(appData.listaConfirmados)) {
+          appData.listaConfirmados = appData.listaConfirmados.map(a => ({
             ...a,
             statusPresenca: 'pendente',
             chegadaConfirmada: false,
             distanciaMetros: null,
-            statusAproximacao: 'longe',
             horaChegada: null
           }));
         }
+        appData.atletas = appData.listaConfirmados;
         appData.escalacaoAtiva = null;
         appData.timesSorteados = [];
         appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
@@ -837,11 +841,7 @@ const requestHandler = (req, res) => {
 
         const customStatus = String(payload.customStatus || payload.status || payload.statusDistancia || '').toLowerCase().trim();
 
-        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus, {
-          statusPresenca: payload.statusPresenca,
-          chegadaConfirmada: payload.chegadaConfirmada,
-          entrarNaLista: payload.entrarNaLista || customStatus === 'campo' || customStatus === 'chegou'
-        });
+        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus);
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
           res.end(JSON.stringify({ success: false, message: "Atleta não encontrado." }));
@@ -1670,15 +1670,15 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // 12. API Admin: Trava Lista (Modo autônomo: sempre aberto)
+    // 12. API Admin: Trava Lista
     if (pathname === '/api/admin/trava-lista' && req.method === 'POST') {
       if (!appData.peladaConfig) appData.peladaConfig = { ...DEFAULT_CONFIG };
-      appData.peladaConfig.listaAberta = true;
+      appData.peladaConfig.listaAberta = !appData.peladaConfig.listaAberta;
       appData.version = Date.now();
       salvarDadosDisco();
       broadcastSse('SYNC', appData);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ sucesso: true, listaAberta: true }));
+      res.end(JSON.stringify({ sucesso: true, listaAberta: appData.peladaConfig.listaAberta }));
       return;
     }
 
@@ -1773,11 +1773,7 @@ const requestHandler = (req, res) => {
           distMetrosNum = Number(payload.distanciaMetros);
         }
 
-        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia, {
-          statusPresenca: payload.statusPresenca,
-          chegadaConfirmada: payload.chegadaConfirmada,
-          entrarNaLista: payload.entrarNaLista || statusDistancia === 'campo' || statusDistancia === 'chegou'
-        });
+        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia);
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ sucesso: false, erro: 'Atleta não encontrado' }));
