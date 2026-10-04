@@ -1108,7 +1108,7 @@
     }
   ],
   "peladaConfig": {
-    "listaAberta": false
+    "listaAberta": true
   },
   "escalacaoAtiva": null,
   "partidaEstado": {

@@ -531,18 +531,29 @@
                         <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-23.550520, -46.633308</strong>. Check-in presencial restrito a 500m.</p>
                     </div>
 
-                    <!-- STATUS DA PELADA (TRAVA) & AÇÕES CRÍTICAS -->
+                    <!-- STATUS DO VESTIÁRIO (SISTEMA AUTÔNOMO INTELIGENTE) -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
                         <div class="flex items-center justify-between">
-                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Status do Vestiário:</label>
-                            <span id="admin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-green/10 text-success-green flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span> Vestiário Aberto
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+                                <label class="font-label-md text-[10px] font-bold text-on-surface uppercase tracking-wider">Status do Vestiário:</label>
+                            </div>
+                            <span id="admin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário 100% Aberto
                             </span>
                         </div>
-                        <button onclick="alternarTravaLista()" id="btn-admin-trava" class="w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-success-green active:scale-[0.98]">
-                            <span id="icone-admin-trava" class="material-symbols-outlined text-base">lock_open</span>
-                            <span id="texto-admin-trava">LISTA ABERTA (CLIQUE P/ TRAVAR)</span>
-                        </button>
+                        <div id="admin-autonomo-card" class="w-full py-2.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between shadow-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-emerald-600 text-lg">autorenew</span>
+                                <div>
+                                    <span class="block text-xs font-bold text-emerald-900 leading-tight">Gestão Autônoma Ativa</span>
+                                    <span id="admin-autonomo-txt" class="text-[10px] text-emerald-700">Entrada liberada por vagas e GPS</span>
+                                </div>
+                            </div>
+                            <span id="admin-autonomo-vagas" class="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs">
+                                Vagas Livres
+                            </span>
+                        </div>
                     </div>
 
                 </div>
@@ -1450,19 +1461,6 @@
             if (listaRecebida !== null) {
                 verificarNovosJogadoresOnline(listaRecebida);
                 if (Array.isArray(listaRecebida)) {
-                    // Preserva a medição do GPS do usuário logado se o servidor ainda não refletiu
-                    const liveDist = distanciaAtualMetros !== null ? distanciaAtualMetros : (usuarioAtual && usuarioAtual.distanciaMetros !== undefined && usuarioAtual.distanciaMetros !== null ? Number(usuarioAtual.distanciaMetros) : null);
-                    if (liveDist !== null && usuarioAtual) {
-                        const meuAtletaNaLista = listaRecebida.find(j => 
-                            (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
-                            (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-                        );
-                        if (meuAtletaNaLista && (meuAtletaNaLista.distanciaMetros === null || meuAtletaNaLista.distanciaMetros === undefined)) {
-                            meuAtletaNaLista.distanciaMetros = liveDist;
-                            const raio = peladaConfig.raioMaximoMetros || 500;
-                            meuAtletaNaLista.statusAproximacao = liveDist <= raio ? 'campo' : (liveDist <= 1500 ? 'proximo' : 'longe');
-                        }
-                    }
                     listaConfirmados = listaRecebida;
                 }
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
@@ -1471,19 +1469,14 @@
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
             }
 
-            // Garante que o atleta logado mantenha sua foto e distância caso exista localmente ou no servidor
-            const eu = (listaConfirmados || []).find(j => 
-                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
-                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-            ) || (cadastroGeralAtletas || []).find(j => 
+            // Garante que o atleta logado mantenha sua foto caso exista localmente ou no servidor
+            const eu = (cadastroGeralAtletas || listaConfirmados || []).find(j => 
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
             );
             if (eu) {
                 if (eu.distanciaMetros !== undefined && eu.distanciaMetros !== null) {
                     distanciaAtualMetros = Number(eu.distanciaMetros);
-                } else if (distanciaAtualMetros !== null) {
-                    eu.distanciaMetros = distanciaAtualMetros;
                 }
                 if (usuarioAtual.foto && !eu.foto) {
                     eu.foto = usuarioAtual.foto;
@@ -1920,9 +1913,7 @@
                 if (navBar) navBar.style.display = 'block';
                 if (aba === 'jogadores') {
                     renderizarListaJogadores();
-                    if (typeof atualizarLocalizacaoGps === 'function') {
-                        atualizarLocalizacaoGps(false);
-                    }
+                    if (typeof atualizarLocalizacaoGps === 'function') atualizarLocalizacaoGps(false);
                 } else if (aba === 'perfil') {
                     sincronizarPerfilCamposUi();
                 } else if (aba === 'admin') {
@@ -2209,12 +2200,6 @@
                         trocarAba('jogadores');
                     }
                     verificarEExibirNumeralTimeJogador();
-                    if (typeof atualizarLocalizacaoGps === 'function') {
-                        atualizarLocalizacaoGps(false);
-                    }
-                    if (typeof iniciarMonitoramentoGpsContinuo === 'function') {
-                        iniciarMonitoramentoGpsContinuo();
-                    }
                     if (btn) {
                         btn.innerHTML = orig;
                         btn.disabled = false;
@@ -2604,11 +2589,6 @@
             const raio = peladaConfig.raioMaximoMetros || 500;
             const statusStr = distancia <= raio ? 'campo' : (distancia <= 1500 ? 'proximo' : 'longe');
 
-            const atletaLogado = (listaConfirmados || []).find(j => 
-                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
-                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-            );
-
             fetch('/api/v2/geofence-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2616,10 +2596,7 @@
                     athleteId: usuarioAtual.id || '',
                     athleteName: usuarioAtual.nome || '',
                     distanceMeters: distancia,
-                    status: statusStr,
-                    customStatus: statusStr,
-                    statusPresenca: atletaLogado ? atletaLogado.statusPresenca : 'confirmado',
-                    chegadaConfirmada: atletaLogado ? !!atletaLogado.chegadaConfirmada : false
+                    status: statusStr
                 })
             }).catch(() => {});
         }
@@ -2711,25 +2688,17 @@
             navigator.geolocation.getCurrentPosition(
                 (pos) => processarPosicaoGpsSucesso(pos, mostrarAlerta),
                 (err) => {
-                    console.warn('Erro GPS alta precisão, tentando rede celular/wifi:', err.message);
-                    // Fallback imediato em rede/antena/wifi para evitar travar em "Aguardando GPS"
-                    navigator.geolocation.getCurrentPosition(
-                        (pos2) => processarPosicaoGpsSucesso(pos2, mostrarAlerta),
-                        (err2) => {
-                            console.warn('Erro GPS final:', err2.message);
-                            if (txtInfo && !distanciaAtualMetros) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
-                            if (mostrarAlerta) {
-                                alert(
-                                    `Não foi possível obter o sinal GPS exato (${err2.message}).\n\n` +
-                                    `Local Oficial:\n${peladaConfig.local}\n\n` +
-                                    `Por favor, ative a localização no seu celular/dispositivo para validar sua presença no campo.`
-                                );
-                            }
-                        },
-                        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
-                    );
+                    console.warn('Erro GPS:', err.message);
+                    if (txtInfo && !distanciaAtualMetros) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
+                    if (mostrarAlerta) {
+                        alert(
+                            `Não foi possível obter o sinal GPS exato (${err.message}).\n\n` +
+                            `Local Oficial:\n${peladaConfig.local}\n\n` +
+                            `Por favor, ative a localização no seu celular/dispositivo para validar sua presença no campo.`
+                        );
+                    }
                 },
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
             );
 
             // Garante que o rastreador contínuo esteja ativo
@@ -2745,7 +2714,7 @@
                     gpsWatchId = navigator.geolocation.watchPosition(
                         (pos) => processarPosicaoGpsSucesso(pos, false),
                         (err) => console.warn('Aviso watchPosition GPS:', err.message),
-                        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+                        { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 }
                     );
                 } catch(e) {}
             }
@@ -2756,15 +2725,8 @@
                     if (navigator.geolocation && document.visibilityState !== 'hidden') {
                         navigator.geolocation.getCurrentPosition(
                             (pos) => processarPosicaoGpsSucesso(pos, false),
-                            () => {
-                                // Fallback rede/wifi se hardware GPS estiver lento ou em local fechado
-                                navigator.geolocation.getCurrentPosition(
-                                    (pos2) => processarPosicaoGpsSucesso(pos2, false),
-                                    () => {},
-                                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
-                                );
-                            },
-                            { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
+                            () => {},
+                            { enableHighAccuracy: true, timeout: 6000, maximumAge: 4000 }
                         );
                     }
                 }, 5000);
@@ -2792,10 +2754,15 @@
             );
             const jaChegou = atletaLogado && (atletaLogado.chegadaConfirmada || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou');
 
-            if (peladaConfig.listaAberta) {
-                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-emerald-500';
-                title.innerText = 'Vestiário Aberto!';
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const totalConfirmados = Array.isArray(listaConfirmados) ? listaConfirmados.length : 0;
+            const listaLotada = totalConfirmados >= limiteMaximo && !jaConfirmado;
 
+            // Modo 100% Autônomo: vestiário sempre aberto, autogerenciado por vagas
+            if (bar) bar.className = listaLotada ? 'absolute left-0 top-0 bottom-0 w-1 bg-red-500' : 'absolute left-0 top-0 bottom-0 w-1 bg-emerald-500';
+            if (title) title.innerText = listaLotada ? 'Vagas Esgotadas!' : 'Vestiário Autônomo Aberto!';
+
+            if (btn) {
                 if (jaChegou) {
                     btn.className = "mt-2 w-full bg-emerald-600 text-white font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-default text-xs font-bold";
                     btn.innerHTML = '<span class="material-symbols-outlined text-base">sports_soccer</span> CHEGADA CONFIRMADA NO CAMPO!';
@@ -2812,43 +2779,44 @@
                         btn.innerHTML = `<span>Na Lista (${distTxt}) • Chegada aos 500m</span><span class="material-symbols-outlined text-sm">radar</span>`;
                         btn.disabled = false;
                     }
+                } else if (listaLotada) {
+                    btn.className = "mt-2 w-full bg-surface-container-highest text-secondary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed text-xs font-bold";
+                    btn.innerHTML = `<span class="material-symbols-outlined text-base">group_off</span> VAGAS ESGOTADAS (${limiteMaximo}/${limiteMaximo})`;
+                    btn.disabled = true;
                 } else {
                     btn.className = "mt-2 w-full bg-primary text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider";
                     btn.innerHTML = '<span>1. Confirmar Presença na Lista</span><span class="material-symbols-outlined text-sm">arrow_forward</span>';
                     btn.disabled = false;
                 }
-            } else {
-                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-amber-500';
-                title.innerText = 'Lista Bloqueada';
-                btn.className = "mt-2 w-full bg-surface-container-highest text-secondary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed text-xs font-bold";
-                btn.innerHTML = '<span class="material-symbols-outlined text-base">lock</span> CHECK-IN FECHADO';
-                btn.disabled = true;
             }
 
-            const btnAdmTrava = document.getElementById('btn-admin-trava');
-            const iconeAdmTrava = document.getElementById('icone-admin-trava');
-            const txtAdmTrava = document.getElementById('texto-admin-trava');
             const adminStatusBadge = document.getElementById('admin-status-badge');
+            const adminAutoCard = document.getElementById('admin-autonomo-card');
+            const adminAutoTxt = document.getElementById('admin-autonomo-txt');
+            const adminAutoVagas = document.getElementById('admin-autonomo-vagas');
 
             if (adminStatusBadge) {
-                if (peladaConfig.listaAberta) {
-                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1';
-                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário Aberto';
+                if (totalConfirmados >= limiteMaximo) {
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Vagas Esgotadas';
                 } else {
-                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 flex items-center gap-1';
-                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Vestiário Fechado';
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário 100% Aberto';
                 }
             }
 
-            if (btnAdmTrava) {
-                if (peladaConfig.listaAberta) {
-                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-emerald-600';
-                    if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock_open';
-                    if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA ABERTA (CLIQUE P/ TRAVAR)';
+            if (adminAutoCard && adminAutoTxt && adminAutoVagas) {
+                if (totalConfirmados >= limiteMaximo) {
+                    adminAutoCard.className = 'w-full py-2.5 px-3 rounded-lg bg-red-500/10 border border-red-500/25 flex items-center justify-between shadow-xs';
+                    adminAutoTxt.innerText = `Capacidade máxima atingida (${totalConfirmados}/${limiteMaximo})`;
+                    adminAutoVagas.className = 'text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs';
+                    adminAutoVagas.innerText = 'Lista Lotada';
                 } else {
-                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-primary';
-                    if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock';
-                    if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA FECHADA (CLIQUE P/ ABRIR)';
+                    const vagas = limiteMaximo - totalConfirmados;
+                    adminAutoCard.className = 'w-full py-2.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between shadow-xs';
+                    adminAutoTxt.innerText = `${vagas} vaga${vagas === 1 ? '' : 's'} restante${vagas === 1 ? '' : 's'} (${totalConfirmados}/${limiteMaximo})`;
+                    adminAutoVagas.className = 'text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs';
+                    adminAutoVagas.innerText = 'Vagas Livres';
                 }
             }
         }
@@ -2857,6 +2825,16 @@
         async function confirmarPresencaLista() {
             if (!usuarioAtual || !usuarioAtual.nome) {
                 abrirModalCadastro();
+                return;
+            }
+
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const jaNaLista = (listaConfirmados || []).some(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+            if (!jaNaLista && (listaConfirmados || []).length >= limiteMaximo) {
+                alert(`As vagas para esta pelada já estão esgotadas (${limiteMaximo}/${limiteMaximo}).`);
                 return;
             }
 
@@ -3093,14 +3071,17 @@
         }
 
         function cliqueBotaoCheckin() {
-            if (!peladaConfig.listaAberta) return;
-
-            const atletaLogado = listaConfirmados.find(j => 
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const atletaLogado = (listaConfirmados || []).find(j => 
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
             );
 
             if (!atletaLogado) {
+                if ((listaConfirmados || []).length >= limiteMaximo) {
+                    alert(`As vagas para esta pelada já estão esgotadas (${limiteMaximo}/${limiteMaximo}).`);
+                    return;
+                }
                 confirmarPresencaLista();
                 return;
             }
@@ -3133,7 +3114,8 @@
         }
 
         async function alternarTravaLista() {
-            peladaConfig.listaAberta = !peladaConfig.listaAberta;
+            // Modo autônomo ativo: a lista se auto-gerencia por vagas e reset diário
+            peladaConfig.listaAberta = true;
             await sincronizarServidor();
             renderizarStatusCheckin();
         }
@@ -3148,7 +3130,6 @@
             }
         }
 
-        async 
         async function salvarConfiguracaoHorarioAdmin() {
             const dataInp = document.getElementById('input-admin-data-pelada');
             const diaInp = document.getElementById('input-admin-dia-semana');
@@ -3276,29 +3257,33 @@
                 atletaLogado.chegadaConfirmada === true
             );
 
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const listaLotada = (atletasCompletos || []).length >= limiteMaximo;
+
             if (!atletaLogado || !presencaConfirmada) {
-                if (!peladaConfig.listaAberta) {
-                    bannerPrompt.className = 'shrink-0 bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                if (listaLotada) {
+                    bannerPrompt.className = 'shrink-0 bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
                         <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
-                            <span class="material-symbols-outlined text-amber-600 text-xl">lock</span>
+                            <span class="material-symbols-outlined text-red-600 text-xl">group_off</span>
                             <div>
-                                <span class="block leading-tight text-amber-800">Check-in Temporariamente Fechado</span>
-                                <span class="text-[10px] text-on-surface-variant font-normal">Aguarde o administrador abrir a lista no vestiário</span>
+                                <span class="block leading-tight text-red-800">Vagas Esgotadas (${limiteMaximo}/${limiteMaximo})</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">Capacidade máxima de atletas atingida</span>
                             </div>
                         </div>
-                        <span class="px-2.5 py-1 bg-amber-500/20 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                            Bloqueada
+                        <span class="px-2.5 py-1 bg-red-500/20 text-red-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                            Lista Cheia
                         </span>
                     `;
                 } else {
+                    const vagasRestantes = limiteMaximo - (atletasCompletos || []).length;
                     bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
                         <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
                             <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
                             <div>
                                 <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
-                                <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">${vagasRestantes} vaga${vagasRestantes === 1 ? '' : 's'} restante${vagasRestantes === 1 ? '' : 's'} para o jogo</span>
                             </div>
                         </div>
                         <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
@@ -3309,7 +3294,11 @@
                 }
             } else {
                 const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou' || atletaLogado.statusAproximacao === 'campo' || atletaLogado.status === 'campo';
-                const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
+                const dist = distanciaAtualMetros !== null 
+                    ? Number(distanciaAtualMetros) 
+                    : ((atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) 
+                        ? Number(atletaLogado.distanciaMetros) 
+                        : null);
 
                 if (chegouConfirmado) {
                     bannerPrompt.className = 'shrink-0 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
@@ -3360,7 +3349,7 @@
                             <div class="min-w-0">
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeCor}">${statusDist}</span>
-                                    <span class="text-xs font-bold text-on-surface truncate">${dist !== null ? `${distTexto} do Campo` : 'Buscando GPS...'}</span>
+                                    <span class="text-xs font-bold text-on-surface truncate">${distTexto} do Campo</span>
                                 </div>
                                 <p class="text-[10px] text-on-surface-variant font-normal truncate">O botão de chegada surgirá quando você estiver a &le;500m.</p>
                             </div>
@@ -3386,10 +3375,8 @@
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
 
-            // 1. Pega a base de atletas cadastrados/confirmados
-            let baseAtletas = (Array.isArray(listaConfirmados) && listaConfirmados.length > 0)
-                ? listaConfirmados
-                : (Array.isArray(cadastroGeralAtletas) ? cadastroGeralAtletas : [...ATLETAS_INICIAIS_PADRAO]);
+            // 1. Pega a base de atletas confirmados para a pelada
+            let baseAtletas = Array.isArray(listaConfirmados) ? listaConfirmados : [];
 
             // 2. FILTRA RIGOROSAMENTE APENAS QUEM JÁ CONFIRMOU PRESENÇA OU CHEGOU AO CAMPO
             let atletasCompletos = baseAtletas.filter(atleta => {
@@ -3399,7 +3386,7 @@
                                  atleta.status === 'campo';
 
                 const isConfirmado = atleta.statusPresenca === 'confirmado' || 
-                                     (atleta.hora && atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente');
+                                     (atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente' && atleta.statusPresenca !== undefined && atleta.statusPresenca !== null);
 
                 return isChegou || isConfirmado;
             });
