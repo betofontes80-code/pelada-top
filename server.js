@@ -144,6 +144,14 @@ function salvarDados(dados) {
             conf.chegadaConfirmada = a.chegadaConfirmada || false;
             conf.checkedIn = a.checkedIn || false;
           }
+          if (a.cartao !== undefined) conf.cartao = a.cartao;
+          else if (conf.cartao !== undefined) a.cartao = conf.cartao;
+
+          if (a.email !== undefined) conf.email = a.email;
+          else if (conf.email !== undefined) a.email = conf.email;
+
+          if (a.senha !== undefined) conf.senha = a.senha;
+          else if (conf.senha !== undefined) a.senha = conf.senha;
         }
       });
     }
@@ -365,11 +373,26 @@ function obterAtletasCompletos() {
 
     const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
 
+    let email = a.email || '';
+    let senha = a.senha || '';
+    let cartao = a.cartao || null;
+    if (appData.usuarios && (!email || !senha)) {
+      const u = appData.usuarios.find(user => (user.id && String(user.id) === id) || (user.nome && user.nome.trim().toLowerCase() === name.trim().toLowerCase()));
+      if (u) {
+        if (!email) email = u.email || '';
+        if (!senha) senha = u.senha || '';
+        if (!cartao && u.cartao) cartao = u.cartao;
+      }
+    }
+
     return {
       ...a,
       id,
       name,
       nome: name,
+      email,
+      senha,
+      cartao,
       position,
       posicao: position,
       age,
@@ -451,8 +474,8 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
   const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
-  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
+  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : 'pendente')));
+  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (conf ? (conf.chegadaConfirmada || false) : (atleta.chegadaConfirmada || false))));
   const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
 
   const atletaAtualizado = {
@@ -489,20 +512,15 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     dados.atletas.push({ ...atletaAtualizado });
   }
 
-  // 2. Sincroniza em dados.listaConfirmados (Regra da 2ª fase: Alista no sorteio se dentro do raio; remove se reset)
+  // 2. Sincroniza em dados.listaConfirmados (Regra: só insere ou mantém se já confirmado, se chegou no campo ou se optou por entrar)
   if (isReset) {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (atletaAtualizado.confirmadoSorteio || isCampo || chegadaConf || atletaAtualizado.statusPresenca === 'confirmado' || atletaAtualizado.statusPresenca === 'chegou' || options.entrarNaLista) {
+  } else if (conf || isCampo || options.entrarNaLista) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
       dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     } else {
       dados.listaConfirmados.unshift({ ...atletaAtualizado });
-    }
-  } else {
-    const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
-    if (idxConf >= 0) {
-      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     }
   }
 
@@ -588,16 +606,17 @@ function verificarResetMeiaNoite() {
         console.log(`[Auto-Reset Meia-Noite] Dia da pelada (${dataPeladaStr}) finalizou. Data atual: ${hojeStr}.`);
         console.log(`[Auto-Reset Meia-Noite] Zerando a lista de presença da aba jogadores e mantendo configurações.`);
         
-        if (Array.isArray(appData.listaConfirmados)) {
-          appData.listaConfirmados = appData.listaConfirmados.map(a => ({
+        appData.listaConfirmados = [];
+        if (Array.isArray(appData.atletas)) {
+          appData.atletas = appData.atletas.map(a => ({
             ...a,
             statusPresenca: 'pendente',
             chegadaConfirmada: false,
             distanciaMetros: null,
+            statusAproximacao: 'longe',
             horaChegada: null
           }));
         }
-        appData.atletas = appData.listaConfirmados;
         appData.escalacaoAtiva = null;
         appData.timesSorteados = [];
         appData.partidaEstado = { emAndamento: false, finalizada: false, tempoRestante: 600 };
@@ -841,7 +860,11 @@ const requestHandler = (req, res) => {
 
         const customStatus = String(payload.customStatus || payload.status || payload.statusDistancia || '').toLowerCase().trim();
 
-        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus);
+        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus, {
+          statusPresenca: payload.statusPresenca,
+          chegadaConfirmada: payload.chegadaConfirmada,
+          entrarNaLista: payload.entrarNaLista || customStatus === 'campo' || customStatus === 'chegou'
+        });
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
           res.end(JSON.stringify({ success: false, message: "Atleta não encontrado." }));
@@ -1130,6 +1153,17 @@ const requestHandler = (req, res) => {
 
         // Mantém o cadastro permanente no appData em memória
         if (lista.length > 0) {
+          if (Array.isArray(appData.usuarios) && appData.usuarios.length > 0) {
+            lista = lista.map(a => {
+              const u = appData.usuarios.find(user => (user.id && String(user.id) === String(a.id)) || (user.nome && a.nome && user.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
+              return {
+                ...a,
+                email: a.email || (u ? u.email : '') || '',
+                senha: a.senha || (u ? u.senha : '') || '',
+                cartao: a.cartao || (u ? u.cartao : null) || null
+              };
+            });
+          }
           appData.atletas = lista;
         }
 
@@ -1414,6 +1448,9 @@ const requestHandler = (req, res) => {
             atletaSalvo = {
               ...antigo,
               ...payload,
+              email: payload.email !== undefined ? payload.email : antigo.email,
+              senha: payload.senha !== undefined ? payload.senha : antigo.senha,
+              cartao: payload.cartao !== undefined ? payload.cartao : antigo.cartao,
               fitness: calcularFitnessAtleta({ ...antigo, ...payload })
             };
             appData.listaConfirmados[idx] = atletaSalvo;
@@ -1430,10 +1467,26 @@ const requestHandler = (req, res) => {
               const uIdx = appData.usuarios.findIndex(u => 
                 (idBusca && String(u.id) === idBusca) ||
                 (nomeOriginal && (u.nome || '').trim().toLowerCase() === nomeOriginal) ||
-                (nomeNovo && (u.nome || '').trim().toLowerCase() === nomeNovo)
+                (nomeNovo && (u.nome || '').trim().toLowerCase() === nomeNovo) ||
+                (payload.email && (u.email || '').trim().toLowerCase() === String(payload.email).trim().toLowerCase())
               );
               if (uIdx >= 0) {
-                appData.usuarios[uIdx] = { ...appData.usuarios[uIdx], ...atletaSalvo };
+                appData.usuarios[uIdx] = { 
+                  ...appData.usuarios[uIdx], 
+                  ...atletaSalvo,
+                  email: payload.email !== undefined ? payload.email : appData.usuarios[uIdx].email,
+                  senha: payload.senha !== undefined ? payload.senha : appData.usuarios[uIdx].senha
+                };
+              } else if (payload.email) {
+                appData.usuarios.push({
+                  id: atletaSalvo.id,
+                  nome: atletaSalvo.nome,
+                  email: payload.email,
+                  senha: payload.senha || '1234',
+                  role: 'jogador',
+                  posicao: atletaSalvo.posicao || 'ATA',
+                  criadoEm: new Date().toISOString()
+                });
               }
             }
           } else {
@@ -1441,6 +1494,9 @@ const requestHandler = (req, res) => {
             atletaSalvo = {
               id: payload.id || ('jog_' + Date.now()),
               nome: payload.nome || 'Novo Atleta',
+              email: payload.email || '',
+              senha: payload.senha || '1234',
+              cartao: payload.cartao || null,
               posicao: payload.posicao || 'ATA',
               condicao: payload.condicao || 'excelente',
               idade: payload.idade || 28,
@@ -1463,6 +1519,17 @@ const requestHandler = (req, res) => {
             } else {
               appData.atletas = [atletaSalvo];
             }
+            if (Array.isArray(appData.usuarios) && payload.email) {
+              appData.usuarios.push({
+                id: atletaSalvo.id,
+                nome: atletaSalvo.nome,
+                email: payload.email,
+                senha: payload.senha || '1234',
+                role: 'jogador',
+                posicao: atletaSalvo.posicao || 'ATA',
+                criadoEm: new Date().toISOString()
+              });
+            }
 
             broadcastSse('JOGADOR_ONLINE', {
               atleta: atletaSalvo,
@@ -1478,6 +1545,85 @@ const requestHandler = (req, res) => {
 
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ sucesso: true, atleta: atletaSalvo, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+          return;
+        }
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
+      });
+      return;
+    }
+
+    // 7.1. API Admin: Aplicar Punição Disciplinar (Cartão Amarelo, Azul ou Vermelho)
+    if (pathname === '/api/admin/cartao' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (!err && payload) {
+          try {
+            const saved = loadData();
+            if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+            if (saved.atletas) appData.atletas = saved.atletas;
+            if (saved.usuarios) appData.usuarios = saved.usuarios;
+          } catch (e) {}
+          if (!appData.listaConfirmados) appData.listaConfirmados = [];
+          if (!appData.atletas) appData.atletas = [];
+
+          const idBusca = payload.atletaId ? String(payload.atletaId).trim() : (payload.id ? String(payload.id).trim() : null);
+          const nomeBusca = payload.atletaNome ? String(payload.atletaNome).trim().toLowerCase() : (payload.nome ? String(payload.nome).trim().toLowerCase() : null);
+
+          const tipo = payload.tipo ? String(payload.tipo).trim().toLowerCase() : null; // 'amarelo', 'azul', 'vermelho' ou 'limpar'/null
+          let cartaoObj = null;
+
+          if (tipo && tipo !== 'limpar' && tipo !== 'nenhum' && tipo !== 'null') {
+            const motivoPadrao = tipo === 'amarelo' ? 'Advertência formal do árbitro' : (tipo === 'azul' ? 'Suspensão temporária (2 min)' : 'Expulsão direta da partida');
+            cartaoObj = {
+              tipo: tipo,
+              motivo: payload.motivo || motivoPadrao,
+              hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              aplicadoEm: Date.now()
+            };
+          }
+
+          let atletaEncontrado = null;
+
+          // Atualiza em appData.listaConfirmados
+          appData.listaConfirmados.forEach(j => {
+            if ((idBusca && String(j.id) === idBusca) || (nomeBusca && (j.nome || '').trim().toLowerCase() === nomeBusca)) {
+              j.cartao = cartaoObj;
+              atletaEncontrado = j;
+            }
+          });
+
+          // Atualiza em appData.atletas
+          appData.atletas.forEach(a => {
+            if ((idBusca && String(a.id) === idBusca) || (nomeBusca && (a.nome || '').trim().toLowerCase() === nomeBusca)) {
+              a.cartao = cartaoObj;
+              if (!atletaEncontrado) atletaEncontrado = a;
+            }
+          });
+
+          appData.version = Date.now();
+          salvarDadosDisco();
+
+          // Notifica todos em tempo real via SSE
+          broadcastSse('PUNICAO_CARTAO', {
+            atletaId: idBusca,
+            atletaNome: atletaEncontrado ? atletaEncontrado.nome : (payload.atletaNome || payload.nome),
+            cartao: cartaoObj,
+            tipo: tipo,
+            dispararApito: true,
+            version: appData.version,
+            listaConfirmados: appData.listaConfirmados,
+            atletas: appData.atletas
+          });
+
+          broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ 
+            sucesso: true, 
+            cartao: cartaoObj, 
+            atleta: atletaEncontrado, 
+            listaConfirmados: appData.listaConfirmados 
+          }));
           return;
         }
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1670,15 +1816,15 @@ const requestHandler = (req, res) => {
       }
     }
 
-    // 12. API Admin: Trava Lista
+    // 12. API Admin: Trava Lista (Modo autônomo: sempre aberto)
     if (pathname === '/api/admin/trava-lista' && req.method === 'POST') {
       if (!appData.peladaConfig) appData.peladaConfig = { ...DEFAULT_CONFIG };
-      appData.peladaConfig.listaAberta = !appData.peladaConfig.listaAberta;
+      appData.peladaConfig.listaAberta = true;
       appData.version = Date.now();
       salvarDadosDisco();
       broadcastSse('SYNC', appData);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ sucesso: true, listaAberta: appData.peladaConfig.listaAberta }));
+      res.end(JSON.stringify({ sucesso: true, listaAberta: true }));
       return;
     }
 
@@ -1773,7 +1919,11 @@ const requestHandler = (req, res) => {
           distMetrosNum = Number(payload.distanciaMetros);
         }
 
-        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia);
+        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia, {
+          statusPresenca: payload.statusPresenca,
+          chegadaConfirmada: payload.chegadaConfirmada,
+          entrarNaLista: payload.entrarNaLista || statusDistancia === 'campo' || statusDistancia === 'chegou'
+        });
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ sucesso: false, erro: 'Atleta não encontrado' }));

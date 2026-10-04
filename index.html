@@ -531,18 +531,29 @@
                         <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-23.550520, -46.633308</strong>. Check-in presencial restrito a 500m.</p>
                     </div>
 
-                    <!-- STATUS DA PELADA (TRAVA) & AÇÕES CRÍTICAS -->
+                    <!-- STATUS DO VESTIÁRIO (SISTEMA AUTÔNOMO INTELIGENTE) -->
                     <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
                         <div class="flex items-center justify-between">
-                            <label class="font-label-md text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Status do Vestiário:</label>
-                            <span id="admin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-green/10 text-success-green flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-success-green animate-pulse"></span> Vestiário Aberto
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+                                <label class="font-label-md text-[10px] font-bold text-on-surface uppercase tracking-wider">Status do Vestiário:</label>
+                            </div>
+                            <span id="admin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário 100% Aberto
                             </span>
                         </div>
-                        <button onclick="alternarTravaLista()" id="btn-admin-trava" class="w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-success-green active:scale-[0.98]">
-                            <span id="icone-admin-trava" class="material-symbols-outlined text-base">lock_open</span>
-                            <span id="texto-admin-trava">LISTA ABERTA (CLIQUE P/ TRAVAR)</span>
-                        </button>
+                        <div id="admin-autonomo-card" class="w-full py-2.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between shadow-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-emerald-600 text-lg">autorenew</span>
+                                <div>
+                                    <span class="block text-xs font-bold text-emerald-900 leading-tight">Gestão Autônoma Ativa</span>
+                                    <span id="admin-autonomo-txt" class="text-[10px] text-emerald-700">Entrada liberada por vagas e GPS</span>
+                                </div>
+                            </div>
+                            <span id="admin-autonomo-vagas" class="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs">
+                                Vagas Livres
+                            </span>
+                        </div>
                     </div>
 
                 </div>
@@ -825,6 +836,66 @@
                     <label class="font-bold text-on-surface-variant text-[10px] uppercase">Fitness / Físico (%):</label>
                     <input type="number" id="edit-atleta-fitness" min="50" max="100" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-bold outline-none focus:border-primary">
                 </div>
+
+                <!-- CREDENCIAIS DE ACESSO (LOGIN E SENHA) -->
+                <div class="p-2.5 rounded-xl bg-surface border border-surface-container-highest flex flex-col gap-2 shadow-xs">
+                    <div class="flex items-center justify-between border-b border-surface-container-highest/60 pb-1">
+                        <span class="font-bold text-on-surface text-[10px] uppercase flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs text-primary">key</span>
+                            Credenciais de Acesso (Login / Senha)
+                        </span>
+                        <span class="text-[9px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded">Admin</span>
+                    </div>
+                    <div>
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase">Login / E-mail do Atleta:</label>
+                        <input type="text" id="edit-atleta-email" placeholder="email@exemplo.com" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="font-bold text-on-surface-variant text-[10px] uppercase">Senha de Acesso:</label>
+                        <div class="relative mt-0.5">
+                            <input type="password" id="edit-atleta-senha" placeholder="Senha do atleta" class="w-full px-2.5 py-1.5 pr-8 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold outline-none focus:border-primary">
+                            <button type="button" onclick="alternarVisibilidadeSenhaAtleta()" class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5" title="Ver/Ocultar Senha">
+                                <span id="icone-ver-senha-atleta" class="material-symbols-outlined text-sm">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PUNIÇÃO DISCIPLINAR (CARTÕES DO ÁRBITRO) -->
+                <div class="p-2.5 rounded-xl bg-surface border border-surface-container-highest flex flex-col gap-2 shadow-xs">
+                    <div class="flex items-center justify-between border-b border-surface-container-highest/60 pb-1">
+                        <span class="font-bold text-on-surface text-[10px] uppercase flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs text-amber-500">sports</span>
+                            Punição Disciplinar (Cartões)
+                        </span>
+                        <span id="edit-atleta-status-cartao" class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">Sem cartão</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <!-- CARTÃO AMARELO -->
+                        <button type="button" onclick="aplicarCartaoAtletaModal('amarelo')" class="py-2 px-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-amber-950 font-black text-[10px] uppercase shadow-sm border border-amber-500/40 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform" title="Aplicar Advertência">
+                            <span class="text-base leading-none">🟨</span>
+                            <span>Amarelo</span>
+                            <span class="text-[8px] font-normal opacity-80">(Advertência)</span>
+                        </button>
+                        <!-- CARTÃO AZUL -->
+                        <button type="button" onclick="aplicarCartaoAtletaModal('azul')" class="py-2 px-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase shadow-sm border border-blue-400/40 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform" title="Aplicar Suspensão 2 min">
+                            <span class="text-base leading-none">🟦</span>
+                            <span>Azul</span>
+                            <span class="text-[8px] font-normal opacity-80">(2 min fora)</span>
+                        </button>
+                        <!-- CARTÃO VERMELHO -->
+                        <button type="button" onclick="aplicarCartaoAtletaModal('vermelho')" class="py-2 px-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-black text-[10px] uppercase shadow-sm border border-red-400/40 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform" title="Aplicar Expulsão">
+                            <span class="text-base leading-none">🟥</span>
+                            <span>Vermelho</span>
+                            <span class="text-[8px] font-normal opacity-80">(Expulsão)</span>
+                        </button>
+                    </div>
+                    <button type="button" onclick="aplicarCartaoAtletaModal('limpar')" class="w-full py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-bold text-[10px] flex items-center justify-center gap-1 active:scale-95 transition-transform border border-surface-container-highest">
+                        <span class="material-symbols-outlined text-xs">restart_alt</span>
+                        <span>Limpar Punição (Sem Cartão)</span>
+                    </button>
+                </div>
+
                 <div class="flex gap-2 mt-2 pt-2 border-t border-surface-container-highest">
                     <button type="button" onclick="fecharModalEditarAtleta()" class="flex-1 py-2 rounded-lg bg-surface-container text-on-surface font-bold text-xs active:scale-95">
                         Cancelar
@@ -834,6 +905,34 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE ALERTA DE CARTÃO DISCIPLINAR (NOTIFICAÇÃO EM TEMPO REAL) -->
+    <div id="modalAlertaCartao" class="fixed inset-0 z-[130] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="fecharModalAlertaCartao()"></div>
+        <div class="bg-surface-container-lowest w-full max-w-xs md:max-w-sm rounded-3xl shadow-2xl flex flex-col items-center relative z-10 p-5 border-2 text-center" id="modalAlertaCartaoContainer">
+            <!-- ÍCONE / CARTÃO GRANDE -->
+            <div id="alerta-cartao-ilustracao" class="w-20 h-28 rounded-2xl flex items-center justify-center shadow-2xl mb-3 transform rotate-6 border-2 border-white/40 animate-bounce">
+                <span id="alerta-cartao-emoji" class="text-4xl">🟨</span>
+            </div>
+            
+            <span class="text-[10px] font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full mb-1" id="alerta-cartao-badge">DECISÃO DO ÁRBITRO</span>
+            <h2 id="alerta-cartao-titulo" class="font-headline-md text-lg font-black text-on-surface uppercase mt-1">CARTÃO RECEBIDO!</h2>
+            
+            <div class="w-full my-3 p-3 rounded-2xl bg-surface-container-low border border-surface-container-highest flex flex-col gap-1">
+                <p id="alerta-cartao-atleta" class="font-bold text-xs text-primary"></p>
+                <p id="alerta-cartao-motivo" class="text-xs text-on-surface font-semibold"></p>
+                <p id="alerta-cartao-hora" class="text-[10px] text-on-surface-variant"></p>
+            </div>
+
+            <p class="text-[11px] text-on-surface-variant leading-tight mb-4">
+                Esta punição foi aplicada pelo árbitro/administrador e registrada na súmula da partida.
+            </p>
+
+            <button type="button" onclick="fecharModalAlertaCartao()" id="btn-alerta-cartao-ciente" class="w-full py-2.5 rounded-xl text-white font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-transform">
+                ESTOU CIENTE
+            </button>
         </div>
     </div>
 
@@ -1151,6 +1250,7 @@
             ? salvosLocal
             : [];
         let ultimaVersaoSincronizada = parseInt(localStorage.getItem('pelada_version')) || 0;
+        let listaUsuarios = JSON.parse(localStorage.getItem('pelada_usuarios')) || [];
 
         let roleSelecionadoLogin = 'jogador';
         let qtdTimesSorteio = 4;
@@ -1382,6 +1482,8 @@
                 if (event.data) {
                     if (event.data.type === 'SYNC') {
                         aplicarSincronizacaoRemota(event.data);
+                    } else if (event.data.type === 'PUNICAO_CARTAO') {
+                        processarPunicaoCartao(event.data);
                     } else if (event.data.type === 'JOGADOR_ONLINE' && event.data.atleta) {
                         exibirToastJogadorOnline(event.data.atleta, `${event.data.atleta.nome} acabou de entrar na lista da pelada!`);
                         if (event.data.listaConfirmados) {
@@ -1456,6 +1558,12 @@
             } else if (!Array.isArray(listaConfirmados)) {
                 listaConfirmados = [];
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            }
+
+            // 3. Atualiza os usuários caso venha do servidor
+            if (Array.isArray(data.usuarios)) {
+                listaUsuarios = data.usuarios;
+                localStorage.setItem('pelada_usuarios', JSON.stringify(listaUsuarios));
             }
 
             // Garante que o atleta logado mantenha sua foto caso exista localmente ou no servidor
@@ -1699,7 +1807,9 @@
                         if (msg.dispararApito) {
                             try { tocarSomApito(); } catch(e) {}
                         }
-                        if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
+                        if (msg.type === 'PUNICAO_CARTAO') {
+                            processarPunicaoCartao(msg);
+                        } else if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
                             exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada!`);
                             if (msg.listaConfirmados) {
                                 aplicarSincronizacaoRemota(msg);
@@ -1722,6 +1832,7 @@
                 sseInstancia.addEventListener('geofence_update', (event) => processarMensagemSse(event.data));
                 sseInstancia.addEventListener('GEOFENCE_UPDATE', (event) => processarMensagemSse(event.data));
                 sseInstancia.addEventListener('CHECKIN_CONFIRMED', (event) => processarMensagemSse(event.data));
+                sseInstancia.addEventListener('PUNICAO_CARTAO', (event) => processarMensagemSse(event.data));
 
                 sseInstancia.onerror = () => {
                     sseConectado = false;
@@ -1902,6 +2013,7 @@
                 if (navBar) navBar.style.display = 'block';
                 if (aba === 'jogadores') {
                     renderizarListaJogadores();
+                    if (typeof atualizarLocalizacaoGps === 'function') atualizarLocalizacaoGps(false);
                 } else if (aba === 'perfil') {
                     sincronizarPerfilCamposUi();
                 } else if (aba === 'admin') {
@@ -2742,10 +2854,15 @@
             );
             const jaChegou = atletaLogado && (atletaLogado.chegadaConfirmada || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou');
 
-            if (peladaConfig.listaAberta) {
-                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-emerald-500';
-                title.innerText = 'Vestiário Aberto!';
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const totalConfirmados = Array.isArray(listaConfirmados) ? listaConfirmados.length : 0;
+            const listaLotada = totalConfirmados >= limiteMaximo && !jaConfirmado;
 
+            // Modo 100% Autônomo: vestiário sempre aberto, autogerenciado por vagas
+            if (bar) bar.className = listaLotada ? 'absolute left-0 top-0 bottom-0 w-1 bg-red-500' : 'absolute left-0 top-0 bottom-0 w-1 bg-emerald-500';
+            if (title) title.innerText = listaLotada ? 'Vagas Esgotadas!' : 'Vestiário Autônomo Aberto!';
+
+            if (btn) {
                 if (jaChegou) {
                     btn.className = "mt-2 w-full bg-emerald-600 text-white font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-default text-xs font-bold";
                     btn.innerHTML = '<span class="material-symbols-outlined text-base">sports_soccer</span> CHEGADA CONFIRMADA NO CAMPO!';
@@ -2762,43 +2879,44 @@
                         btn.innerHTML = `<span>Na Lista (${distTxt}) • Chegada aos 500m</span><span class="material-symbols-outlined text-sm">radar</span>`;
                         btn.disabled = false;
                     }
+                } else if (listaLotada) {
+                    btn.className = "mt-2 w-full bg-surface-container-highest text-secondary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed text-xs font-bold";
+                    btn.innerHTML = `<span class="material-symbols-outlined text-base">group_off</span> VAGAS ESGOTADAS (${limiteMaximo}/${limiteMaximo})`;
+                    btn.disabled = true;
                 } else {
                     btn.className = "mt-2 w-full bg-primary text-on-primary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-wider";
                     btn.innerHTML = '<span>1. Confirmar Presença na Lista</span><span class="material-symbols-outlined text-sm">arrow_forward</span>';
                     btn.disabled = false;
                 }
-            } else {
-                bar.className = 'absolute left-0 top-0 bottom-0 w-1 bg-amber-500';
-                title.innerText = 'Lista Bloqueada';
-                btn.className = "mt-2 w-full bg-surface-container-highest text-secondary font-headline-md py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-not-allowed text-xs font-bold";
-                btn.innerHTML = '<span class="material-symbols-outlined text-base">lock</span> CHECK-IN FECHADO';
-                btn.disabled = true;
             }
 
-            const btnAdmTrava = document.getElementById('btn-admin-trava');
-            const iconeAdmTrava = document.getElementById('icone-admin-trava');
-            const txtAdmTrava = document.getElementById('texto-admin-trava');
             const adminStatusBadge = document.getElementById('admin-status-badge');
+            const adminAutoCard = document.getElementById('admin-autonomo-card');
+            const adminAutoTxt = document.getElementById('admin-autonomo-txt');
+            const adminAutoVagas = document.getElementById('admin-autonomo-vagas');
 
             if (adminStatusBadge) {
-                if (peladaConfig.listaAberta) {
-                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1';
-                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário Aberto';
+                if (totalConfirmados >= limiteMaximo) {
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Vagas Esgotadas';
                 } else {
-                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 flex items-center gap-1';
-                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Vestiário Fechado';
+                    adminStatusBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center gap-1';
+                    adminStatusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Vestiário 100% Aberto';
                 }
             }
 
-            if (btnAdmTrava) {
-                if (peladaConfig.listaAberta) {
-                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-emerald-600';
-                    if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock_open';
-                    if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA ABERTA (CLIQUE P/ TRAVAR)';
+            if (adminAutoCard && adminAutoTxt && adminAutoVagas) {
+                if (totalConfirmados >= limiteMaximo) {
+                    adminAutoCard.className = 'w-full py-2.5 px-3 rounded-lg bg-red-500/10 border border-red-500/25 flex items-center justify-between shadow-xs';
+                    adminAutoTxt.innerText = `Capacidade máxima atingida (${totalConfirmados}/${limiteMaximo})`;
+                    adminAutoVagas.className = 'text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs';
+                    adminAutoVagas.innerText = 'Lista Lotada';
                 } else {
-                    btnAdmTrava.className = 'w-full py-2.5 rounded-lg text-white font-headline-md text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all bg-primary';
-                    if (iconeAdmTrava) iconeAdmTrava.innerText = 'lock';
-                    if (txtAdmTrava) txtAdmTrava.innerText = 'LISTA FECHADA (CLIQUE P/ ABRIR)';
+                    const vagas = limiteMaximo - totalConfirmados;
+                    adminAutoCard.className = 'w-full py-2.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between shadow-xs';
+                    adminAutoTxt.innerText = `${vagas} vaga${vagas === 1 ? '' : 's'} restante${vagas === 1 ? '' : 's'} (${totalConfirmados}/${limiteMaximo})`;
+                    adminAutoVagas.className = 'text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs';
+                    adminAutoVagas.innerText = 'Vagas Livres';
                 }
             }
         }
@@ -2810,7 +2928,23 @@
                 return;
             }
 
-            const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : 3500;
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const jaNaLista = (listaConfirmados || []).some(j => 
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
+            );
+            if (!jaNaLista && (listaConfirmados || []).length >= limiteMaximo) {
+                alert(`As vagas para esta pelada já estão esgotadas (${limiteMaximo}/${limiteMaximo}).`);
+                return;
+            }
+
+            const dist = distanciaAtualMetros !== null 
+                ? Number(distanciaAtualMetros) 
+                : (usuarioAtual && usuarioAtual.distanciaMetros !== undefined && usuarioAtual.distanciaMetros !== null 
+                    ? Number(usuarioAtual.distanciaMetros) 
+                    : 3500);
+            distanciaAtualMetros = dist;
+            if (usuarioAtual) usuarioAtual.distanciaMetros = dist;
             const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
             // Localiza o atleta logado na lista completa de atletas ou cria novo se não existir
@@ -2906,7 +3040,7 @@
                             idade: usuarioAtual.idade || 28,
                             fitness: 95,
                             foto: usuarioAtual.foto || '',
-                            distanciaMetros: distanciaAtualMetros
+                            distanciaMetros: dist
                         })
                     });
                     const data = await resp.json();
@@ -2920,6 +3054,10 @@
                 }
             } else {
                 sincronizarServidor();
+            }
+
+            if (typeof atualizarLocalizacaoGps === 'function') {
+                atualizarLocalizacaoGps(false);
             }
         }
 
@@ -3033,14 +3171,17 @@
         }
 
         function cliqueBotaoCheckin() {
-            if (!peladaConfig.listaAberta) return;
-
-            const atletaLogado = listaConfirmados.find(j => 
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const atletaLogado = (listaConfirmados || []).find(j => 
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
             );
 
             if (!atletaLogado) {
+                if ((listaConfirmados || []).length >= limiteMaximo) {
+                    alert(`As vagas para esta pelada já estão esgotadas (${limiteMaximo}/${limiteMaximo}).`);
+                    return;
+                }
                 confirmarPresencaLista();
                 return;
             }
@@ -3073,7 +3214,8 @@
         }
 
         async function alternarTravaLista() {
-            peladaConfig.listaAberta = !peladaConfig.listaAberta;
+            // Modo autônomo ativo: a lista se auto-gerencia por vagas e reset diário
+            peladaConfig.listaAberta = true;
             await sincronizarServidor();
             renderizarStatusCheckin();
         }
@@ -3088,7 +3230,6 @@
             }
         }
 
-        async 
         async function salvarConfiguracaoHorarioAdmin() {
             const dataInp = document.getElementById('input-admin-data-pelada');
             const diaInp = document.getElementById('input-admin-dia-semana');
@@ -3216,29 +3357,33 @@
                 atletaLogado.chegadaConfirmada === true
             );
 
+            const limiteMaximo = peladaConfig.capacidadeMaxima || 23;
+            const listaLotada = (atletasCompletos || []).length >= limiteMaximo;
+
             if (!atletaLogado || !presencaConfirmada) {
-                if (!peladaConfig.listaAberta) {
-                    bannerPrompt.className = 'shrink-0 bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
+                if (listaLotada) {
+                    bannerPrompt.className = 'shrink-0 bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
                         <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
-                            <span class="material-symbols-outlined text-amber-600 text-xl">lock</span>
+                            <span class="material-symbols-outlined text-red-600 text-xl">group_off</span>
                             <div>
-                                <span class="block leading-tight text-amber-800">Check-in Temporariamente Fechado</span>
-                                <span class="text-[10px] text-on-surface-variant font-normal">Aguarde o administrador abrir a lista no vestiário</span>
+                                <span class="block leading-tight text-red-800">Vagas Esgotadas (${limiteMaximo}/${limiteMaximo})</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">Capacidade máxima de atletas atingida</span>
                             </div>
                         </div>
-                        <span class="px-2.5 py-1 bg-amber-500/20 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                            Bloqueada
+                        <span class="px-2.5 py-1 bg-red-500/20 text-red-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                            Lista Cheia
                         </span>
                     `;
                 } else {
+                    const vagasRestantes = limiteMaximo - (atletasCompletos || []).length;
                     bannerPrompt.className = 'shrink-0 bg-primary/10 border border-primary/25 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
                         <div class="flex items-center gap-2 text-on-surface text-xs font-bold">
                             <span class="material-symbols-outlined text-primary text-xl">how_to_reg</span>
                             <div>
                                 <span class="block leading-tight">1ª Confirmação: Entrar na Lista</span>
-                                <span class="text-[10px] text-on-surface-variant font-normal">Confirme sua presença para a pelada de hoje</span>
+                                <span class="text-[10px] text-on-surface-variant font-normal">${vagasRestantes} vaga${vagasRestantes === 1 ? '' : 's'} restante${vagasRestantes === 1 ? '' : 's'} para o jogo</span>
                             </div>
                         </div>
                         <button onclick="confirmarPresencaLista()" class="px-3 py-1.5 bg-primary hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 shadow-xs flex items-center gap-1">
@@ -3249,7 +3394,11 @@
                 }
             } else {
                 const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou' || atletaLogado.statusAproximacao === 'campo' || atletaLogado.status === 'campo';
-                const dist = (atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) ? Number(atletaLogado.distanciaMetros) : distanciaAtualMetros;
+                const dist = distanciaAtualMetros !== null 
+                    ? Number(distanciaAtualMetros) 
+                    : ((atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) 
+                        ? Number(atletaLogado.distanciaMetros) 
+                        : null);
 
                 if (chegouConfirmado) {
                     bannerPrompt.className = 'shrink-0 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
@@ -3290,8 +3439,8 @@
                     `;
                 } else {
                     const distTexto = dist !== null ? (dist >= 1000 ? `${(dist/1000).toFixed(1)} km` : `${dist}m`) : 'Aguardando GPS';
-                    const statusDist = dist !== null && dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE';
-                    const badgeCor = dist !== null && dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30';
+                    const statusDist = dist === null ? '⚪ AGUARDANDO' : (dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE');
+                    const badgeCor = dist === null ? 'bg-gray-500/20 text-gray-700 border-gray-400/30' : (dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30');
 
                     bannerPrompt.className = 'shrink-0 bg-surface-container-low border border-surface-container-highest rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
@@ -3326,10 +3475,8 @@
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
 
-            // 1. Pega a base de atletas cadastrados/confirmados
-            let baseAtletas = (Array.isArray(listaConfirmados) && listaConfirmados.length > 0)
-                ? listaConfirmados
-                : (Array.isArray(cadastroGeralAtletas) ? cadastroGeralAtletas : [...ATLETAS_INICIAIS_PADRAO]);
+            // 1. Pega a base de atletas confirmados para a pelada
+            let baseAtletas = Array.isArray(listaConfirmados) ? listaConfirmados : [];
 
             // 2. FILTRA RIGOROSAMENTE APENAS QUEM JÁ CONFIRMOU PRESENÇA OU CHEGOU AO CAMPO
             let atletasCompletos = baseAtletas.filter(atleta => {
@@ -3339,7 +3486,7 @@
                                  atleta.status === 'campo';
 
                 const isConfirmado = atleta.statusPresenca === 'confirmado' || 
-                                     (atleta.hora && atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente');
+                                     (atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente' && atleta.statusPresenca !== undefined && atleta.statusPresenca !== null);
 
                 return isChegou || isConfirmado;
             });
@@ -3379,7 +3526,22 @@
                 const corFitness = overallReal >= 90 ? 'text-success-green' : (overallReal >= 75 ? 'text-warning-amber' : 'text-primary');
 
                 // Extrai a distância exata em metros do GPS do atleta
-                const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? Number(j.distanciaMetros) : null;
+                let distMetros = (j.distanciaMetros !== undefined && j.distanciaMetros !== null)
+                    ? Number(j.distanciaMetros)
+                    : null;
+
+                if (ehUsuarioLogado) {
+                    if (distanciaAtualMetros !== null) {
+                        distMetros = Number(distanciaAtualMetros);
+                        j.distanciaMetros = distMetros;
+                    } else if (distMetros !== null) {
+                        distanciaAtualMetros = distMetros;
+                    } else if (usuarioAtual && usuarioAtual.distanciaMetros !== undefined && usuarioAtual.distanciaMetros !== null) {
+                        distMetros = Number(usuarioAtual.distanciaMetros);
+                        distanciaAtualMetros = distMetros;
+                        j.distanciaMetros = distMetros;
+                    }
+                }
                 const isReset = j.statusAproximacao === 'reset' || j.status === 'reset';
                 
                 // Regra de GEOFENCING E GPS EXATA DO RESUMO:
@@ -3433,6 +3595,17 @@
                     ? `<span class="bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase shadow-xs flex items-center gap-0.5">⭐ VOCÊ (#1)</span>`
                     : '';
 
+                let badgeCartao = '';
+                if (j.cartao && j.cartao.tipo) {
+                    if (j.cartao.tipo === 'amarelo') {
+                        badgeCartao = `<span class="bg-amber-400 text-amber-950 font-black text-[8px] px-1.5 py-0.2 rounded shadow-xs flex items-center gap-0.5 shrink-0" title="Cartão Amarelo: ${j.cartao.motivo || 'Advertência'}">🟨 Amarelo</span>`;
+                    } else if (j.cartao.tipo === 'azul') {
+                        badgeCartao = `<span class="bg-blue-600 text-white font-black text-[8px] px-1.5 py-0.2 rounded shadow-xs flex items-center gap-0.5 shrink-0" title="Cartão Azul: ${j.cartao.motivo || 'Suspensão 2 min'}">🟦 Azul (2m)</span>`;
+                    } else if (j.cartao.tipo === 'vermelho') {
+                        badgeCartao = `<span class="bg-red-600 text-white font-black text-[8px] px-1.5 py-0.2 rounded shadow-xs flex items-center gap-0.5 shrink-0" title="Cartão Vermelho: ${j.cartao.motivo || 'Expulso'}">🟥 Expulso</span>`;
+                    }
+                }
+
                 html += `
                     <article class="${cardClasses}">
                         <div class="w-5 flex justify-center">
@@ -3445,6 +3618,7 @@
                                 <h4 class="font-headline-md text-xs ${ehPrimeiraPosicao || ehUsuarioLogado ? 'font-black text-on-surface' : 'font-bold text-on-surface'} truncate">${j.nome}</h4>
                                 ${badgeVoce}
                                 ${badgePrimeiraPosicao}
+                                ${badgeCartao}
                                 <span class="${corBadge} text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider flex items-center gap-0.5 shrink-0">
                                     <span class="material-symbols-outlined text-[10px]">${iconeStatus}</span>${labelStatus}
                                 </span>
@@ -4588,6 +4762,18 @@
                     distTxt = 'Aguardando check-in';
                 }
 
+                let badgeCartao = '';
+                const cartaoAtleta = (confItem && confItem.cartao) || j.cartao;
+                if (cartaoAtleta && cartaoAtleta.tipo) {
+                    if (cartaoAtleta.tipo === 'amarelo') {
+                        badgeCartao = `<span class="bg-amber-400 text-amber-950 font-black text-[9px] px-1.5 py-0.2 rounded shadow-xs shrink-0 flex items-center gap-0.5" title="Cartão Amarelo: ${cartaoAtleta.motivo || 'Advertência'}">🟨 Amarelo</span>`;
+                    } else if (cartaoAtleta.tipo === 'azul') {
+                        badgeCartao = `<span class="bg-blue-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded shadow-xs shrink-0 flex items-center gap-0.5" title="Cartão Azul: ${cartaoAtleta.motivo || 'Suspensão 2 min'}">🟦 Azul (2m)</span>`;
+                    } else if (cartaoAtleta.tipo === 'vermelho') {
+                        badgeCartao = `<span class="bg-red-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded shadow-xs shrink-0 flex items-center gap-0.5" title="Cartão Vermelho: ${cartaoAtleta.motivo || 'Expulso'}">🟥 Expulso</span>`;
+                    }
+                }
+
                 html += `
                     <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} bg-surface">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -4597,6 +4783,7 @@
                                 <div class="flex items-center gap-1.5 truncate">
                                     <span class="font-bold text-xs text-on-surface truncate">${jNome}</span>
                                     <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${corBadge} shrink-0">${labelStatus}</span>
+                                    ${badgeCartao}
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant flex items-center gap-1">
                                     <strong class="text-primary">${j.posicao || 'ATA'}</strong> • <span>${distTxt}</span> • ${j.idade || 25}a
@@ -4618,6 +4805,93 @@
             container.innerHTML = html;
         }
 
+        let cartaoEdicaoAtual = null;
+
+        function alternarVisibilidadeSenhaAtleta() {
+            const input = document.getElementById('edit-atleta-senha');
+            const icone = document.getElementById('icone-ver-senha-atleta');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icone) icone.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                if (icone) icone.textContent = 'visibility';
+            }
+        }
+
+        function atualizarBadgeCartaoModal(cartao) {
+            const badge = document.getElementById('edit-atleta-status-cartao');
+            if (!badge) return;
+            if (cartao && cartao.tipo === 'amarelo') {
+                badge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 border border-amber-500 shadow-xs';
+                badge.textContent = '🟨 Amarelo (Advertência)';
+            } else if (cartao && cartao.tipo === 'azul') {
+                badge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-600 text-white border border-blue-400 shadow-xs';
+                badge.textContent = '🟦 Azul (2 min fora)';
+            } else if (cartao && cartao.tipo === 'vermelho') {
+                badge.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white border border-red-400 shadow-xs';
+                badge.textContent = '🟥 Vermelho (Expulso)';
+            } else {
+                badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant';
+                badge.textContent = 'Sem cartão';
+            }
+        }
+
+        async function aplicarCartaoAtletaModal(tipo) {
+            const id = document.getElementById('edit-atleta-id').value;
+            const nome = document.getElementById('edit-atleta-nome').value.trim();
+            if (!id && !nome) return;
+
+            let cartaoObj = null;
+            if (tipo !== 'limpar') {
+                const motivoPadrao = tipo === 'amarelo' ? 'Advertência formal do árbitro' : (tipo === 'azul' ? 'Suspensão temporária (2 min)' : 'Expulsão direta da partida');
+                cartaoObj = {
+                    tipo: tipo,
+                    motivo: motivoPadrao,
+                    hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    aplicadoEm: Date.now()
+                };
+            }
+
+            cartaoEdicaoAtual = cartaoObj;
+            atualizarBadgeCartaoModal(cartaoEdicaoAtual);
+
+            // Atualiza no atleta localmente
+            const jCad = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id) || (x.nome && x.nome.trim().toLowerCase() === nome.toLowerCase()));
+            if (jCad) jCad.cartao = cartaoObj;
+            const jConf = (listaConfirmados || []).find(x => String(x.id) === String(id) || (x.nome && x.nome.trim().toLowerCase() === nome.toLowerCase()));
+            if (jConf) jConf.cartao = cartaoObj;
+
+            localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            aplicarDadosAtualizados();
+
+            // Dispara som do apito imediatamente no aparelho do árbitro também
+            try { tocarSomApito(); } catch(e) {}
+
+            // Envia para o servidor para transmitir em tempo real via SSE
+            if (window.location.protocol.startsWith('http')) {
+                try {
+                    await fetch('/api/admin/cartao', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify({
+                            atletaId: id,
+                            atletaNome: nome,
+                            tipo: tipo,
+                            motivo: cartaoObj ? cartaoObj.motivo : null
+                        })
+                    });
+                } catch(err) {
+                    console.warn('Erro ao aplicar cartão no servidor:', err);
+                }
+            }
+
+            const tipoTexto = tipo === 'amarelo' ? 'Cartão Amarelo 🟨' : (tipo === 'azul' ? 'Cartão Azul 🟦' : (tipo === 'vermelho' ? 'Cartão Vermelho 🟥' : 'Punição Removida'));
+            exibirToastJogadorOnline({ nome: nome, posicao: 'REF' }, `${tipoTexto} aplicado para ${nome}!`);
+        }
+
         function abrirModalEditarAtleta(id) {
             const j = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id)) || (listaConfirmados || []).find(x => String(x.id) === String(id));
             if (!j) return;
@@ -4626,6 +4900,23 @@
             document.getElementById('edit-atleta-posicao').value = j.posicao || 'ATA';
             document.getElementById('edit-atleta-idade').value = j.idade || 25;
             document.getElementById('edit-atleta-fitness').value = j.fitness || 85;
+
+            // Busca credenciais em listaUsuarios ou no próprio atleta
+            const jNome = (j.nome || '').trim().toLowerCase();
+            const uObj = (listaUsuarios || []).find(u => (u.id && String(u.id) === String(j.id)) || ((u.nome || '').trim().toLowerCase() === jNome)) || {};
+            
+            const emailInput = document.getElementById('edit-atleta-email');
+            const senhaInput = document.getElementById('edit-atleta-senha');
+            if (emailInput) emailInput.value = j.email || uObj.email || '';
+            if (senhaInput) {
+                senhaInput.value = j.senha || uObj.senha || '';
+                senhaInput.type = 'password';
+            }
+            const icone = document.getElementById('icone-ver-senha-atleta');
+            if (icone) icone.textContent = 'visibility';
+
+            cartaoEdicaoAtual = j.cartao || null;
+            atualizarBadgeCartaoModal(cartaoEdicaoAtual);
             
             const modal = document.getElementById('modalEditarAtleta');
             if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
@@ -4673,6 +4964,8 @@
             const posicaoNova = document.getElementById('edit-atleta-posicao').value;
             const idadeNova = parseInt(document.getElementById('edit-atleta-idade').value) || 25;
             const fitnessNovo = parseInt(document.getElementById('edit-atleta-fitness').value) || 85;
+            const emailNovo = (document.getElementById('edit-atleta-email')?.value || '').trim();
+            const senhaNova = (document.getElementById('edit-atleta-senha')?.value || '').trim();
 
             // 1. Atualiza no cadastro geral fixo
             const jCad = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id));
@@ -4681,6 +4974,9 @@
                 jCad.posicao = posicaoNova;
                 jCad.idade = idadeNova;
                 jCad.fitness = fitnessNovo;
+                if (emailNovo) jCad.email = emailNovo;
+                if (senhaNova) jCad.senha = senhaNova;
+                if (cartaoEdicaoAtual !== undefined) jCad.cartao = cartaoEdicaoAtual;
             }
 
             // 2. Atualiza na lista temporária de confirmados
@@ -4690,9 +4986,34 @@
                 j.posicao = posicaoNova;
                 j.idade = idadeNova;
                 j.fitness = fitnessNovo;
+                if (emailNovo) j.email = emailNovo;
+                if (senhaNova) j.senha = senhaNova;
+                if (cartaoEdicaoAtual !== undefined) j.cartao = cartaoEdicaoAtual;
             }
 
-            // 3. Atualiza também o usuário logado caso seja ele próprio sendo editado
+            // 3. Atualiza na lista global de usuários
+            if (Array.isArray(listaUsuarios)) {
+                const uIdx = listaUsuarios.findIndex(u => (u.id && String(u.id) === String(id)) || ((u.nome || '').trim().toLowerCase() === (jCad?.nome || nomeNovo).toLowerCase()));
+                if (uIdx >= 0) {
+                    listaUsuarios[uIdx].nome = nomeNovo;
+                    if (emailNovo) listaUsuarios[uIdx].email = emailNovo;
+                    if (senhaNova) listaUsuarios[uIdx].senha = senhaNova;
+                    listaUsuarios[uIdx].posicao = posicaoNova;
+                } else if (emailNovo) {
+                    listaUsuarios.push({
+                        id: id,
+                        nome: nomeNovo,
+                        email: emailNovo,
+                        senha: senhaNova || '1234',
+                        role: 'jogador',
+                        posicao: posicaoNova,
+                        criadoEm: new Date().toISOString()
+                    });
+                }
+                localStorage.setItem('pelada_usuarios', JSON.stringify(listaUsuarios));
+            }
+
+            // 4. Atualiza também o usuário logado caso seja ele próprio sendo editado
             const uId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
             const uNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
             if (uId === String(id) || (jCad && (jCad.nome || '').trim().toLowerCase() === uNome)) {
@@ -4700,6 +5021,8 @@
                 usuarioAtual.posicao = posicaoNova;
                 usuarioAtual.idade = idadeNova;
                 usuarioAtual.fitness = fitnessNovo;
+                if (emailNovo) usuarioAtual.email = emailNovo;
+                if (senhaNova) usuarioAtual.senha = senhaNova;
                 localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
                 try { sincronizarPerfilCamposUi(); } catch(err) {}
             }
@@ -4720,7 +5043,10 @@
                             nome: nomeNovo,
                             posicao: posicaoNova,
                             idade: idadeNova,
-                            fitness: fitnessNovo
+                            fitness: fitnessNovo,
+                            email: emailNovo,
+                            senha: senhaNova,
+                            cartao: cartaoEdicaoAtual
                         })
                     });
                 } catch(err) {
@@ -4729,7 +5055,124 @@
             }
 
             await sincronizarServidor();
-            alert(`Dados do atleta "${nomeNovo}" atualizados no cadastro com sucesso!`);
+            exibirToastJogadorOnline({ nome: nomeNovo, posicao: posicaoNova }, `Atleta "${nomeNovo}" atualizado com sucesso!`);
+        }
+
+        function processarPunicaoCartao(msg) {
+            if (!msg) return;
+
+            // 1. Toca o som do apito em todos os aparelhos conectados
+            try { tocarSomApito(); } catch(e) {}
+
+            // 2. Vibra o celular do atleta
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate([300, 100, 300, 100, 500]); } catch(e) {}
+            }
+
+            const atletaId = msg.atletaId ? String(msg.atletaId) : null;
+            const atletaNome = msg.atletaNome ? String(msg.atletaNome).trim().toLowerCase() : '';
+            const cartao = msg.cartao || null;
+
+            // 3. Atualiza nos atletas locais
+            (cadastroGeralAtletas || []).forEach(j => {
+                if ((atletaId && String(j.id) === atletaId) || (atletaNome && (j.nome || '').trim().toLowerCase() === atletaNome)) {
+                    j.cartao = cartao;
+                }
+            });
+            (listaConfirmados || []).forEach(j => {
+                if ((atletaId && String(j.id) === atletaId) || (atletaNome && (j.nome || '').trim().toLowerCase() === atletaNome)) {
+                    j.cartao = cartao;
+                }
+            });
+
+            localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            aplicarDadosAtualizados();
+
+            // 4. Verifica se o atleta punido é o usuário atualmente logado
+            const meuId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
+            const meuNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
+            const souEu = (meuId && atletaId && meuId === atletaId) || (meuNome && atletaNome && meuNome === atletaNome);
+
+            if (souEu && cartao) {
+                // Alerta em tela cheia com alta prioridade para o próprio atleta
+                exibirModalAlertaCartao(usuarioAtual.nome || msg.atletaNome, cartao);
+            } else if (cartao) {
+                // Notificação / Toast discreto para os demais jogadores
+                const nomeExib = msg.atletaNome || 'Atleta';
+                const emoji = cartao.tipo === 'amarelo' ? '🟨' : (cartao.tipo === 'azul' ? '🟦' : '🟥');
+                exibirToastJogadorOnline({ nome: nomeExib, posicao: 'ÁRB' }, `Árbitro aplicou cartão ${emoji} para ${nomeExib}!`);
+            } else if (msg.tipo === 'limpar') {
+                const nomeExib = msg.atletaNome || 'Atleta';
+                exibirToastJogadorOnline({ nome: nomeExib, posicao: 'ÁRB' }, `Punição de ${nomeExib} foi retirada pelo árbitro.`);
+            }
+        }
+
+        function exibirModalAlertaCartao(nomeAtleta, cartao) {
+            const modal = document.getElementById('modalAlertaCartao');
+            const ilustracao = document.getElementById('alerta-cartao-ilustracao');
+            const emojiEl = document.getElementById('alerta-cartao-emoji');
+            const badge = document.getElementById('alerta-cartao-badge');
+            const titulo = document.getElementById('alerta-cartao-titulo');
+            const atletaEl = document.getElementById('alerta-cartao-atleta');
+            const motivoEl = document.getElementById('alerta-cartao-motivo');
+            const horaEl = document.getElementById('alerta-cartao-hora');
+            const btnCiente = document.getElementById('btn-alerta-cartao-ciente');
+            const container = document.getElementById('modalAlertaCartaoContainer');
+
+            if (!modal || !cartao) return;
+
+            if (atletaEl) atletaEl.textContent = `Atleta: ${nomeAtleta || 'Você'}`;
+            if (motivoEl) motivoEl.textContent = cartao.motivo || 'Infração disciplinar cometida na partida.';
+            if (horaEl) horaEl.textContent = cartao.hora ? `Horário da decisão: ${cartao.hora}` : '';
+
+            if (cartao.tipo === 'amarelo') {
+                if (ilustracao) ilustracao.className = 'w-20 h-28 rounded-2xl flex items-center justify-center shadow-2xl mb-3 transform rotate-6 border-2 border-amber-500 bg-amber-400 animate-bounce';
+                if (emojiEl) emojiEl.textContent = '🟨';
+                if (badge) {
+                    badge.className = 'text-[10px] font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full mb-1 bg-amber-400 text-amber-950';
+                    badge.textContent = 'ADVERTÊNCIA DISCIPLINAR';
+                }
+                if (titulo) {
+                    titulo.textContent = 'CARTÃO AMARELO!';
+                    titulo.className = 'font-headline-md text-lg font-black text-amber-500 uppercase mt-1';
+                }
+                if (btnCiente) btnCiente.className = 'w-full py-2.5 rounded-xl text-amber-950 bg-amber-400 hover:bg-amber-300 font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-transform';
+                if (container) container.className = 'bg-surface-container-lowest w-full max-w-xs md:max-w-sm rounded-3xl shadow-2xl flex flex-col items-center relative z-10 p-5 border-2 border-amber-400 text-center';
+            } else if (cartao.tipo === 'azul') {
+                if (ilustracao) ilustracao.className = 'w-20 h-28 rounded-2xl flex items-center justify-center shadow-2xl mb-3 transform rotate-6 border-2 border-blue-400 bg-blue-600 animate-bounce';
+                if (emojiEl) emojiEl.textContent = '🟦';
+                if (badge) {
+                    badge.className = 'text-[10px] font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full mb-1 bg-blue-600 text-white';
+                    badge.textContent = 'SUSPENSÃO TEMPORÁRIA (2 MIN)';
+                }
+                if (titulo) {
+                    titulo.textContent = 'CARTÃO AZUL!';
+                    titulo.className = 'font-headline-md text-lg font-black text-blue-500 uppercase mt-1';
+                }
+                if (btnCiente) btnCiente.className = 'w-full py-2.5 rounded-xl text-white bg-blue-600 hover:bg-blue-500 font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-transform';
+                if (container) container.className = 'bg-surface-container-lowest w-full max-w-xs md:max-w-sm rounded-3xl shadow-2xl flex flex-col items-center relative z-10 p-5 border-2 border-blue-500 text-center';
+            } else if (cartao.tipo === 'vermelho') {
+                if (ilustracao) ilustracao.className = 'w-20 h-28 rounded-2xl flex items-center justify-center shadow-2xl mb-3 transform rotate-6 border-2 border-red-400 bg-red-600 animate-bounce';
+                if (emojiEl) emojiEl.textContent = '🟥';
+                if (badge) {
+                    badge.className = 'text-[10px] font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full mb-1 bg-red-600 text-white';
+                    badge.textContent = 'EXPULSÃO DIRETA DA PARTIDA';
+                }
+                if (titulo) {
+                    titulo.textContent = 'CARTÃO VERMELHO!';
+                    titulo.className = 'font-headline-md text-lg font-black text-red-500 uppercase mt-1';
+                }
+                if (btnCiente) btnCiente.className = 'w-full py-2.5 rounded-xl text-white bg-red-600 hover:bg-red-500 font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-transform';
+                if (container) container.className = 'bg-surface-container-lowest w-full max-w-xs md:max-w-sm rounded-3xl shadow-2xl flex flex-col items-center relative z-10 p-5 border-2 border-red-500 text-center';
+            }
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalAlertaCartao() {
+            const modal = document.getElementById('modalAlertaCartao');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
         }
 
         async function excluirJogadorAdmin(id) {
