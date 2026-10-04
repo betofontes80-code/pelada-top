@@ -1391,10 +1391,19 @@
             } catch(e) {}
         }
 
+        const ultimosToastsExibidos = new Map();
         function exibirToastJogadorOnline(atleta, mensagemCustomizada) {
             if (!atleta || !atleta.nome) return;
             const container = document.getElementById('toast-container');
             if (!container) return;
+
+            const agora = Date.now();
+            const chaveAtleta = (atleta.id || atleta.nome).toString().trim().toLowerCase();
+            const ultimoTimestamp = ultimosToastsExibidos.get(chaveAtleta) || 0;
+            if (agora - ultimoTimestamp < 5000) {
+                return;
+            }
+            ultimosToastsExibidos.set(chaveAtleta, agora);
 
             // Toca som suave e vibra
             tocarSomOnline();
@@ -1483,7 +1492,16 @@
                     if (novo.id) atletasConhecidosIds.add(String(novo.id));
                     if (novo.nome) atletasConhecidosIds.add(novo.nome.toLowerCase().trim());
 
-                    exibirToastJogadorOnline(novo, `${novo.nome} acabou de se escalar na pelada! ⚽`);
+                    const meuId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
+                    const meuNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
+                    const nId = novo.id ? String(novo.id) : null;
+                    const nNome = (novo.nome || '').trim().toLowerCase();
+                    const souEu = (meuId && nId && meuId === nId) || (meuNome && nNome && meuNome === nNome);
+
+                    if (!souEu) {
+                        try { tocarSomApito(); } catch(e) {}
+                        exibirToastJogadorOnline(novo, `${novo.nome} acabou de se escalar na pelada! ⚽`);
+                    }
                 });
             }
         }
@@ -1502,7 +1520,16 @@
                     } else if (event.data.type === 'PUNICAO_CARTAO') {
                         processarPunicaoCartao(event.data);
                     } else if (event.data.type === 'JOGADOR_ONLINE' && event.data.atleta) {
-                        exibirToastJogadorOnline(event.data.atleta, `${event.data.atleta.nome} acabou de entrar na lista da pelada!`);
+                        try { tocarSomApito(); } catch(e) {}
+                        const meuId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
+                        const meuNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
+                        const evtId = event.data.atleta.id ? String(event.data.atleta.id) : null;
+                        const evtNome = (event.data.atleta.nome || '').trim().toLowerCase();
+                        const souEu = (meuId && evtId && meuId === evtId) || (meuNome && evtNome && meuNome === evtNome);
+
+                        if (!souEu) {
+                            exibirToastJogadorOnline(event.data.atleta, `${event.data.atleta.nome} acabou de entrar na lista da pelada!`);
+                        }
                         if (event.data.listaConfirmados) {
                             aplicarSincronizacaoRemota(event.data);
                         }
@@ -1829,7 +1856,16 @@
                         if (msg.type === 'PUNICAO_CARTAO') {
                             processarPunicaoCartao(msg);
                         } else if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
-                            exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada!`);
+                            try { tocarSomApito(); } catch(e) {}
+                            const meuId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
+                            const meuNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
+                            const msgId = msg.atleta.id ? String(msg.atleta.id) : null;
+                            const msgNome = (msg.atleta.nome || '').trim().toLowerCase();
+                            const souEu = (meuId && msgId && meuId === msgId) || (meuNome && msgNome && meuNome === msgNome);
+
+                            if (!souEu) {
+                                exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada!`);
+                            }
                             if (msg.listaConfirmados) {
                                 aplicarSincronizacaoRemota(msg);
                             }
@@ -3016,6 +3052,9 @@
             if (atleta.id) atletasConhecidosIds.add(String(atleta.id));
             if (atleta.nome) atletasConhecidosIds.add(atleta.nome.toLowerCase().trim());
 
+            // Toca o apito do árbitro imediatamente para quem confirma presença
+            try { tocarSomApito(); } catch(e) {}
+
             // Dispara Toast de Online imediatamente
             exibirToastJogadorOnline(atleta, 'Você confirmou sua presença na pelada!');
 
@@ -3043,6 +3082,8 @@
                     cad.online = true;
                     cad.distanciaMetros = dist;
                     cad.statusAproximacao = dist <= 500 ? 'proximo' : (dist <= 1500 ? 'proximo' : 'longe');
+                } else {
+                    cadastroGeralAtletas.push({ ...atleta });
                 }
                 localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
             }
@@ -3219,17 +3260,27 @@
 
         async function cancelarPresencaLogado() {
             if (confirm('Deseja cancelar sua presença na partida?')) {
-                const j = (listaConfirmados || []).find(x => 
+                const idx = (listaConfirmados || []).findIndex(x => 
                     (usuarioAtual.id && String(x.id) === String(usuarioAtual.id)) ||
                     (x.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
                 );
-                if (j) {
-                    j.statusPresenca = 'pendente';
-                    j.chegadaConfirmada = false;
-                    j.distanciaMetros = null;
-                    j.horaChegada = null;
+                if (idx >= 0) {
+                    listaConfirmados.splice(idx, 1);
                 }
+                const cad = (cadastroGeralAtletas || []).find(x => 
+                    (usuarioAtual.id && String(x.id) === String(usuarioAtual.id)) ||
+                    (x.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                );
+                if (cad) {
+                    cad.statusPresenca = 'pendente';
+                    cad.chegadaConfirmada = false;
+                    cad.distanciaMetros = null;
+                    cad.horaChegada = null;
+                }
+                if (usuarioAtual.id) atletasConhecidosIds.delete(String(usuarioAtual.id));
+                if (usuarioAtual.nome) atletasConhecidosIds.delete(usuarioAtual.nome.toLowerCase().trim());
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
                 aplicarDadosAtualizados();
                 await sincronizarServidor();
             }
@@ -5063,6 +5114,7 @@
                 } else {
                     listaConfirmados.unshift({ ...j });
                 }
+                try { tocarSomApito(); } catch(e) {}
             }
 
             localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));

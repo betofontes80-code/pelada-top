@@ -446,6 +446,33 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     const fromDb = athletesDatabase.find(a => (aId && String(a.id) === aId) || (aNome && (a.name || a.nome || '').trim().toLowerCase() === aNome));
     if (fromDb) atleta = { ...fromDb };
   }
+  if (!atleta) {
+    const userFound = (dados.usuarios || appData.usuarios || []).find(u => 
+      (aId && String(u.id) === aId) || 
+      (aNome && (u.nome || '').trim().toLowerCase() === aNome)
+    );
+    if (userFound) {
+      atleta = {
+        id: userFound.id || aId || ('jog_' + Date.now()),
+        nome: userFound.nome || athleteName || 'Atleta',
+        posicao: userFound.posicao || options.posicao || 'MEI',
+        idade: userFound.idade || options.idade || 30,
+        fitness: userFound.fitness || options.fitness || 95,
+        foto: userFound.foto || options.foto || '',
+        statusPresenca: 'pendente'
+      };
+    } else if (athleteName || aNome) {
+      atleta = {
+        id: aId || ('jog_' + Date.now()),
+        nome: athleteName || aNome,
+        posicao: options.posicao || 'MEI',
+        idade: options.idade || 28,
+        fitness: 95,
+        foto: options.foto || '',
+        statusPresenca: 'pendente'
+      };
+    }
+  }
 
   if (!atleta) return null;
 
@@ -513,12 +540,17 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   }
 
   // 2. Sincroniza em dados.listaConfirmados (Regra: só insere ou mantém se já confirmado, se chegou no campo ou se optou por entrar)
-  if (isReset) {
+  if (isReset || options.statusPresenca === 'pendente') {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (conf || isCampo || options.entrarNaLista) {
+  } else if (isCampo || options.entrarNaLista || options.statusPresenca === 'confirmado' || options.statusPresenca === 'chegou' || (conf && conf.statusPresenca !== 'pendente')) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
-      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
+      if (options.entrarNaLista) {
+        dados.listaConfirmados.splice(idxConf, 1);
+        dados.listaConfirmados.unshift({ ...atletaAtualizado });
+      } else {
+        dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
+      }
     } else {
       dados.listaConfirmados.unshift({ ...atletaAtualizado });
     }
@@ -1741,12 +1773,12 @@ const requestHandler = (req, res) => {
               }
             }
 
-            // Transmite evento específico de jogador online para todos os donos e participantes
+            // Transmite evento específico de jogador online para todos os donos e participantes com apito do juiz
             broadcastSse('JOGADOR_ONLINE', {
               atleta: updated,
               mensagem: `${(updated && (updated.nome || updated.name)) || nomeAtleta} acabou de entrar na lista da pelada!`,
               listaConfirmados: appData.listaConfirmados,
-              dispararApito: false,
+              dispararApito: true,
               version: appData.version
             });
 
@@ -1758,7 +1790,7 @@ const requestHandler = (req, res) => {
             res.end(JSON.stringify({
               sucesso: true,
               success: true,
-              dispararApito: false,
+              dispararApito: true,
               atleta: updated,
               athlete: updated,
               listaConfirmados: appData.listaConfirmados,
