@@ -519,7 +519,7 @@
                             </span>
                         </div>
                         <div class="flex gap-1.5">
-                            <input type="text" id="input-admin-local" value="Arena Bola de Ouro Society - Av. das Américas, 4500" 
+                            <input type="text" id="input-admin-local" value="R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB" class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
                                    class="flex-1 px-3 py-1.5 rounded-lg bg-surface border border-surface-container-highest text-xs font-medium focus:border-primary outline-none text-on-surface">
                             <button onclick="salvarNovoLocal()" class="px-2.5 py-1.5 bg-primary text-white rounded-lg font-label-md text-xs font-bold active:scale-95 shadow-sm">
                                 Salvar
@@ -528,7 +528,7 @@
                                 <span class="material-symbols-outlined text-sm">near_me</span>
                             </button>
                         </div>
-                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong>-23.550520, -46.633308</strong>. Check-in presencial restrito a 500m.</p>
+                        <p class="text-[10px] text-on-surface-variant">📍 Coordenadas: <strong id="admin-coords-display">-7.190405, -34.870103</strong>. Check-in presencial restrito a 500m.</p>
                     </div>
 
                     <!-- STATUS DO VESTIÁRIO (SISTEMA AUTÔNOMO INTELIGENTE) -->
@@ -2920,8 +2920,12 @@
             const txtLocal = document.getElementById('txt-local-pelada');
             const inputLocal = document.getElementById('input-admin-local');
 
-            if (txtLocal) txtLocal.innerText = peladaConfig.local;
-            if (inputLocal) inputLocal.value = peladaConfig.local;
+            const localOficial = (peladaConfig && peladaConfig.local && peladaConfig.local !== 'undefined' && peladaConfig.local !== 'null') ? peladaConfig.local : 'R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB';
+            peladaConfig.local = localOficial;
+            if (txtLocal) txtLocal.innerText = localOficial;
+            if (inputLocal) inputLocal.value = localOficial;
+            const coordsDisplay = document.getElementById('admin-coords-display');
+            if (coordsDisplay) coordsDisplay.innerText = `${peladaConfig.lat || -7.190405}, ${peladaConfig.lng || -34.870103}`;
 
             const atletaLogado = (listaConfirmados || []).find(j => 
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
@@ -3436,6 +3440,10 @@
             if (diaInp && peladaConfig.diaSemana) diaInp.value = peladaConfig.diaSemana;
             if (inicioInp && peladaConfig.horaInicio) inicioInp.value = peladaConfig.horaInicio;
             if (fimInp && peladaConfig.horaFim) fimInp.value = peladaConfig.horaFim;
+            const inputLocal = document.getElementById('input-admin-local');
+            if (inputLocal && peladaConfig && peladaConfig.local && peladaConfig.local !== 'undefined') {
+                inputLocal.value = peladaConfig.local;
+            }
         }
 
         async function salvarNovoLocal() {
@@ -4094,8 +4102,7 @@
                 }, 3000);
             }
 
-            alert('📢 Escalação Oficial enviada para o celular de todos os participantes!\n\nCada atleta verá o numeral gigante de seu time no centro da tela até o fim dos 10 minutos.');
-            alert('📢 Escalação Oficial enviada para o celular de todos os participantes!\n\nApenas atletas com chegada confirmada no campo foram incluídos nas equipes.');
+            alert('📢 Escalação Oficial enviada para o celular de todos os participantes!\n\nApenas atletas com chegada confirmada no campo (raio de 500m) foram incluídos nas equipes.');
         }
 
         function verificarEExibirNumeralTimeJogador() {

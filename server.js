@@ -261,11 +261,30 @@ const DEFAULT_CONFIG = {
   mapsUrl: 'https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7',
   raioMaximoMetros: 500,
   exigirGps: true,
-  diaSemana: 'Terça-feira',
-  dataPelada: new Date().toISOString().split('T')[0],
-  horaInicio: '19:00',
-  horaFim: '21:00'
+  diaSemana: 'Sexta-feira',
+  dataPelada: '2026-10-09',
+  horaInicio: '20:30',
+  horaFim: '22:30'
 };
+
+function sanitizarPeladaConfig(cfg) {
+  const padrao = { ...DEFAULT_CONFIG };
+  const c = (cfg && typeof cfg === "object") ? { ...padrao, ...cfg } : { ...padrao };
+  if (!c.local || c.local === "undefined" || c.local === "null" || !c.local.trim()) {
+    c.local = padrao.local;
+  }
+  if (c.lat === undefined || isNaN(Number(c.lat))) c.lat = padrao.lat;
+  if (c.lng === undefined || isNaN(Number(c.lng))) c.lng = padrao.lng;
+  if (!c.mapsUrl || c.mapsUrl === "undefined") c.mapsUrl = padrao.mapsUrl;
+  if (c.raioMaximoMetros === undefined || isNaN(Number(c.raioMaximoMetros))) c.raioMaximoMetros = 500;
+  if (c.exigirGps === undefined) c.exigirGps = true;
+  if (c.listaAberta === undefined) c.listaAberta = true;
+  if (!c.diaSemana || c.diaSemana === "undefined") c.diaSemana = padrao.diaSemana;
+  if (!c.horaInicio || c.horaInicio === "undefined") c.horaInicio = padrao.horaInicio;
+  if (!c.horaFim || c.horaFim === "undefined") c.horaFim = padrao.horaFim;
+  if (!c.dataPelada || c.dataPelada === "undefined") c.dataPelada = padrao.dataPelada;
+  return c;
+}
 
 const DEFAULT_CONFIRMADOS = [];
 
@@ -618,28 +637,41 @@ setInterval(() => {
 }, 15000);
 
 // Função de Reset Automático após a meia-noite do dia da pelada
+// Função de Reset Automático após as 23hs do dia da pelada
 function verificarResetMeiaNoite() {
   try {
+    if (typeof sanitizarPeladaConfig === "function") {
+      appData.peladaConfig = sanitizarPeladaConfig(appData.peladaConfig);
+    }
     if (!appData.peladaConfig || !appData.peladaConfig.dataPelada) return;
 
-    // Obtém data de hoje no fuso horário de Brasília (UTC-3)
-    const hojeStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    // Obtém data e hora atuais de Brasília (UTC-3)
+    const agoraSp = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const anoSp = agoraSp.getFullYear();
+    const mesSp = String(agoraSp.getMonth() + 1).padStart(2, "0");
+    const diaSp = String(agoraSp.getDate()).padStart(2, "0");
+    const hojeStr = `${anoSp}-${mesSp}-${diaSp}`;
+    const horasSp = agoraSp.getHours();
+
     const dataPeladaStr = String(appData.peladaConfig.dataPelada).trim();
 
-    // Se hoje é posterior à data da pelada (após a meia-noite do dia do jogo)
-    if (hojeStr > dataPeladaStr) {
-      if (appData.listaConfirmados && appData.listaConfirmados.length > 0) {
-        console.log(`[Auto-Reset Meia-Noite] Dia da pelada (${dataPeladaStr}) finalizou. Data atual: ${hojeStr}.`);
-        console.log(`[Auto-Reset Meia-Noite] Zerando a lista de presença da aba jogadores e mantendo configurações.`);
+    // Regra: reseta após as 23hs do dia do jogo (horasSp >= 23) ou se já passou para o dia seguinte
+    const passouDas23Hoje = (hojeStr === dataPeladaStr && horasSp >= 23);
+    const passouDoDia = (hojeStr > dataPeladaStr);
+
+    if (passouDas23Hoje || passouDoDia) {
+      if ((appData.listaConfirmados && appData.listaConfirmados.length > 0) || appData.peladaConfig.ultimaDataZerada !== dataPeladaStr) {
+        console.log(`[Auto-Reset 23h] Pelada da data (${dataPeladaStr}) finalizada às 23h. Data atual: ${hojeStr}.`);
+        console.log(`[Auto-Reset 23h] Zerando lista de presença, escalação e avançando data para a próxima semana.`);
         
         appData.listaConfirmados = [];
         if (Array.isArray(appData.atletas)) {
           appData.atletas = appData.atletas.map(a => ({
             ...a,
-            statusPresenca: 'pendente',
+            statusPresenca: "pendente",
             chegadaConfirmada: false,
             distanciaMetros: null,
-            statusAproximacao: 'longe',
+            statusAproximacao: "longe",
             horaChegada: null
           }));
         }
@@ -650,35 +682,33 @@ function verificarResetMeiaNoite() {
 
         // Avança automaticamente para o próximo dia correspondente da semana (+7 dias)
         try {
-          const parts = dataPeladaStr.split('-');
+          const parts = dataPeladaStr.split("-");
           if (parts.length === 3) {
             const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
             dt.setDate(dt.getDate() + 7);
             const ano = dt.getFullYear();
-            const mes = String(dt.getMonth() + 1).padStart(2, '0');
-            const dia = String(dt.getDate()).padStart(2, '0');
+            const mes = String(dt.getMonth() + 1).padStart(2, "0");
+            const dia = String(dt.getDate()).padStart(2, "0");
             appData.peladaConfig.dataPelada = `${ano}-${mes}-${dia}`;
-            console.log(`[Auto-Reset Meia-Noite] Nova pelada definida para: ${appData.peladaConfig.dataPelada}`);
+            console.log(`[Auto-Reset 23h] Nova pelada definida para: ${appData.peladaConfig.dataPelada}`);
           }
         } catch (eDt) {}
 
         appData.version = Date.now();
         salvarDadosDisco();
-        broadcastSse('LISTA_ZERADA_AUTO', {
-          mensagem: 'Nova pelada iniciada! Lista de presença zerada após a meia-noite.',
+        broadcastSse("LISTA_ZERADA_AUTO", {
+          mensagem: "Pelada finalizada! Lista de presença resetada automaticamente após as 23h.",
           peladaConfig: appData.peladaConfig,
           listaConfirmados: [],
           version: appData.version
         });
-        broadcastSse('SYNC', appData);
+        broadcastSse("SYNC", appData);
       }
     }
   } catch (err) {
-    console.error('[Auto-Reset Meia-Noite] Erro na verificação:', err);
+    console.error("[Auto-Reset 23h] Erro na verificação:", err);
   }
 }
-
-// Checagem periódica a cada 30 segundos
 setInterval(verificarResetMeiaNoite, 30000);
 verificarResetMeiaNoite();
 

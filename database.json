@@ -1171,7 +1171,17 @@
     }
   ],
   "peladaConfig": {
-    "listaAberta": true
+    "listaAberta": true,
+    "local": "R. Abelardo Targino da Fonseca - Ernesto Geisel, João Pessoa - PB",
+    "lat": -7.190405,
+    "lng": -34.870103,
+    "mapsUrl": "https://maps.app.goo.gl/gCjmZDcZEQeDiqhp7",
+    "raioMaximoMetros": 500,
+    "exigirGps": true,
+    "diaSemana": "Sexta-feira",
+    "dataPelada": "2026-10-09",
+    "horaInicio": "20:30",
+    "horaFim": "22:30"
   },
   "escalacaoAtiva": null,
   "partidaEstado": {
