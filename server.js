@@ -542,7 +542,7 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   // 2. Sincroniza em dados.listaConfirmados (Regra: só insere ou mantém se já confirmado, se chegou no campo ou se optou por entrar)
   if (isReset || options.statusPresenca === 'pendente') {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (isCampo || options.entrarNaLista || options.statusPresenca === 'confirmado' || options.statusPresenca === 'chegou' || (conf && conf.statusPresenca !== 'pendente')) {
+  } else if (options.entrarNaLista || options.statusPresenca === 'confirmado' || (conf && conf.statusPresenca !== 'pendente')) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
       if (options.entrarNaLista) {
@@ -892,7 +892,7 @@ const requestHandler = (req, res) => {
         const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus, {
           statusPresenca: payload.statusPresenca,
           chegadaConfirmada: payload.chegadaConfirmada,
-          entrarNaLista: payload.entrarNaLista || customStatus === 'campo' || customStatus === 'chegou'
+          entrarNaLista: payload.entrarNaLista === true
         });
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
@@ -1161,9 +1161,7 @@ const requestHandler = (req, res) => {
           if (payload.listaConfirmados !== undefined) {
             const novaLista = payload.listaConfirmados;
             if (Array.isArray(novaLista)) {
-              if (novaLista.length > 0 || payload.forcarLimpeza === true || !appData.listaConfirmados || appData.listaConfirmados.length === 0) {
-                appData.listaConfirmados = novaLista;
-              }
+              appData.listaConfirmados = novaLista;
             }
           }
           if (payload.peladaConfig !== undefined) {
@@ -1299,7 +1297,7 @@ const requestHandler = (req, res) => {
           broadcastSse('SYNC', appData);
 
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ sucesso: true, atletas: lista, listaConfirmados: lista, version: appData.version }));
+          res.end(JSON.stringify({ sucesso: true, atletas: lista, listaConfirmados: appData.listaConfirmados, version: appData.version }));
         } catch (innerErr) {
           res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ sucesso: false, erro: innerErr.message }));
@@ -1801,6 +1799,63 @@ const requestHandler = (req, res) => {
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ sucesso: true, listaConfirmados: appData.listaConfirmados, version: appData.version }));
+      });
+      return;
+    }
+
+    // 9.1 API Cancelar Presença / Abandonar a Lista da Pelada
+    if (pathname === '/api/pelada/cancelar-presenca' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (!err && payload) {
+          const idAtleta = payload.id ? String(payload.id).trim() : '';
+          const nomeAtleta = payload.nome ? String(payload.nome).trim().toLowerCase() : '';
+
+          // 1. Remove de appData.listaConfirmados
+          if (Array.isArray(appData.listaConfirmados)) {
+            appData.listaConfirmados = appData.listaConfirmados.filter(c => 
+              !( (idAtleta && String(c.id) === idAtleta) || (nomeAtleta && (c.nome || '').trim().toLowerCase() === nomeAtleta) )
+            );
+          } else {
+            appData.listaConfirmados = [];
+          }
+
+          // 2. Reseta status em appData.atletas
+          if (Array.isArray(appData.atletas)) {
+            appData.atletas.forEach(a => {
+              if ((idAtleta && String(a.id) === idAtleta) || (nomeAtleta && (a.nome || '').trim().toLowerCase() === nomeAtleta)) {
+                a.statusPresenca = 'pendente';
+                a.chegadaConfirmada = false;
+                a.distanciaMetros = null;
+                a.statusAproximacao = 'reset';
+                a.status = 'reset';
+                a.horaChegada = null;
+                a.checkedIn = false;
+                a.canCheckIn = false;
+              }
+            });
+          }
+
+          // 3. Persiste no database.json através do sincronizador universal
+          sincronizarStatusAtletaUniversal(idAtleta, payload.nome || '', null, 'reset', {
+            statusPresenca: 'pendente',
+            chegadaConfirmada: false
+          });
+
+          appData.version = Date.now();
+          salvarDadosDisco();
+          broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            sucesso: true,
+            success: true,
+            listaConfirmados: appData.listaConfirmados,
+            version: appData.version
+          }));
+          return;
+        }
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
       });
       return;
     }

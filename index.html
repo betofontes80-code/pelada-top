@@ -1683,6 +1683,7 @@
                             body: JSON.stringify({
                                 atletas: cadastroGeralAtletas,
                                 listaConfirmados,
+                                forcarLimpeza: true,
                                 peladaConfig,
                                 escalacaoAtiva,
                                 partidaEstado,
@@ -3260,29 +3261,73 @@
 
         async function cancelarPresencaLogado() {
             if (confirm('Deseja cancelar sua presença na partida?')) {
-                const idx = (listaConfirmados || []).findIndex(x => 
-                    (usuarioAtual.id && String(x.id) === String(usuarioAtual.id)) ||
-                    (x.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-                );
-                if (idx >= 0) {
-                    listaConfirmados.splice(idx, 1);
-                }
-                const cad = (cadastroGeralAtletas || []).find(x => 
-                    (usuarioAtual.id && String(x.id) === String(usuarioAtual.id)) ||
-                    (x.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-                );
+                const meuId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id).trim() : '';
+                const meuNome = usuarioAtual && usuarioAtual.nome ? (usuarioAtual.nome || '').trim().toLowerCase() : '';
+
+                // 1. Remove da lista de confirmados imediatamente
+                listaConfirmados = (listaConfirmados || []).filter(x => {
+                    const xId = x && x.id ? String(x.id).trim() : '';
+                    const xNome = x && x.nome ? (x.nome || '').trim().toLowerCase() : '';
+                    const ehMesmo = (meuId && xId && meuId === xId) || (meuNome && xNome && meuNome === xNome);
+                    return !ehMesmo;
+                });
+
+                // 2. Reseta status de presença no cadastro geral
+                const cad = (cadastroGeralAtletas || []).find(x => {
+                    const xId = x && x.id ? String(x.id).trim() : '';
+                    const xNome = x && x.nome ? (x.nome || '').trim().toLowerCase() : '';
+                    return (meuId && xId && meuId === xId) || (meuNome && xNome && meuNome === xNome);
+                });
                 if (cad) {
                     cad.statusPresenca = 'pendente';
                     cad.chegadaConfirmada = false;
                     cad.distanciaMetros = null;
                     cad.horaChegada = null;
+                    cad.statusAproximacao = 'reset';
+                    cad.status = 'reset';
                 }
-                if (usuarioAtual.id) atletasConhecidosIds.delete(String(usuarioAtual.id));
-                if (usuarioAtual.nome) atletasConhecidosIds.delete(usuarioAtual.nome.toLowerCase().trim());
+
+                if (meuId) atletasConhecidosIds.delete(meuId);
+                if (meuNome) atletasConhecidosIds.delete(meuNome);
+
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                 localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
                 aplicarDadosAtualizados();
-                await sincronizarServidor();
+
+                // 3. Notifica o backend via endpoint dedicado /api/pelada/cancelar-presenca
+                if (window.location.protocol.startsWith('http')) {
+                    try {
+                        const resp = await fetch('/api/pelada/cancelar-presenca', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                            body: JSON.stringify({
+                                id: usuarioAtual.id,
+                                nome: usuarioAtual.nome
+                            })
+                        });
+                        const data = await resp.json();
+                        if (data && data.sucesso && Array.isArray(data.listaConfirmados)) {
+                            listaConfirmados = data.listaConfirmados;
+                            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                        }
+                    } catch(err) {
+                        console.warn('Erro ao cancelar presença no servidor:', err);
+                    }
+                }
+
+                // 4. Propaga para outras abas locais via BroadcastChannel
+                if (realtimeChannel) {
+                    try {
+                        realtimeChannel.postMessage({
+                            type: 'SYNC',
+                            listaConfirmados: listaConfirmados,
+                            atletas: cadastroGeralAtletas,
+                            version: Date.now()
+                        });
+                    } catch(e) {}
+                }
+
+                aplicarDadosAtualizados();
             }
         }
 
