@@ -1450,6 +1450,19 @@
             if (listaRecebida !== null) {
                 verificarNovosJogadoresOnline(listaRecebida);
                 if (Array.isArray(listaRecebida)) {
+                    // Preserva a medição do GPS do usuário logado se o servidor ainda não refletiu
+                    const liveDist = distanciaAtualMetros !== null ? distanciaAtualMetros : (usuarioAtual && usuarioAtual.distanciaMetros !== undefined && usuarioAtual.distanciaMetros !== null ? Number(usuarioAtual.distanciaMetros) : null);
+                    if (liveDist !== null && usuarioAtual) {
+                        const meuAtletaNaLista = listaRecebida.find(j => 
+                            (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                            (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                        );
+                        if (meuAtletaNaLista && (meuAtletaNaLista.distanciaMetros === null || meuAtletaNaLista.distanciaMetros === undefined)) {
+                            meuAtletaNaLista.distanciaMetros = liveDist;
+                            const raio = peladaConfig.raioMaximoMetros || 500;
+                            meuAtletaNaLista.statusAproximacao = liveDist <= raio ? 'campo' : (liveDist <= 1500 ? 'proximo' : 'longe');
+                        }
+                    }
                     listaConfirmados = listaRecebida;
                 }
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
@@ -1458,14 +1471,19 @@
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
             }
 
-            // Garante que o atleta logado mantenha sua foto caso exista localmente ou no servidor
-            const eu = (cadastroGeralAtletas || listaConfirmados || []).find(j => 
+            // Garante que o atleta logado mantenha sua foto e distância caso exista localmente ou no servidor
+            const eu = (listaConfirmados || []).find(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            ) || (cadastroGeralAtletas || []).find(j => 
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
             );
             if (eu) {
                 if (eu.distanciaMetros !== undefined && eu.distanciaMetros !== null) {
                     distanciaAtualMetros = Number(eu.distanciaMetros);
+                } else if (distanciaAtualMetros !== null) {
+                    eu.distanciaMetros = distanciaAtualMetros;
                 }
                 if (usuarioAtual.foto && !eu.foto) {
                     eu.foto = usuarioAtual.foto;
@@ -1902,6 +1920,9 @@
                 if (navBar) navBar.style.display = 'block';
                 if (aba === 'jogadores') {
                     renderizarListaJogadores();
+                    if (typeof atualizarLocalizacaoGps === 'function') {
+                        atualizarLocalizacaoGps(false);
+                    }
                 } else if (aba === 'perfil') {
                     sincronizarPerfilCamposUi();
                 } else if (aba === 'admin') {
@@ -2188,6 +2209,12 @@
                         trocarAba('jogadores');
                     }
                     verificarEExibirNumeralTimeJogador();
+                    if (typeof atualizarLocalizacaoGps === 'function') {
+                        atualizarLocalizacaoGps(false);
+                    }
+                    if (typeof iniciarMonitoramentoGpsContinuo === 'function') {
+                        iniciarMonitoramentoGpsContinuo();
+                    }
                     if (btn) {
                         btn.innerHTML = orig;
                         btn.disabled = false;
@@ -2577,6 +2604,11 @@
             const raio = peladaConfig.raioMaximoMetros || 500;
             const statusStr = distancia <= raio ? 'campo' : (distancia <= 1500 ? 'proximo' : 'longe');
 
+            const atletaLogado = (listaConfirmados || []).find(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            );
+
             fetch('/api/v2/geofence-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2584,7 +2616,10 @@
                     athleteId: usuarioAtual.id || '',
                     athleteName: usuarioAtual.nome || '',
                     distanceMeters: distancia,
-                    status: statusStr
+                    status: statusStr,
+                    customStatus: statusStr,
+                    statusPresenca: atletaLogado ? atletaLogado.statusPresenca : 'confirmado',
+                    chegadaConfirmada: atletaLogado ? !!atletaLogado.chegadaConfirmada : false
                 })
             }).catch(() => {});
         }
@@ -2676,17 +2711,25 @@
             navigator.geolocation.getCurrentPosition(
                 (pos) => processarPosicaoGpsSucesso(pos, mostrarAlerta),
                 (err) => {
-                    console.warn('Erro GPS:', err.message);
-                    if (txtInfo && !distanciaAtualMetros) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
-                    if (mostrarAlerta) {
-                        alert(
-                            `Não foi possível obter o sinal GPS exato (${err.message}).\n\n` +
-                            `Local Oficial:\n${peladaConfig.local}\n\n` +
-                            `Por favor, ative a localização no seu celular/dispositivo para validar sua presença no campo.`
-                        );
-                    }
+                    console.warn('Erro GPS alta precisão, tentando rede celular/wifi:', err.message);
+                    // Fallback imediato em rede/antena/wifi para evitar travar em "Aguardando GPS"
+                    navigator.geolocation.getCurrentPosition(
+                        (pos2) => processarPosicaoGpsSucesso(pos2, mostrarAlerta),
+                        (err2) => {
+                            console.warn('Erro GPS final:', err2.message);
+                            if (txtInfo && !distanciaAtualMetros) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
+                            if (mostrarAlerta) {
+                                alert(
+                                    `Não foi possível obter o sinal GPS exato (${err2.message}).\n\n` +
+                                    `Local Oficial:\n${peladaConfig.local}\n\n` +
+                                    `Por favor, ative a localização no seu celular/dispositivo para validar sua presença no campo.`
+                                );
+                            }
+                        },
+                        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+                    );
                 },
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
             );
 
             // Garante que o rastreador contínuo esteja ativo
@@ -2702,7 +2745,7 @@
                     gpsWatchId = navigator.geolocation.watchPosition(
                         (pos) => processarPosicaoGpsSucesso(pos, false),
                         (err) => console.warn('Aviso watchPosition GPS:', err.message),
-                        { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 }
+                        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
                     );
                 } catch(e) {}
             }
@@ -2713,8 +2756,15 @@
                     if (navigator.geolocation && document.visibilityState !== 'hidden') {
                         navigator.geolocation.getCurrentPosition(
                             (pos) => processarPosicaoGpsSucesso(pos, false),
-                            () => {},
-                            { enableHighAccuracy: true, timeout: 6000, maximumAge: 4000 }
+                            () => {
+                                // Fallback rede/wifi se hardware GPS estiver lento ou em local fechado
+                                navigator.geolocation.getCurrentPosition(
+                                    (pos2) => processarPosicaoGpsSucesso(pos2, false),
+                                    () => {},
+                                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
+                                );
+                            },
+                            { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
                         );
                     }
                 }, 5000);
@@ -2810,7 +2860,13 @@
                 return;
             }
 
-            const dist = distanciaAtualMetros !== null ? distanciaAtualMetros : 3500;
+            const dist = distanciaAtualMetros !== null 
+                ? Number(distanciaAtualMetros) 
+                : (usuarioAtual && usuarioAtual.distanciaMetros !== undefined && usuarioAtual.distanciaMetros !== null 
+                    ? Number(usuarioAtual.distanciaMetros) 
+                    : 3500);
+            distanciaAtualMetros = dist;
+            if (usuarioAtual) usuarioAtual.distanciaMetros = dist;
             const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
             // Localiza o atleta logado na lista completa de atletas ou cria novo se não existir
@@ -2906,7 +2962,7 @@
                             idade: usuarioAtual.idade || 28,
                             fitness: 95,
                             foto: usuarioAtual.foto || '',
-                            distanciaMetros: distanciaAtualMetros
+                            distanciaMetros: dist
                         })
                     });
                     const data = await resp.json();
@@ -2920,6 +2976,10 @@
                 }
             } else {
                 sincronizarServidor();
+            }
+
+            if (typeof atualizarLocalizacaoGps === 'function') {
+                atualizarLocalizacaoGps(false);
             }
         }
 
@@ -3290,8 +3350,8 @@
                     `;
                 } else {
                     const distTexto = dist !== null ? (dist >= 1000 ? `${(dist/1000).toFixed(1)} km` : `${dist}m`) : 'Aguardando GPS';
-                    const statusDist = dist !== null && dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE';
-                    const badgeCor = dist !== null && dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30';
+                    const statusDist = dist === null ? '⚪ AGUARDANDO' : (dist <= 1500 ? '🟡 PRÓXIMO' : '🔴 LONGE');
+                    const badgeCor = dist === null ? 'bg-gray-500/20 text-gray-700 border-gray-400/30' : (dist <= 1500 ? 'bg-amber-500/20 text-amber-700 border-amber-500/30' : 'bg-red-500/20 text-red-700 border-red-500/30');
 
                     bannerPrompt.className = 'shrink-0 bg-surface-container-low border border-surface-container-highest rounded-xl p-2.5 px-3 flex items-center justify-between shadow-xs';
                     bannerPrompt.innerHTML = `
@@ -3300,7 +3360,7 @@
                             <div class="min-w-0">
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeCor}">${statusDist}</span>
-                                    <span class="text-xs font-bold text-on-surface truncate">${distTexto} do Campo</span>
+                                    <span class="text-xs font-bold text-on-surface truncate">${dist !== null ? `${distTexto} do Campo` : 'Buscando GPS...'}</span>
                                 </div>
                                 <p class="text-[10px] text-on-surface-variant font-normal truncate">O botão de chegada surgirá quando você estiver a &le;500m.</p>
                             </div>
@@ -3379,7 +3439,22 @@
                 const corFitness = overallReal >= 90 ? 'text-success-green' : (overallReal >= 75 ? 'text-warning-amber' : 'text-primary');
 
                 // Extrai a distância exata em metros do GPS do atleta
-                const distMetros = j.distanciaMetros !== undefined && j.distanciaMetros !== null ? Number(j.distanciaMetros) : null;
+                let distMetros = (j.distanciaMetros !== undefined && j.distanciaMetros !== null)
+                    ? Number(j.distanciaMetros)
+                    : null;
+
+                if (ehUsuarioLogado) {
+                    if (distanciaAtualMetros !== null) {
+                        distMetros = Number(distanciaAtualMetros);
+                        j.distanciaMetros = distMetros;
+                    } else if (distMetros !== null) {
+                        distanciaAtualMetros = distMetros;
+                    } else if (usuarioAtual && usuarioAtual.distanciaMetros !== undefined && usuarioAtual.distanciaMetros !== null) {
+                        distMetros = Number(usuarioAtual.distanciaMetros);
+                        distanciaAtualMetros = distMetros;
+                        j.distanciaMetros = distMetros;
+                    }
+                }
                 const isReset = j.statusAproximacao === 'reset' || j.status === 'reset';
                 
                 // Regra de GEOFENCING E GPS EXATA DO RESUMO:

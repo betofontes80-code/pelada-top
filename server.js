@@ -451,8 +451,8 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
   const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || atleta.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
-  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (atleta.chegadaConfirmada || (conf ? conf.chegadaConfirmada : false))));
+  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : atleta.statusPresenca) || 'confirmado'));
+  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : ((conf ? conf.chegadaConfirmada : atleta.chegadaConfirmada) || false)));
   const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
 
   const atletaAtualizado = {
@@ -841,7 +841,10 @@ const requestHandler = (req, res) => {
 
         const customStatus = String(payload.customStatus || payload.status || payload.statusDistancia || '').toLowerCase().trim();
 
-        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus);
+        const updated = sincronizarStatusAtletaUniversal(athleteId, athleteName, distanceMeters, customStatus, {
+          statusPresenca: payload.statusPresenca,
+          chegadaConfirmada: payload.chegadaConfirmada
+        });
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
           res.end(JSON.stringify({ success: false, message: "Atleta não encontrado." }));
@@ -1773,7 +1776,10 @@ const requestHandler = (req, res) => {
           distMetrosNum = Number(payload.distanciaMetros);
         }
 
-        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia);
+        const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia, {
+          statusPresenca: payload.statusPresenca,
+          chegadaConfirmada: payload.chegadaConfirmada
+        });
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ sucesso: false, erro: 'Atleta não encontrado' }));
