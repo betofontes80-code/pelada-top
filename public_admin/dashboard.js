@@ -71,7 +71,7 @@ function exibirToastJogadorOnline(atleta, mensagem) {
       <h4 class="font-bold text-xs text-white truncate mt-0.5">${nome} <span class="text-[10px] text-brand mono font-black">(${pos})</span></h4>
       <p class="text-[11px] text-emerald-400 font-semibold truncate flex items-center gap-1">
         <span>⚽ ${subtexto}</span>
-        <span class="text-[9px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded uppercase">1ª Posição</span>
+        <span class="text-[9px] font-black text-white bg-emerald-600 px-1 py-0.2 rounded uppercase">Confirmado</span>
       </p>
     </div>
     <button onclick="removerToastAdmin('${toastId}')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 active:scale-95 shrink-0" title="Fechar">
@@ -124,7 +124,7 @@ function verificarNovosJogadoresAdmin(atletas) {
       if (idKey) atletasConhecidosAdmin.add(idKey);
       if (nomeKey) atletasConhecidosAdmin.add(nomeKey);
 
-      exibirToastJogadorOnline(primeiro, `${primeiro.nome} acabou de entrar na lista da pelada! (1ª Posição)`);
+      exibirToastJogadorOnline(primeiro, `${primeiro.nome} acabou de entrar na lista da pelada!`);
     }
   }
 }
@@ -137,7 +137,7 @@ function conectarSseAdmin() {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
-          exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada! (1ª Posição)`);
+          exibirToastJogadorOnline(msg.atleta, `${msg.atleta.nome} acabou de entrar na lista da pelada!`);
           carregarDadosPelada();
         } else if (msg.type === 'SYNC') {
           carregarDadosPelada();
@@ -338,13 +338,12 @@ function renderizarListaAtletas(atletas) {
   atletas.forEach((j, idx) => {
     const foto = j.foto || 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-bJFjHM3Cw56hg-NkbJPMXI4BBSd27DSJG1xqrKmgFkRLUWBS9dP4iQV5hp4FfcKK6hittLBeVqZMU_eP8ed-FBF1Fa4LexRd6luPHSu-slQoz3Z90nOHmuowwOnRq7LH-Ku2HUOC6Vv2Czi0ySwIin7XXxizGR5nnpUKi6N_8eWYx6t6btGkpbhcJwh3YsLwKKERBq5hCYR03dGB0JzG3mK3BXfSW8xr1WaG6KNPTb8-Kd9bwyl_';
     
-    const ehPrimeiraPosicao = (idx === 0);
-    const badgePrimeiraPosicao = ehPrimeiraPosicao
-      ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded border bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-1 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 1ª POSIÇÃO • ONLINE AGORA</span>`
+    const badgeOnline = j.online
+      ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded border bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-1 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE</span>`
       : '';
 
-    const cardBorda = ehPrimeiraPosicao
-      ? 'border-emerald-500/60 ring-2 ring-emerald-500/30 bg-emerald-950/20'
+    const cardBorda = j.online
+      ? 'border-emerald-500/60 ring-1 ring-emerald-500/30 bg-emerald-950/20'
       : 'border-borderLine bg-slate-900/80';
 
     // Cor da posição
@@ -356,12 +355,12 @@ function renderizarListaAtletas(atletas) {
     html += `
       <div class="p-2.5 rounded-xl ${cardBorda} border flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition-all">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <span class="w-5 text-center font-black ${ehPrimeiraPosicao ? 'text-emerald-400 text-sm' : 'text-slate-500 text-xs'} shrink-0">${idx + 1}</span>
-          <img src="${foto}" class="w-9 h-9 rounded-full object-cover ${ehPrimeiraPosicao ? 'border-2 border-emerald-500 ring-1 ring-emerald-400' : 'border border-slate-700'} shrink-0" alt="${j.nome}">
+          <span class="w-5 text-center font-black ${j.online ? 'text-emerald-400 text-sm' : 'text-slate-500 text-xs'} shrink-0">${idx + 1}</span>
+          <img src="${foto}" class="w-9 h-9 rounded-full object-cover ${j.online ? 'border-2 border-emerald-500' : 'border border-slate-700'} shrink-0" alt="${j.nome}">
           <div class="flex flex-col min-w-0 flex-1">
             <div class="flex items-center gap-1.5 truncate">
               <span class="font-bold text-slate-100 truncate">${j.nome}</span>
-              ${badgePrimeiraPosicao}
+              ${badgeOnline}
               <span class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${corPos}">${j.posicao || 'ATA'}</span>
             </div>
             <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">

@@ -542,10 +542,9 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   } else if (options.entrarNaLista) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
-      dados.listaConfirmados.splice(idxConf, 1);
-      dados.listaConfirmados.unshift({ ...atletaAtualizado });
+      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     } else {
-      dados.listaConfirmados.unshift({ ...atletaAtualizado });
+      dados.listaConfirmados.push({ ...atletaAtualizado });
     }
   } else if (conf) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
@@ -1759,14 +1758,13 @@ const requestHandler = (req, res) => {
               foto: payload.foto || (usuarioBase ? usuarioBase.foto : '')
             });
 
-            // Garante que o atleta fique na 1ª POSIÇÃO da listaConfirmados
+            // Mantém a ordem real cronológica de chegada/confirmação
             if (updated && Array.isArray(appData.listaConfirmados)) {
               const cIdx = appData.listaConfirmados.findIndex(c => String(c.id) === String(updated.id));
               if (cIdx >= 0) {
-                const [item] = appData.listaConfirmados.splice(cIdx, 1);
-                appData.listaConfirmados.unshift(item);
+                appData.listaConfirmados[cIdx] = { ...appData.listaConfirmados[cIdx], ...updated };
               } else {
-                appData.listaConfirmados.unshift(updated);
+                appData.listaConfirmados.push(updated);
               }
             }
 
