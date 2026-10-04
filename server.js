@@ -1042,6 +1042,8 @@ const requestHandler = (req, res) => {
       res.write(`data: ${JSON.stringify({
         type: 'INIT_STATE',
         athletes: obterAtletasCompletos(),
+        atletas: obterAtletasCompletos(),
+        usuarios: appData.usuarios || [],
         version: appData.version,
         listaConfirmados: appData.listaConfirmados,
         peladaConfig: appData.peladaConfig,
@@ -1067,6 +1069,9 @@ const requestHandler = (req, res) => {
       try {
         verificarResetMeiaNoite();
         const saved = loadData();
+        if (Array.isArray(saved.usuarios) && saved.usuarios.length > 0) {
+          appData.usuarios = saved.usuarios;
+        }
         if (Array.isArray(saved.atletas) && saved.atletas.length > 0) {
           appData.atletas = saved.atletas;
         }
@@ -1075,10 +1080,34 @@ const requestHandler = (req, res) => {
         } else if (Array.isArray(appData.atletas) && (!appData.listaConfirmados || appData.listaConfirmados.length === 0)) {
           appData.listaConfirmados = [...appData.atletas];
         }
+
+        // Garante enriquecimento de email, senha e cartões para todos os atletas
+        if (Array.isArray(appData.atletas) && Array.isArray(appData.usuarios)) {
+          appData.atletas = appData.atletas.map(a => {
+            const u = appData.usuarios.find(user => (user.id && String(user.id) === String(a.id)) || (user.nome && a.nome && user.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
+            return {
+              ...a,
+              email: a.email || (u ? u.email : '') || '',
+              senha: a.senha || (u ? u.senha : '') || '',
+              cartao: a.cartao || (u ? u.cartao : null) || null
+            };
+          });
+        }
+        if (Array.isArray(appData.listaConfirmados) && Array.isArray(appData.usuarios)) {
+          appData.listaConfirmados = appData.listaConfirmados.map(a => {
+            const u = appData.usuarios.find(user => (user.id && String(user.id) === String(a.id)) || (user.nome && a.nome && user.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
+            return {
+              ...a,
+              email: a.email || (u ? u.email : '') || '',
+              senha: a.senha || (u ? u.senha : '') || '',
+              cartao: a.cartao || (u ? u.cartao : null) || null
+            };
+          });
+        }
+
         if (saved.peladaConfig) appData.peladaConfig = saved.peladaConfig;
         if (saved.escalacaoAtiva !== undefined && appData.escalacaoAtiva === undefined) appData.escalacaoAtiva = saved.escalacaoAtiva;
         if (saved.partidaEstado !== undefined && appData.partidaEstado === undefined) appData.partidaEstado = saved.partidaEstado;
-        if (saved.usuarios && (!appData.usuarios || appData.usuarios.length === 0)) appData.usuarios = saved.usuarios;
         if (saved.version) appData.version = saved.version;
       } catch (e) {}
 

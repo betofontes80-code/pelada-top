@@ -844,20 +844,31 @@
                             <span class="material-symbols-outlined text-xs text-primary">key</span>
                             Credenciais de Acesso (Login / Senha)
                         </span>
-                        <span class="text-[9px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded">Admin</span>
+                        <span class="text-[9px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded">Controle Admin</span>
                     </div>
                     <div>
                         <label class="font-bold text-on-surface-variant text-[10px] uppercase">Login / E-mail do Atleta:</label>
-                        <input type="text" id="edit-atleta-email" placeholder="email@exemplo.com" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold outline-none focus:border-primary">
+                        <input type="text" id="edit-atleta-email" placeholder="email@exemplo.com" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold text-on-surface outline-none focus:border-primary">
                     </div>
                     <div>
                         <label class="font-bold text-on-surface-variant text-[10px] uppercase">Senha de Acesso:</label>
                         <div class="relative mt-0.5">
-                            <input type="password" id="edit-atleta-senha" placeholder="Senha do atleta" class="w-full px-2.5 py-1.5 pr-8 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold outline-none focus:border-primary">
+                            <input type="text" id="edit-atleta-senha" placeholder="Senha do atleta" class="w-full px-2.5 py-1.5 pr-8 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold text-on-surface outline-none focus:border-primary">
                             <button type="button" onclick="alternarVisibilidadeSenhaAtleta()" class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5" title="Ver/Ocultar Senha">
-                                <span id="icone-ver-senha-atleta" class="material-symbols-outlined text-sm">visibility</span>
+                                <span id="icone-ver-senha-atleta" class="material-symbols-outlined text-sm">visibility_off</span>
                             </button>
                         </div>
+                    </div>
+                    <!-- AÇÕES RÁPIDAS DE CREDENCIAIS -->
+                    <div class="grid grid-cols-2 gap-1.5 pt-1">
+                        <button type="button" onclick="copiarCredenciaisAtletaModal()" class="py-1 px-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-[10px] flex items-center justify-center gap-1 border border-surface-container-highest active:scale-95 transition-transform" title="Copiar Login e Senha para Enviar">
+                            <span class="material-symbols-outlined text-xs text-primary">content_copy</span>
+                            <span>Copiar Acesso</span>
+                        </button>
+                        <button type="button" onclick="enviarCredenciaisWhatsAppModal()" class="py-1 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 font-bold text-[10px] flex items-center justify-center gap-1 border border-emerald-500/30 active:scale-95 transition-transform" title="Enviar Dados pelo WhatsApp">
+                            <span class="material-symbols-outlined text-xs text-emerald-600">chat</span>
+                            <span>Enviar WhatsApp</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1539,11 +1550,13 @@
             }
 
             // 1. Atualiza permanentemente o cadastro geral fixo de atletas
-            if (Array.isArray(data.atletas) && data.atletas.length > 0) {
-                cadastroGeralAtletas = data.atletas;
-                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
-            } else if (Array.isArray(data.cadastroGeralAtletas) && data.cadastroGeralAtletas.length > 0) {
-                cadastroGeralAtletas = data.cadastroGeralAtletas;
+            const atletasNovos = (Array.isArray(data.atletas) && data.atletas.length > 0)
+                ? data.atletas
+                : ((Array.isArray(data.athletes) && data.athletes.length > 0)
+                    ? data.athletes
+                    : (Array.isArray(data.cadastroGeralAtletas) && data.cadastroGeralAtletas.length > 0 ? data.cadastroGeralAtletas : null));
+            if (Array.isArray(atletasNovos) && atletasNovos.length > 0) {
+                cadastroGeralAtletas = atletasNovos;
                 localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
             }
 
@@ -4805,20 +4818,114 @@
             container.innerHTML = html;
         }
 
-        let cartaoEdicaoAtual = null;
+        function normalizarTextoBusca(str) {
+            return (str || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]/g, '');
+        }
+
+        function obterCredenciaisAtleta(j) {
+            if (!j) return { email: '', senha: '' };
+            const jId = String(j.id || '');
+            const jNomeNorm = normalizarTextoBusca(j.nome);
+
+            // 1. Busca diretamente nas propriedades do atleta
+            let email = j.email || '';
+            let senha = j.senha || '';
+
+            // 2. Busca na lista de usuários cadastrados
+            if ((!email || !senha) && Array.isArray(listaUsuarios)) {
+                const u = listaUsuarios.find(user => 
+                    (user.id && String(user.id) === jId) || 
+                    (user.nome && normalizarTextoBusca(user.nome) === jNomeNorm)
+                );
+                if (u) {
+                    if (!email) email = u.email || '';
+                    if (!senha) senha = u.senha || '';
+                }
+            }
+
+            // 3. Busca nas demais listas (cadastro fixo ou confirmados)
+            if (!email || !senha) {
+                const ref = (cadastroGeralAtletas || []).find(a => String(a.id) === jId || normalizarTextoBusca(a.nome) === jNomeNorm) ||
+                            (listaConfirmados || []).find(a => String(a.id) === jId || normalizarTextoBusca(a.nome) === jNomeNorm);
+                if (ref) {
+                    if (!email) email = ref.email || '';
+                    if (!senha) senha = ref.senha || '';
+                }
+            }
+
+            // 4. Se ainda assim não possuir credencial, gera uma padrão pronta para o atleta
+            if (!email && j.nome) {
+                const slug = (j.nome || 'atleta')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim()
+                    .replace(/\s+/g, '.')
+                    .replace(/[^a-z0-9.]/g, '');
+                email = `${slug}@gmail.com`;
+                j.email = email;
+            }
+            if (!senha) {
+                senha = '1234';
+                j.senha = senha;
+            }
+
+            return { email, senha };
+        }
 
         function alternarVisibilidadeSenhaAtleta() {
             const input = document.getElementById('edit-atleta-senha');
             const icone = document.getElementById('icone-ver-senha-atleta');
             if (!input) return;
-            if (input.type === 'password') {
-                input.type = 'text';
-                if (icone) icone.textContent = 'visibility_off';
-            } else {
+            if (input.type === 'text') {
                 input.type = 'password';
                 if (icone) icone.textContent = 'visibility';
+            } else {
+                input.type = 'text';
+                if (icone) icone.textContent = 'visibility_off';
             }
         }
+
+        function copiarCredenciaisAtletaModal() {
+            const nome = document.getElementById('edit-atleta-nome').value.trim();
+            const email = document.getElementById('edit-atleta-email').value.trim();
+            const senha = document.getElementById('edit-atleta-senha').value.trim();
+            if (!email) {
+                alert('Informe um e-mail válido para o atleta.');
+                return;
+            }
+            const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'https://pelada-top.onrender.com';
+            const texto = `⚽ Pelada Top - Dados de Acesso\n👤 Atleta: ${nome}\n🔑 Login: ${email}\n🔒 Senha: ${senha}\n🔗 Acessar: ${linkApp}`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(texto).then(() => {
+                    alert(`Credenciais de "${nome}" copiadas com sucesso! Envie para o atleta.`);
+                }).catch(() => {
+                    prompt('Copie as credenciais do atleta abaixo:', texto);
+                });
+            } else {
+                prompt('Copie as credenciais do atleta abaixo:', texto);
+            }
+        }
+
+        function enviarCredenciaisWhatsAppModal() {
+            const nome = document.getElementById('edit-atleta-nome').value.trim();
+            const email = document.getElementById('edit-atleta-email').value.trim();
+            const senha = document.getElementById('edit-atleta-senha').value.trim();
+            if (!email) {
+                alert('Informe um e-mail válido para o atleta.');
+                return;
+            }
+            const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'https://pelada-top.onrender.com';
+            const texto = `⚽ *Pelada Top - Seus Dados de Acesso*\n\n👤 *Atleta:* ${nome}\n🔑 *Login:* ${email}\n🔒 *Senha:* ${senha}\n\n👉 *Entre no app:* ${linkApp}`;
+            const urlZap = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+            window.open(urlZap, '_blank');
+        }
+
+        let cartaoEdicaoAtual = null;
 
         function atualizarBadgeCartaoModal(cartao) {
             const badge = document.getElementById('edit-atleta-status-cartao');
@@ -4901,19 +5008,17 @@
             document.getElementById('edit-atleta-idade').value = j.idade || 25;
             document.getElementById('edit-atleta-fitness').value = j.fitness || 85;
 
-            // Busca credenciais em listaUsuarios ou no próprio atleta
-            const jNome = (j.nome || '').trim().toLowerCase();
-            const uObj = (listaUsuarios || []).find(u => (u.id && String(u.id) === String(j.id)) || ((u.nome || '').trim().toLowerCase() === jNome)) || {};
-            
+            // Busca e preenche credenciais do jogador (login e senha sempre visíveis ao admin)
+            const creds = obterCredenciaisAtleta(j);
             const emailInput = document.getElementById('edit-atleta-email');
             const senhaInput = document.getElementById('edit-atleta-senha');
-            if (emailInput) emailInput.value = j.email || uObj.email || '';
+            if (emailInput) emailInput.value = creds.email || '';
             if (senhaInput) {
-                senhaInput.value = j.senha || uObj.senha || '';
-                senhaInput.type = 'password';
+                senhaInput.value = creds.senha || '';
+                senhaInput.type = 'text'; // Senha visível imediatamente para o admin ver e gerenciar
             }
             const icone = document.getElementById('icone-ver-senha-atleta');
-            if (icone) icone.textContent = 'visibility';
+            if (icone) icone.textContent = 'visibility_off';
 
             cartaoEdicaoAtual = j.cartao || null;
             atualizarBadgeCartaoModal(cartaoEdicaoAtual);

@@ -320,7 +320,8 @@
         "excluir_atletas",
         "gps_override"
       ],
-      "fitness": 100
+      "fitness": 100,
+      "senha": "admin123"
     },
     {
       "id": "1790299111176",
@@ -336,6 +337,24 @@
       "criadoEm": "2026-09-25T01:18:31.176Z",
       "atualizadoEm": "2026-09-25T01:18:31.176Z",
       "fitness": 100
+    },
+    {
+      "id": "jog_1790559444604",
+      "nome": "Lucas Silva",
+      "email": "lucas.silva@gmail.com",
+      "senha": "1234",
+      "role": "jogador",
+      "posicao": "ATA",
+      "criadoEm": "2026-10-04T03:40:12.460Z"
+    },
+    {
+      "id": "1",
+      "nome": "Lucas",
+      "email": "lucas@gmail.com",
+      "senha": "1234",
+      "role": "jogador",
+      "posicao": "ATA",
+      "criadoEm": "2026-10-04T03:40:12.573Z"
     }
   ],
   "jogadoresCadastrados": [
@@ -705,7 +724,9 @@
       "statusGeofence": "aguardando",
       "customStatus": "aguardando",
       "checkinLiberado": false,
-      "confirmadoSorteio": false
+      "confirmadoSorteio": false,
+      "email": "lucas.silva@gmail.com",
+      "senha": "1234"
     },
     {
       "id": "1",
@@ -733,7 +754,9 @@
       "statusGeofence": "aguardando",
       "customStatus": "aguardando",
       "checkinLiberado": false,
-      "confirmadoSorteio": false
+      "confirmadoSorteio": false,
+      "email": "lucas@gmail.com",
+      "senha": "1234"
     },
     {
       "id": "1790087728171",
@@ -781,7 +804,9 @@
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
       "horaChegada": null,
-      "vinculoForcadoTeste": true
+      "vinculoForcadoTeste": true,
+      "email": "topadmin@gmail.com",
+      "senha": "1234"
     },
     {
       "id": "1790299111176",
@@ -798,7 +823,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "tste@gamail.com",
+      "senha": "1234"
     },
     {
       "id": "1790293060399",
@@ -815,7 +842,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Longe",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "josinaldosilverio.jss@gmail.com",
+      "senha": "1980"
     },
     {
       "id": "1790196420200",
@@ -832,7 +861,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "joseilsondeodato4@gmail.com",
+      "senha": "321"
     },
     {
       "id": "1790193828029",
@@ -849,7 +880,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "edyelknascimento@gmail.com",
+      "senha": "401598"
     },
     {
       "id": "1790129211093",
@@ -866,7 +899,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "igorbruno_ib@hotmail.com",
+      "senha": "123"
     },
     {
       "id": "1790117518077",
@@ -883,7 +918,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "ryab.jose55@gmail.com",
+      "senha": "123"
     },
     {
       "id": "1790112808958",
@@ -900,7 +937,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "israelantony87@gmail.com",
+      "senha": "3105"
     },
     {
       "id": "1790108877220",
@@ -917,7 +956,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "nasariosilva19@fmail.com",
+      "senha": "V4gner2027"
     },
     {
       "id": "1790095187982",
@@ -934,7 +975,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "jacksonantonio2026@gmail.com",
+      "senha": "Jac8661"
     },
     {
       "id": "1790095173718",
@@ -951,7 +994,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "joaovictor516273@gmail.com",
+      "senha": "526"
     },
     {
       "id": "1790094302681",
@@ -968,7 +1013,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "cleber9218@gmail.com",
+      "senha": "2206"
     },
     {
       "id": "1790090604903",
@@ -985,7 +1032,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "junioralencarborgesisrael@gmail.com",
+      "senha": "#Jr310509"
     },
     {
       "id": "1790090596408",
@@ -1002,7 +1051,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "wellingtonmacena4@gmail.com",
+      "senha": "Laurasop@06"
     },
     {
       "id": "1790088239867",
@@ -1019,7 +1070,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "kaiod.toptelecom@gmail.com",
+      "senha": "123"
     },
     {
       "id": "1790088185087",
@@ -1036,7 +1089,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "ndsramon@gmail.com",
+      "senha": "N10"
     },
     {
       "id": "1790087347771",
@@ -1053,7 +1108,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "maykmaia@hotmail.com",
+      "senha": "Maia1993"
     },
     {
       "id": "1790086881653",
@@ -1070,7 +1127,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "scassiano50@gmail.com",
+      "senha": "Claro@246"
     },
     {
       "id": "1790086765395",
@@ -1087,7 +1146,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "linkoolwesllyn@icloud.com",
+      "senha": "9293"
     },
     {
       "id": "1790086212853",
@@ -1104,7 +1165,9 @@
       "distanciaMetros": null,
       "distanciaTexto": "Confirmado",
       "statusAproximacao": "longe",
-      "horaChegada": null
+      "horaChegada": null,
+      "email": "betofontes80@gmail.com",
+      "senha": "1234"
     }
   ],
   "peladaConfig": {
