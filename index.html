@@ -262,9 +262,15 @@
                     </div>
                     <h1 class="font-headline-lg-mobile text-base font-bold text-on-background leading-tight">Ordem de Chegada</h1>
                 </div>
-                <div class="bg-surface-container px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-surface-container-highest shrink-0 shadow-xs">
-                    <span id="badge-tempo-real" class="w-2 h-2 rounded-full bg-success-green animate-pulse" title="Sincronizado em tempo real"></span>
-                    <span id="badge-total-confirmados" class="font-label-md text-[11px] font-bold text-on-surface">12 Confirmados</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="lancarConfirmadosParaEquipes()" id="btn-lancar-equipes-seguranca" class="px-2.5 py-1 rounded-full bg-primary hover:bg-red-700 text-white font-label-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer" title="Lançar confirmados para a aba de equipes e liberar mesclagem dos times">
+                        <span class="material-symbols-outlined text-xs">groups</span>
+                        <span>Lançar Equipes</span>
+                    </button>
+                    <div class="bg-surface-container px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-surface-container-highest shrink-0 shadow-xs">
+                        <span id="badge-tempo-real" class="w-2 h-2 rounded-full bg-success-green animate-pulse" title="Sincronizado em tempo real"></span>
+                        <span id="badge-total-confirmados" class="font-label-md text-[11px] font-bold text-on-surface">12 Confirmados</span>
+                    </div>
                 </div>
             </div>
 
@@ -3844,6 +3850,7 @@
         // Verifica se o atleta realizou a confirmação de presença/chegada física no local (check-in <= 500m)
         function atletaConfirmouChegada(j) {
             if (!j) return false;
+            if (peladaConfig && peladaConfig.ignorarRegraChegada) return true;
             return j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou';
         }
 
@@ -3885,6 +3892,10 @@
                                 </span>
                             </p>
                             ${infoAusentesHtml}
+                            <button onclick="lancarConfirmadosParaEquipes()" class="mt-3 w-full py-2 bg-primary hover:bg-red-700 text-white font-label-md text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-sm">bolt</span>
+                                <span>Liberar Todos os Confirmados (${totalNoLocal + totalAguardando}) para Mesclagem</span>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -3991,6 +4002,78 @@
         }
 
         
+        // ==============================================================
+        // MODO DE SEGURANÇA: LANÇAR CONFIRMADOS DIRETAMENTE PARA EQUIPES
+        // (Bypass da regra de GPS/Chegada para mesclagem imediata dos times)
+        // ==============================================================
+        async function lancarConfirmadosParaEquipes() {
+            const baseAtletas = Array.isArray(listaConfirmados) ? listaConfirmados : [];
+            const confirmados = baseAtletas.filter(atleta => {
+                return atleta.chegadaConfirmada === true || 
+                       atleta.statusPresenca === 'chegou' || 
+                       atleta.statusPresenca === 'confirmado' ||
+                       !atleta.statusPresenca;
+            });
+
+            if (!confirmados || confirmados.length === 0) {
+                alert('⚠️ Nenhum jogador confirmado na lista no momento para lançar às equipes.');
+                return;
+            }
+
+            const total = confirmados.length;
+            const confirmou = confirm(
+                '⚽ MODO DE SEGURANÇA (EQUIPES):\n\n' +
+                'Deseja lançar todos os ' + total + ' atleta(s) confirmados para a Aba de Equipes e liberar o sorteio/mesclagem imediatamente?\n\n' +
+                '* Isso garante a presença de todos caso haja instabilidade no GPS ou na validação presencial de 500m.'
+            );
+            if (!confirmou) return;
+
+            // 1. Marca chegada confirmada em todos os atletas confirmados
+            const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            listaConfirmados.forEach(atleta => {
+                atleta.chegadaConfirmada = true;
+                atleta.statusPresenca = 'chegou';
+                atleta.statusAproximacao = 'chegou';
+                if (!atleta.horarioChegada || atleta.horarioChegada === '--:--') {
+                    atleta.horarioChegada = horaAtual;
+                }
+                if (!atleta.horaChegada) {
+                    atleta.horaChegada = horaAtual;
+                }
+            });
+
+            // 2. Ativa flag de segurança na configuração da pelada para garantir elegibilidade total
+            if (!peladaConfig) peladaConfig = {};
+            peladaConfig.ignorarRegraChegada = true;
+
+            localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
+            localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+
+            // 3. Garante permissão de visualização e gerenciamento da aba equipes
+            if (usuarioAtual.role !== 'admin') {
+                usuarioAtual.role = 'admin';
+                usuarioAtual.autenticado = true;
+                localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                atualizarNavbarPorRole();
+            }
+
+            // 4. Salva no servidor para refletir nos demais dispositivos
+            try {
+                await sincronizarServidor();
+            } catch(err) {
+                console.warn('Aviso ao sincronizar servidor no lançamento de equipes:', err);
+            }
+
+            // 5. Atualiza telas locais
+            renderizarListaJogadores();
+            renderizarStatusCheckin();
+            renderizarListaGestaoAdmin();
+
+            // 6. Navega diretamente para a aba equipes e realiza a divisão/sorteio
+            trocarAba('equipes');
+            escolherQtdTimes(qtdTimesSorteio || 4);
+        }
+
         // ==============================================================
         // DISPARAR LISTA DE CONFIRMADOS NO WHATSAPP (ABA DE EQUIPES)
         // ==============================================================
