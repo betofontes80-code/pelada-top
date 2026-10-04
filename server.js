@@ -120,12 +120,13 @@ function salvarDados(dados) {
         if (!a || !a.id) return;
         const conf = dados.listaConfirmados.find(c => String(c.id) === String(a.id) || (c.nome && a.nome && c.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
         if (conf) {
-          if (a.chegadaConfirmada || a.statusPresenca === 'chegou' || a.statusAproximacao === 'campo' || (a.distanciaMetros !== null && a.distanciaMetros <= 500 && a.distanciaMetros !== undefined)) {
+          const isChegadaEfetiva = (a.chegadaConfirmada === true || a.statusPresenca === 'chegou');
+          if (isChegadaEfetiva) {
             conf.chegadaConfirmada = true;
             conf.statusPresenca = 'chegou';
             conf.statusAproximacao = 'campo';
             conf.status = 'campo';
-            conf.distanciaMetros = a.distanciaMetros;
+            conf.distanciaMetros = a.distanciaMetros !== undefined ? a.distanciaMetros : conf.distanciaMetros;
             conf.horaChegada = a.horaChegada || conf.horaChegada || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             conf.checkedIn = true;
             conf.canCheckIn = true;
@@ -139,10 +140,12 @@ function salvarDados(dados) {
             conf.horaChegada = null;
           } else if (a.distanciaMetros !== undefined) {
             conf.distanciaMetros = a.distanciaMetros;
-            conf.statusAproximacao = a.statusAproximacao || (a.distanciaMetros <= 1500 ? 'proximo' : 'longe');
+            const distN = Number(a.distanciaMetros);
+            conf.statusAproximacao = !isNaN(distN) ? (distN <= 500 ? 'campo' : (distN <= 1500 ? 'proximo' : 'longe')) : (a.statusAproximacao || 'longe');
             conf.status = conf.statusAproximacao;
-            conf.chegadaConfirmada = a.chegadaConfirmada || false;
-            conf.checkedIn = a.checkedIn || false;
+            conf.chegadaConfirmada = false;
+            conf.checkedIn = false;
+            conf.canCheckIn = !isNaN(distN) && distN <= 500;
           }
           if (a.cartao !== undefined) conf.cartao = a.cartao;
           else if (conf.cartao !== undefined) a.cartao = conf.cartao;
@@ -371,7 +374,7 @@ function obterAtletasCompletos() {
       else status = 'longe';
     }
 
-    const checkedIn = a.chegadaConfirmada === true || a.checkedIn === true || a.statusPresenca === 'chegou' || a.status === 'campo' || a.statusAproximacao === 'campo';
+    const checkedIn = a.chegadaConfirmada === true || a.statusPresenca === 'chegou';
 
     let email = a.email || '';
     let senha = a.senha || '';
@@ -480,30 +483,24 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   const st = String(customStatus || '').toLowerCase().trim();
   const horaAgora = options.hora || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  let isCampo = false;
-  let isProximo = false;
-  let isLonge = false;
-  let isReset = false;
+  let isReset = (st === 'reset' || st === 'resetar' || st === 'desfazer');
 
   const raioCampo = (dados.peladaConfig && dados.peladaConfig.raioMaximoMetros) || (appData.peladaConfig && appData.peladaConfig.raioMaximoMetros) || 500;
+  const isRaioCampo = !isReset && ((distNum !== null && distNum <= raioCampo) || st === 'campo');
+  const isProximo = !isReset && !isRaioCampo && ((distNum !== null && distNum <= 1500) || st === 'proximo');
 
-  if (st === 'reset' || st === 'resetar' || st === 'desfazer') {
-    isReset = true;
-  } else if (st === 'campo' || st === 'chegou' || st === 'no_campo' || (distNum !== null && distNum <= raioCampo)) {
-    isCampo = true;
-  } else if (st === 'proximo' || (distNum !== null && distNum <= 1500)) {
-    isProximo = true;
-  } else {
-    isLonge = true;
-  }
+  // Chegada física confirmada SOMENTE quando explicitamente informada (2ª confirmação) ou já confirmada antes
+  const explicitamenteChegou = !isReset && (options.chegadaConfirmada === true || options.statusPresenca === 'chegou' || st === 'chegou');
+  const explicitamenteCancelou = isReset || options.chegadaConfirmada === false;
+  const jaTinhaChegado = !explicitamenteCancelou && ((conf && conf.chegadaConfirmada === true) || (atleta && atleta.chegadaConfirmada === true));
+  const chegadaConf = explicitamenteChegou || jaTinhaChegado;
 
-  const dentroDoRaio = !isReset && ((distNum !== null && distNum <= raioCampo) || isCampo);
-  const distTexto = isCampo ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
-  const statusGeof = isReset ? 'aguardando' : (st || (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe')));
-  const statusAprox = isReset ? 'aguardando' : (isCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
-  const statusPres = isCampo ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : 'pendente')));
-  const chegadaConf = isCampo ? true : (isReset ? false : (options.chegadaConfirmada !== undefined ? options.chegadaConfirmada : (conf ? (conf.chegadaConfirmada || false) : (atleta.chegadaConfirmada || false))));
-  const horaCheg = isCampo ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : (isReset ? null : (atleta.horaChegada || (conf ? conf.horaChegada : null)));
+  const dentroDoRaio = isRaioCampo;
+  const distTexto = chegadaConf ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
+  const statusAprox = isReset ? 'aguardando' : (isRaioCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
+  const statusGeof = isReset ? 'aguardando' : (chegadaConf ? 'chegou' : statusAprox);
+  const statusPres = chegadaConf ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
+  const horaCheg = chegadaConf ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : null;
 
   const atletaAtualizado = {
     ...atleta,
@@ -523,11 +520,11 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     customStatus: statusGeof,
     status: statusGeof,
     statusPresenca: statusPres,
-    chegadaConfirmada: dentroDoRaio || chegadaConf,
-    checkedIn: dentroDoRaio || chegadaConf,
+    chegadaConfirmada: chegadaConf,
+    checkedIn: chegadaConf,
     canCheckIn: dentroDoRaio,
     checkinLiberado: dentroDoRaio,
-    confirmadoSorteio: dentroDoRaio,
+    confirmadoSorteio: chegadaConf,
     horaChegada: horaCheg
   };
 
@@ -1750,9 +1747,10 @@ const requestHandler = (req, res) => {
               (nomeAtleta && (u.nome || '').trim().toLowerCase() === nomeAtleta.toLowerCase())
             );
 
-            // Sincroniza através do sincronizador universal
+            // Sincroniza através do sincronizador universal (1ª Confirmação: apenas entra na lista, chegadaConfirmada é FALSE)
             const updated = sincronizarStatusAtletaUniversal(idAtleta, nomeAtleta, dist, statusDist, {
               statusPresenca: 'confirmado',
+              chegadaConfirmada: false,
               online: true,
               entrarNaLista: true,
               posicao: payload.posicao || (usuarioBase ? usuarioBase.posicao : 'MEI'),
@@ -2037,7 +2035,7 @@ const requestHandler = (req, res) => {
         const updated = sincronizarStatusAtletaUniversal(atletaId, nomeAtleta, distMetrosNum, statusDistancia, {
           statusPresenca: payload.statusPresenca,
           chegadaConfirmada: payload.chegadaConfirmada,
-          entrarNaLista: payload.entrarNaLista || statusDistancia === 'campo' || statusDistancia === 'chegou'
+          entrarNaLista: payload.entrarNaLista === true
         });
         if (!updated) {
           res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });

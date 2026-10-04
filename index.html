@@ -1930,18 +1930,15 @@
                 : ((msg.distance !== undefined && msg.distance !== null && !isNaN(Number(msg.distance))) ? Number(msg.distance) : null);
             const st = String(msg.status || msg.customStatus || (msg.athlete && (msg.athlete.statusGeofence || msg.athlete.status || msg.athlete.statusAproximacao)) || 'longe').toLowerCase().trim();
             const isReset = st === 'reset' || st === 'resetar' || st === 'desfazer';
-            const isChegou = !isReset && (msg.type === 'CHECKIN_CONFIRMED' || msg.chegadaConfirmada === true || (msg.athlete && (msg.athlete.chegadaConfirmada === true || msg.athlete.statusPresenca === 'chegou')) || st === 'campo' || st === 'chegou' || (distNum !== null && distNum <= 500));
-
-
-
-
+            const isChegou = !isReset && (msg.type === 'CHECKIN_CONFIRMED' || msg.chegadaConfirmada === true || (msg.athlete && (msg.athlete.chegadaConfirmada === true || msg.athlete.statusPresenca === 'chegou')) || st === 'chegou');
+            const statusAproxCalc = (distNum !== null && distNum <= 500) ? 'campo' : ((distNum !== null && distNum <= 1500) ? 'proximo' : (st === 'campo' ? 'campo' : (st === 'proximo' ? 'proximo' : 'longe')));
 
             // 1. Atualiza no cadastro permanente
             if (Array.isArray(cadastroGeralAtletas)) {
                 const a = cadastroGeralAtletas.find(j => (athleteId && String(j.id) === athleteId) || (athleteName && j.nome && j.nome.trim().toLowerCase() === athleteName.toLowerCase()));
                 if (a) {
                     a.distanciaMetros = isReset ? null : distNum;
-                    a.statusAproximacao = isChegou ? 'campo' : (isReset ? 'reset' : st);
+                    a.statusAproximacao = isChegou ? 'campo' : (isReset ? 'reset' : statusAproxCalc);
                     a.status = a.statusAproximacao;
                     if (isChegou) {
                         a.statusPresenca = 'chegou';
@@ -1953,10 +1950,8 @@
                         a.checkedIn = false;
                         a.horaChegada = null;
                         a.statusPresenca = 'pendente';
-                    } else if (distNum !== null && distNum <= 1500) {
-                        a.chegadaConfirmada = false;
-                        a.checkedIn = false;
-                        a.statusPresenca = 'confirmado';
+                    } else if (msg.statusPresenca) {
+                        a.statusPresenca = msg.statusPresenca;
                     }
                 }
             }
@@ -1969,7 +1964,7 @@
                     let conf = listaConfirmados.find(c => (athleteId && String(c.id) === athleteId) || (athleteName && c.nome && c.nome.trim().toLowerCase() === athleteName.toLowerCase()));
                     if (conf) {
                         conf.distanciaMetros = distNum;
-                        conf.statusAproximacao = isChegou ? 'campo' : st;
+                        conf.statusAproximacao = isChegou ? 'campo' : statusAproxCalc;
                         conf.status = conf.statusAproximacao;
                         if (isChegou) {
                             conf.statusPresenca = 'chegou';
@@ -1977,7 +1972,7 @@
                             conf.checkedIn = true;
                             conf.horaChegada = conf.horaChegada || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                         }
-                    } else if (isChegou || (distNum !== null && distNum <= 500)) {
+                    } else if (isChegou || msg.entrarNaLista === true) {
                         conf = {
                             id: athleteId,
                             nome: athleteName,
@@ -1986,7 +1981,7 @@
                             chegadaConfirmada: isChegou,
                             checkedIn: isChegou,
                             distanciaMetros: distNum,
-                            statusAproximacao: isChegou ? 'campo' : st,
+                            statusAproximacao: isChegou ? 'campo' : statusAproxCalc,
                             hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                             horaChegada: isChegou ? new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null
                         };
@@ -3511,7 +3506,7 @@
                     `;
                 }
             } else {
-                const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou' || atletaLogado.statusAproximacao === 'campo' || atletaLogado.status === 'campo';
+                const chegouConfirmado = atletaLogado.chegadaConfirmada === true || atletaLogado.statusPresenca === 'chegou' || atletaLogado.statusAproximacao === 'chegou';
                 const dist = distanciaAtualMetros !== null 
                     ? Number(distanciaAtualMetros) 
                     : ((atletaLogado && atletaLogado.distanciaMetros !== undefined && atletaLogado.distanciaMetros !== null) 
@@ -3544,7 +3539,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-2xl animate-bounce">sports_soccer</span>
                                 <div>
-                                    <h4 class="font-headline-md text-xs font-black uppercase tracking-wide">Você está a ${dist}m do Campo! (&le;500m)</h4>
+                                    <h4 class="font-headline-md text-xs font-black uppercase tracking-wide">Você está no local do jogo! ⚽ (${dist}m)</h4>
                                     <p class="text-[10px] text-emerald-100 font-medium">Toque abaixo para confirmar sua chegada física para o Administrador:</p>
                                 </div>
                             </div>
@@ -3662,8 +3657,9 @@
                 }
                 const isReset = j.statusAproximacao === 'reset' || j.status === 'reset';
                 
-                // Regra de GEOFENCING E GPS EXATA DO RESUMO:
-                const chegou = !isReset && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou' || j.statusAproximacao === 'campo' || j.status === 'campo' || (distMetros !== null && distMetros <= raioMaximoCampo));
+                // Regra de GEOFENCING E GPS:
+                const chegou = !isReset && (j.chegadaConfirmada === true || j.statusPresenca === 'chegou' || j.statusAproximacao === 'chegou');
+                const noRaio = !chegou && (distMetros !== null && distMetros <= raioMaximoCampo);
 
                 let corBadge, borderLeft, labelStatus, iconeStatus, distTexto;
 
@@ -3672,13 +3668,13 @@
                     borderLeft = 'border-l-4 border-l-emerald-500';
                     labelStatus = '🟢 No Campo';
                     iconeStatus = 'sports_soccer';
-                    distTexto = `<span class="text-emerald-600 font-bold">No Campo (${j.horaChegada || j.hora || '19:00'})</span>`;
-                } else if (distMetros !== null && distMetros <= raioMaximoCampo) {
+                    distTexto = `<span class="text-emerald-600 font-bold">No Campo (${j.horaChegada || j.hora || 'No Local'})</span>`;
+                } else if (noRaio) {
                     corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
                     borderLeft = 'border-l-4 border-l-emerald-500';
-                    labelStatus = '🟢 No Campo';
-                    iconeStatus = 'sports_soccer';
-                    distTexto = `<span class="text-emerald-600 font-bold">${distMetros}m do campo</span>`;
+                    labelStatus = '🟢 No Raio (&le;500m)';
+                    iconeStatus = 'near_me';
+                    distTexto = `<span class="text-emerald-600 font-bold">${distMetros}m do campo (Aguardando Check-in)</span>`;
                 } else if (distMetros !== null && distMetros <= 1500) {
                     corBadge = 'bg-amber-500/15 text-amber-700 border-amber-500/30';
                     borderLeft = 'border-l-4 border-l-amber-500';
@@ -4852,17 +4848,23 @@
 
                 // Obtém dados de presença temporária da partida atual
                 const confItem = (listaConfirmados || []).find(c => String(c.id) === jId || (c.nome && c.nome.trim().toLowerCase() === jNome.toLowerCase()));
-                const chegou = (confItem && confItem.chegadaConfirmada === true) || (confItem && confItem.statusPresenca === 'chegou') || j.chegadaConfirmada === true || j.statusPresenca === 'chegou';
-                const estaConfirmado = chegou || (confItem && (confItem.statusPresenca === 'confirmado' || confItem.statusPresenca === 'chegou')) || j.statusPresenca === 'confirmado' || j.statusPresenca === 'chegou';
+                const chegou = (confItem && (confItem.chegadaConfirmada === true || confItem.statusPresenca === 'chegou')) || (j.chegadaConfirmada === true && j.statusPresenca === 'chegou');
+                const estaConfirmado = chegou || (confItem && confItem.statusPresenca === 'confirmado') || (j.statusPresenca === 'confirmado');
                 const distMetros = confItem && confItem.distanciaMetros !== undefined && confItem.distanciaMetros !== null ? confItem.distanciaMetros : (j.distanciaMetros !== undefined ? j.distanciaMetros : null);
-                const proximo = !chegou && ((distMetros !== null && distMetros <= 1500) || (confItem && confItem.statusAproximacao === 'proximo') || j.statusAproximacao === 'proximo');
+                const noRaio = !chegou && (distMetros !== null && distMetros <= 500);
+                const proximo = !chegou && !noRaio && ((distMetros !== null && distMetros <= 1500) || (confItem && confItem.statusAproximacao === 'proximo') || j.statusAproximacao === 'proximo');
 
                 let corBadge, borderLeft, labelStatus, distTxt;
                 if (chegou) {
                     corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
                     borderLeft = 'border-l-4 border-l-emerald-500';
                     labelStatus = '🟢 Chegou';
-                    distTxt = `No Campo (${(confItem && confItem.horaChegada) || j.horaChegada || j.hora || '19:00'})`;
+                    distTxt = `No Campo (${(confItem && confItem.horaChegada) || j.horaChegada || j.hora || 'No Local'})`;
+                } else if (estaConfirmado && noRaio) {
+                    corBadge = 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30';
+                    borderLeft = 'border-l-4 border-l-emerald-500';
+                    labelStatus = '🟢 No Raio (&le;500m)';
+                    distTxt = distMetros !== null ? `${distMetros}m (Aguardando Check-in)` : 'No Raio (&le;500m)';
                 } else if (estaConfirmado && proximo) {
                     corBadge = 'bg-amber-500/15 text-amber-700 border-amber-500/30';
                     borderLeft = 'border-l-4 border-l-amber-500';
@@ -4892,6 +4894,12 @@
                     }
                 }
 
+                const botaoChegadaAdmin = (estaConfirmado && !chegou)
+                    ? `<button onclick="confirmarChegadaAtletaAdmin('${jId}')" class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Confirmar Chegada no Campo">
+                         <span class="material-symbols-outlined text-sm">sports_soccer</span>
+                       </button>`
+                    : (chegou ? `<span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shadow-xs" title="Presença no campo confirmada"><span class="material-symbols-outlined text-sm">done_all</span></span>` : '');
+
                 html += `
                     <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} bg-surface">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -4909,6 +4917,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
+                            ${botaoChegadaAdmin}
                             <button onclick="abrirModalEditarAtleta('${jId}')" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Editar Atleta">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
