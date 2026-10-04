@@ -1613,18 +1613,27 @@
             }
 
             // Garante que o atleta logado mantenha sua foto caso exista localmente ou no servidor
-            const eu = (cadastroGeralAtletas || listaConfirmados || []).find(j => 
+            const euGeral = (cadastroGeralAtletas || []).find(j => 
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
             );
-            if (eu) {
-                if (eu.distanciaMetros !== undefined && eu.distanciaMetros !== null) {
-                    distanciaAtualMetros = Number(eu.distanciaMetros);
-                }
-                if (usuarioAtual.foto && !eu.foto) {
-                    eu.foto = usuarioAtual.foto;
-                } else if (eu.foto && !usuarioAtual.foto) {
-                    usuarioAtual.foto = eu.foto;
+            const euLista = (listaConfirmados || []).find(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            );
+
+            if (euLista && euLista.distanciaMetros !== undefined && euLista.distanciaMetros !== null) {
+                distanciaAtualMetros = Number(euLista.distanciaMetros);
+            } else if (!euLista) {
+                distanciaAtualMetros = null;
+                if (usuarioAtual) usuarioAtual.distanciaMetros = null;
+            }
+
+            if (euGeral) {
+                if (usuarioAtual.foto && !euGeral.foto) {
+                    euGeral.foto = usuarioAtual.foto;
+                } else if (euGeral.foto && !usuarioAtual.foto) {
+                    usuarioAtual.foto = euGeral.foto;
                     localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
                     sincronizarPerfilCamposUi();
                 }
@@ -1957,12 +1966,14 @@
             }
 
             // 2. Atualiza ou inclui na listaConfirmados da rodada (No reset, remove da lista de confirmados!)
+            let estaNaLista = false;
             if (Array.isArray(listaConfirmados)) {
                 if (isReset) {
                     listaConfirmados = listaConfirmados.filter(c => !( (athleteId && String(c.id) === athleteId) || (athleteName && c.nome && c.nome.trim().toLowerCase() === athleteName.toLowerCase()) ));
                 } else {
                     let conf = listaConfirmados.find(c => (athleteId && String(c.id) === athleteId) || (athleteName && c.nome && c.nome.trim().toLowerCase() === athleteName.toLowerCase()));
                     if (conf) {
+                        estaNaLista = true;
                         conf.distanciaMetros = distNum;
                         conf.statusAproximacao = isChegou ? 'campo' : statusAproxCalc;
                         conf.status = conf.statusAproximacao;
@@ -1972,7 +1983,8 @@
                             conf.checkedIn = true;
                             conf.horaChegada = conf.horaChegada || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                         }
-                    } else if (isChegou || msg.entrarNaLista === true) {
+                    } else if (msg.entrarNaLista === true) {
+                        estaNaLista = true;
                         conf = {
                             id: athleteId,
                             nome: athleteName,
@@ -1990,23 +2002,22 @@
                 }
             }
 
-            // 3. Sincroniza usuário logado se for o atleta simulado ou se ainda não tiver atleta logado
+            // 3. Sincroniza usuário logado se for o atleta correspondente
             const ehUsuarioLogado = (usuarioAtual.id && String(usuarioAtual.id) === athleteId) ||
                                     (usuarioAtual.nome && athleteName && (usuarioAtual.nome || '').trim().toLowerCase() === athleteName.toLowerCase());
 
-            if (ehUsuarioLogado || (!usuarioAtual.nome || usuarioAtual.nome.trim() === '')) {
-                if (distNum !== null) {
+            if (ehUsuarioLogado) {
+                if (estaNaLista) {
                     distanciaAtualMetros = distNum;
-                }
-                if ((!usuarioAtual.nome || usuarioAtual.nome.trim() === '') && athleteName) {
-                    usuarioAtual = { id: athleteId, nome: athleteName, role: 'jogador' };
-                    localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
-                    try { sincronizarPerfilCamposUi(); } catch(e) {}
-                }
-                if (isChegou) {
-                    exibirToastJogadorOnline({ nome: athleteName, posicao: 'GPS' }, `⚽ Chegada confirmada no campo! Presença validada.`);
-                } else if (distNum !== null && distNum <= 500 && !isReset) {
-                    exibirToastJogadorOnline({ nome: athleteName, posicao: 'GPS' }, `⚽ Você está a ${distNum}m do campo! Chegada liberada para confirmação.`);
+                    if (usuarioAtual) usuarioAtual.distanciaMetros = distNum;
+                    if (isChegou) {
+                        exibirToastJogadorOnline({ nome: athleteName, posicao: 'GPS' }, `⚽ Chegada confirmada no campo! Presença validada.`);
+                    } else if (distNum !== null && distNum <= 500 && !isReset) {
+                        exibirToastJogadorOnline({ nome: athleteName, posicao: 'GPS' }, `⚽ Você está a ${distNum}m do campo! Chegada liberada para confirmação.`);
+                    }
+                } else {
+                    distanciaAtualMetros = null;
+                    if (usuarioAtual) usuarioAtual.distanciaMetros = null;
                 }
             }
 
@@ -2740,6 +2751,13 @@
             if (!window.location.protocol.startsWith('http')) return;
             if (!usuarioAtual || (!usuarioAtual.id && !usuarioAtual.nome)) return;
 
+            // Se o usuário logado NÃO está na lista de confirmados, NUNCA envia geofence para o servidor
+            const estaNaLista = (listaConfirmados || []).some(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            );
+            if (!estaNaLista) return;
+
             const raio = peladaConfig.raioMaximoMetros || 500;
             const statusStr = distancia <= raio ? 'campo' : (distancia <= 1500 ? 'proximo' : 'longe');
 
@@ -2761,24 +2779,24 @@
             const lng = pos.coords.longitude;
             const arenaLat = peladaConfig.lat || -7.190405;
             const arenaLng = peladaConfig.lng || -34.870103;
-            distanciaAtualMetros = calcularDistanciaMetros(lat, lng, arenaLat, arenaLng);
+            const distCalculada = calcularDistanciaMetros(lat, lng, arenaLat, arenaLng);
 
             const raio = peladaConfig.raioMaximoMetros || 500;
             const txtInfo = document.getElementById('txt-distancia-campo');
             if (txtInfo) {
-                if (distanciaAtualMetros <= raio) {
-                    txtInfo.innerHTML = `<span class="text-success-green font-bold">📍 A ${distanciaAtualMetros}m do Campo (Liberado!)</span>`;
+                if (distCalculada <= raio) {
+                    txtInfo.innerHTML = `<span class="text-success-green font-bold">📍 A ${distCalculada}m do Campo (Liberado!)</span>`;
                 } else {
-                    const km = (distanciaAtualMetros / 1000).toFixed(1);
+                    const km = (distCalculada / 1000).toFixed(1);
                     txtInfo.innerHTML = `<span class="text-primary font-bold">⚠️ A ${km}km do Campo (Máx. 500m)</span>`;
                 }
             }
 
             if (mostrarAlerta) {
-                if (distanciaAtualMetros <= raio) {
-                    alert(`📍 Sinal GPS Confirmado!\nVocê está a ${distanciaAtualMetros}m do local oficial da pelada:\n${peladaConfig.local}\nPode se escalar! 🔥`);
+                if (distCalculada <= raio) {
+                    alert(`📍 Sinal GPS Confirmado!\nVocê está a ${distCalculada}m do local oficial da pelada:\n${peladaConfig.local}\nPode se escalar! 🔥`);
                 } else {
-                    const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros/1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
+                    const distTxt = distCalculada >= 1000 ? `${(distCalculada/1000).toFixed(1)} km` : `${distCalculada} metros`;
                     alert(
                         `📍 Medição GPS Realizada:\n\n` +
                         `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
@@ -2787,16 +2805,17 @@
                 }
             }
 
-            if (usuarioAtual) {
-                usuarioAtual.distanciaMetros = distanciaAtualMetros;
-            }
-
-            // Sincroniza a distância do usuário logado na lista de presença
+            // Sincroniza a distância do usuário logado na lista de presença SOMENTE se estiver na lista
             const atletaLogado = (listaConfirmados || []).find(j => 
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
             );
+
             if (atletaLogado) {
+                distanciaAtualMetros = distCalculada;
+                if (usuarioAtual) {
+                    usuarioAtual.distanciaMetros = distanciaAtualMetros;
+                }
                 atletaLogado.distanciaMetros = distanciaAtualMetros;
                 if (distanciaAtualMetros <= raio) {
                     atletaLogado.statusAproximacao = 'campo';
@@ -2809,23 +2828,30 @@
                     atletaLogado.status = 'longe';
                 }
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+
+                // Atualiza também no cadastro permanente
+                const atletaGeral = (cadastroGeralAtletas || []).find(j => 
+                    (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                    (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+                );
+                if (atletaGeral) {
+                    atletaGeral.distanciaMetros = distanciaAtualMetros;
+                    atletaGeral.statusAproximacao = distanciaAtualMetros <= raio ? 'campo' : (distanciaAtualMetros <= 1500 ? 'proximo' : 'longe');
+                }
+
+                renderizarListaJogadores();
+                renderizarStatusCheckin();
+
+                // Notifica o servidor para atualizar os demais celulares via SSE SOMENTE se estiver na lista
+                notificarGpsServidor(distanciaAtualMetros);
+            } else {
+                distanciaAtualMetros = null;
+                if (usuarioAtual) {
+                    usuarioAtual.distanciaMetros = null;
+                }
+                renderizarListaJogadores();
+                renderizarStatusCheckin();
             }
-
-            // Atualiza também no cadastro permanente
-            const atletaGeral = (cadastroGeralAtletas || []).find(j => 
-                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
-                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-            );
-            if (atletaGeral) {
-                atletaGeral.distanciaMetros = distanciaAtualMetros;
-                atletaGeral.statusAproximacao = distanciaAtualMetros <= raio ? 'campo' : (distanciaAtualMetros <= 1500 ? 'proximo' : 'longe');
-            }
-
-            renderizarListaJogadores();
-            renderizarStatusCheckin();
-
-            // Notifica o servidor para atualizar os demais celulares via SSE
-            notificarGpsServidor(distanciaAtualMetros);
         }
 
         function atualizarLocalizacaoGps(mostrarAlerta = false) {
@@ -3139,23 +3165,15 @@
                 atleta.horaChegada = hora;
                 if (distanciaAtualMetros !== null) atleta.distanciaMetros = distanciaAtualMetros;
             } else {
-                atleta = {
-                    id: usuarioAtual.id || String(Date.now()),
-                    nome: usuarioAtual.nome,
-                    posicao: usuarioAtual.posicao || 'ATA',
-                    condicao: usuarioAtual.condicao || 'excelente',
-                    idade: usuarioAtual.idade || 28,
-                    fitness: 95,
-                    foto: usuarioAtual.foto || '',
-                    hora: hora,
-                    statusPresenca: 'chegou',
-                    chegadaConfirmada: true,
-                    statusAproximacao: 'chegou',
-                    distanciaTexto: 'No Campo',
-                    horaChegada: hora,
-                    distanciaMetros: distanciaAtualMetros !== null ? distanciaAtualMetros : 150
-                };
-                listaConfirmados.unshift(atleta);
+                alert('Você precisa primeiro confirmar sua presença na lista da pelada!');
+                return;
+            }
+
+            if (usuarioAtual) {
+                usuarioAtual.statusPresenca = 'chegou';
+                usuarioAtual.chegadaConfirmada = true;
+                usuarioAtual.horaChegada = hora;
+                localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
             }
 
             renderizarListaJogadores();
@@ -3285,19 +3303,29 @@
                 if (meuId) atletasConhecidosIds.delete(meuId);
                 if (meuNome) atletasConhecidosIds.delete(meuNome);
 
+                // 3. Reseta usuário atual e distância
+                distanciaAtualMetros = null;
+                if (usuarioAtual) {
+                    usuarioAtual.statusPresenca = 'pendente';
+                    usuarioAtual.chegadaConfirmada = false;
+                    usuarioAtual.distanciaMetros = null;
+                    usuarioAtual.horaChegada = null;
+                    localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
+                }
+
                 localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
                 localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
                 aplicarDadosAtualizados();
 
-                // 3. Notifica o backend via endpoint dedicado /api/pelada/cancelar-presenca
+                // 4. Notifica o backend via endpoint dedicado /api/pelada/cancelar-presenca
                 if (window.location.protocol.startsWith('http')) {
                     try {
                         const resp = await fetch('/api/pelada/cancelar-presenca', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json; charset=utf-8' },
                             body: JSON.stringify({
-                                id: usuarioAtual.id,
-                                nome: usuarioAtual.nome
+                                id: usuarioAtual ? usuarioAtual.id : meuId,
+                                nome: usuarioAtual ? usuarioAtual.nome : meuNome
                             })
                         });
                         const data = await resp.json();
@@ -3594,12 +3622,9 @@
             // 2. FILTRA RIGOROSAMENTE APENAS QUEM JÁ CONFIRMOU PRESENÇA OU CHEGOU AO CAMPO
             let atletasCompletos = baseAtletas.filter(atleta => {
                 const isChegou = atleta.chegadaConfirmada === true || 
-                                 atleta.statusPresenca === 'chegou' || 
-                                 atleta.statusAproximacao === 'chegou' || 
-                                 atleta.status === 'campo';
+                                 atleta.statusPresenca === 'chegou';
 
-                const isConfirmado = atleta.statusPresenca === 'confirmado' || 
-                                     (atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente' && atleta.statusPresenca !== undefined && atleta.statusPresenca !== null);
+                const isConfirmado = atleta.statusPresenca === 'confirmado';
 
                 return isChegou || isConfirmado;
             });

@@ -489,17 +489,17 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
   const isRaioCampo = !isReset && ((distNum !== null && distNum <= raioCampo) || st === 'campo');
   const isProximo = !isReset && !isRaioCampo && ((distNum !== null && distNum <= 1500) || st === 'proximo');
 
-  // Chegada física confirmada SOMENTE quando explicitamente informada (2ª confirmação) ou já confirmada antes
+  // Chegada física confirmada SOMENTE quando explicitamente informada (2ª confirmação) ou já confirmada antes na lista de confirmados
   const explicitamenteChegou = !isReset && (options.chegadaConfirmada === true || options.statusPresenca === 'chegou' || st === 'chegou');
-  const explicitamenteCancelou = isReset || options.chegadaConfirmada === false;
-  const jaTinhaChegado = !explicitamenteCancelou && ((conf && conf.chegadaConfirmada === true) || (atleta && atleta.chegadaConfirmada === true));
+  const explicitamenteCancelou = isReset || options.chegadaConfirmada === false || options.statusPresenca === 'pendente';
+  const jaTinhaChegado = !explicitamenteCancelou && conf && (conf.chegadaConfirmada === true || conf.statusPresenca === 'chegou');
   const chegadaConf = explicitamenteChegou || jaTinhaChegado;
 
   const dentroDoRaio = isRaioCampo;
   const distTexto = chegadaConf ? 'No Campo' : (isReset ? 'Aguardando' : (distNum !== null ? (distNum >= 1000 ? `${(distNum/1000).toFixed(1)} km` : `${distNum}m`) : 'Aguardando GPS'));
   const statusAprox = isReset ? 'aguardando' : (isRaioCampo ? 'campo' : (isProximo ? 'proximo' : 'longe'));
   const statusGeof = isReset ? 'aguardando' : (chegadaConf ? 'chegou' : statusAprox);
-  const statusPres = chegadaConf ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : 'confirmado')));
+  const statusPres = chegadaConf ? 'chegou' : (isReset ? 'pendente' : (options.statusPresenca || (conf ? conf.statusPresenca : 'pendente')));
   const horaCheg = chegadaConf ? (atleta.horaChegada || (conf ? conf.horaChegada : null) || horaAgora) : null;
 
   const atletaAtualizado = {
@@ -536,20 +536,21 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     dados.atletas.push({ ...atletaAtualizado });
   }
 
-  // 2. Sincroniza em dados.listaConfirmados (Regra: só insere ou mantém se já confirmado, se chegou no campo ou se optou por entrar)
-  if (isReset || options.statusPresenca === 'pendente') {
+  // 2. Sincroniza em dados.listaConfirmados (Regra: só insere se options.entrarNaLista === true. Se já estava, atualiza ou remove no reset)
+  if (isReset || options.statusPresenca === 'pendente' || (!conf && !options.entrarNaLista)) {
     dados.listaConfirmados = dados.listaConfirmados.filter(c => !( (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome) ));
-  } else if (options.entrarNaLista || options.statusPresenca === 'confirmado' || (conf && conf.statusPresenca !== 'pendente')) {
+  } else if (options.entrarNaLista) {
     const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
     if (idxConf >= 0) {
-      if (options.entrarNaLista) {
-        dados.listaConfirmados.splice(idxConf, 1);
-        dados.listaConfirmados.unshift({ ...atletaAtualizado });
-      } else {
-        dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
-      }
+      dados.listaConfirmados.splice(idxConf, 1);
+      dados.listaConfirmados.unshift({ ...atletaAtualizado });
     } else {
       dados.listaConfirmados.unshift({ ...atletaAtualizado });
+    }
+  } else if (conf) {
+    const idxConf = dados.listaConfirmados.findIndex(c => (aId && String(c.id) === aId) || (aNome && (c.nome || c.name || '').trim().toLowerCase() === aNome));
+    if (idxConf >= 0) {
+      dados.listaConfirmados[idxConf] = { ...dados.listaConfirmados[idxConf], ...atletaAtualizado };
     }
   }
 
