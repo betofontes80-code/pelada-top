@@ -544,7 +544,6 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     customStatus: atletaAtualizado.statusGeofence,
     checkinLiberado: atletaAtualizado.checkinLiberado,
     confirmadoSorteio: atletaAtualizado.confirmadoSorteio,
-    dispararApito: atletaAtualizado.confirmadoSorteio,
     athlete: atletaAtualizado
   });
 
@@ -558,16 +557,14 @@ function sincronizarStatusAtletaUniversal(atletaId, athleteName, distanciaMetros
     canCheckIn: atletaAtualizado.canCheckIn,
     checkinLiberado: atletaAtualizado.checkinLiberado,
     chegadaConfirmada: atletaAtualizado.chegadaConfirmada,
-    dispararApito: isConfirmado,
     athlete: atletaAtualizado
   });
 
-  if (isCampo) {
+  if (options.novoCheckin) {
     broadcastSse('CHECKIN_CONFIRMED', {
       athleteId: atletaAtualizado.id,
       athleteName: atletaAtualizado.name || atletaAtualizado.nome,
       distance: atletaAtualizado.distanciaMetros !== null ? atletaAtualizado.distanciaMetros : 0,
-      dispararApito: true,
       athlete: atletaAtualizado
     });
   }
@@ -887,7 +884,7 @@ const requestHandler = (req, res) => {
           distance: updated.distance,
           checkinLiberado: updated.checkinLiberado,
           confirmadoSorteio: updated.confirmadoSorteio,
-          dispararApito: updated.confirmadoSorteio,
+          dispararApito: false,
           athlete: updated,
           allowed: updated.canCheckIn
         }));
@@ -943,7 +940,8 @@ const requestHandler = (req, res) => {
         const athleteObj = sincronizarStatusAtletaUniversal(athlete.id, athlete.nome || athlete.name, currentDist <= 500 ? currentDist : 50, 'campo', {
           chegadaConfirmada: true,
           statusPresenca: 'chegou',
-          checkedIn: true
+          checkedIn: true,
+          novoCheckin: true
         });
 
         res.writeHead(200, {
@@ -1696,7 +1694,8 @@ const requestHandler = (req, res) => {
             const updated = sincronizarStatusAtletaUniversal(idAtleta, nomeAtleta, dist, 'campo', {
               chegadaConfirmada: true,
               statusPresenca: 'chegou',
-              checkedIn: true
+              checkedIn: true,
+              novoCheckin: true
             });
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({
@@ -1747,7 +1746,7 @@ const requestHandler = (req, res) => {
               atleta: updated,
               mensagem: `${(updated && (updated.nome || updated.name)) || nomeAtleta} acabou de entrar na lista da pelada!`,
               listaConfirmados: appData.listaConfirmados,
-              dispararApito: true,
+              dispararApito: false,
               version: appData.version
             });
 
@@ -1759,7 +1758,7 @@ const requestHandler = (req, res) => {
             res.end(JSON.stringify({
               sucesso: true,
               success: true,
-              dispararApito: true,
+              dispararApito: false,
               atleta: updated,
               athlete: updated,
               listaConfirmados: appData.listaConfirmados,
@@ -1966,7 +1965,7 @@ const requestHandler = (req, res) => {
           sucesso: true,
           success: true,
           statusDistancia: updated.statusAproximacao,
-          dispararApito: isConfirmado,
+          dispararApito: false,
           atleta: updated,
           athlete: updated,
           listaConfirmados: appData.listaConfirmados

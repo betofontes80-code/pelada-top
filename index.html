@@ -1298,8 +1298,14 @@
             document.addEventListener(evt, desbloquearAudioGlobal, { passive: true });
         });
 
-        function tocarSomApito() {
+        let ultimoMomentoApitoTocado = 0;
+        function tocarSomApito(forcar = false) {
             try {
+                const agora = Date.now();
+                if (!forcar && (agora - ultimoMomentoApitoTocado < 2500)) {
+                    return;
+                }
+                ultimoMomentoApitoTocado = agora;
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (!AudioCtx) return;
                 if (!window._audioCtx) window._audioCtx = new AudioCtx();
@@ -1391,7 +1397,7 @@
             if (!container) return;
 
             // Toca som suave e vibra
-            tocarSomApito();
+            tocarSomOnline();
             if ('vibrate' in navigator) {
                 try { navigator.vibrate([40, 60, 40]); } catch(e) {}
             }
@@ -1476,7 +1482,7 @@
                 novos.forEach(novo => {
                     if (novo.id) atletasConhecidosIds.add(String(novo.id));
                     if (novo.nome) atletasConhecidosIds.add(novo.nome.toLowerCase().trim());
-                    tocarSomApito();
+
                     exibirToastJogadorOnline(novo, `${novo.nome} acabou de se escalar na pelada! ⚽`);
                 });
             }
@@ -1817,9 +1823,9 @@
                     try {
                         const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
                         if (!msg) return;
-                        if (msg.dispararApito) {
-                            try { tocarSomApito(); } catch(e) {}
-                        }
+
+
+
                         if (msg.type === 'PUNICAO_CARTAO') {
                             processarPunicaoCartao(msg);
                         } else if (msg.type === 'JOGADOR_ONLINE' && msg.atleta) {
@@ -1833,7 +1839,10 @@
                             atletasConhecidosIds.clear();
                             aplicarDadosAtualizados();
                             exibirToastJogadorOnline({ nome: 'Pelada Top', posicao: 'SYS' }, 'Lista zerada após a meia-noite! Nova presença liberada.');
-                        } else if (msg.type === 'GEOFENCE_UPDATE' || msg.type === 'geofence_update' || msg.type === 'GEOFENCE' || msg.type === 'CHECKIN_CONFIRMED' || msg.type === 'ATHLETE_UPDATED' || msg.athleteId) {
+                        } else if (msg.type === 'CHECKIN_CONFIRMED') {
+                            try { tocarSomApito(); } catch(e) {}
+                            tratarEventoGeofence(msg);
+                        } else if (msg.type === 'GEOFENCE_UPDATE' || msg.type === 'geofence_update' || msg.type === 'GEOFENCE' || msg.type === 'ATHLETE_UPDATED' || msg.athleteId) {
                             tratarEventoGeofence(msg);
                         } else if (msg.type === 'SYNC' || msg.type === 'CONNECTED' || msg.type === 'NOVO_ATLETA_CADASTRADO') {
                             aplicarSincronizacaoRemota(msg);
@@ -1886,9 +1895,9 @@
             const isReset = st === 'reset' || st === 'resetar' || st === 'desfazer';
             const isChegou = !isReset && (msg.type === 'CHECKIN_CONFIRMED' || msg.chegadaConfirmada === true || (msg.athlete && (msg.athlete.chegadaConfirmada === true || msg.athlete.statusPresenca === 'chegou')) || st === 'campo' || st === 'chegou' || (distNum !== null && distNum <= 500));
 
-            if (isChegou || msg.dispararApito) {
-                try { tocarSomApito(); } catch(e) {}
-            }
+
+
+
 
             // 1. Atualiza no cadastro permanente
             if (Array.isArray(cadastroGeralAtletas)) {
@@ -4975,7 +4984,7 @@
             aplicarDadosAtualizados();
 
             // Dispara som do apito imediatamente no aparelho do árbitro também
-            try { tocarSomApito(); } catch(e) {}
+            try { tocarSomApito(true); } catch(e) {}
 
             // Envia para o servidor para transmitir em tempo real via SSE
             if (window.location.protocol.startsWith('http')) {
@@ -5167,7 +5176,7 @@
             if (!msg) return;
 
             // 1. Toca o som do apito em todos os aparelhos conectados
-            try { tocarSomApito(); } catch(e) {}
+            try { tocarSomApito(true); } catch(e) {}
 
             // 2. Vibra o celular do atleta
             if ('vibrate' in navigator) {
