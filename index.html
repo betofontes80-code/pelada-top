@@ -1141,16 +1141,10 @@
             salvosLocal = JSON.parse(localStorage.getItem('pelada_confirmados'));
         } catch(e) {}
 
-        // Limpa cache antigo do localStorage se tiver 23 atletas pré-confirmados falsos
-        if (Array.isArray(salvosLocal) && salvosLocal.length >= 20 && salvosLocal.some(a => a.horaChegada === '22:37' || a.nome === 'Lucas Silva')) {
-            salvosLocal = [];
-            localStorage.setItem('pelada_confirmados', JSON.stringify([]));
-        }
-
         // O cadastro geral permanente carrega todos os atletas fixos do banco de dados da nuvem
         let cadastroGeralAtletas = (Array.isArray(salvosCadastroGeral) && salvosCadastroGeral.length > 0)
             ? salvosCadastroGeral
-            : [...ATLETAS_INICIAIS_PADRAO];
+            : ((Array.isArray(salvosLocal) && salvosLocal.length > 0) ? salvosLocal : [...ATLETAS_INICIAIS_PADRAO]);
 
         // A lista de confirmados/presença para a partida atual
         let listaConfirmados = (Array.isArray(salvosLocal))
@@ -1575,22 +1569,30 @@
             // Polling garantido a cada 3.5 segundos para celular ou app PWA instalado
             setInterval(buscarDadosServidor, 3500);
 
+            // Inicia rastreamento contínuo em tempo real do GPS
+            if (typeof iniciarMonitoramentoGpsContinuo === 'function') {
+                iniciarMonitoramentoGpsContinuo();
+            }
+
             // Reativação instantânea ao desbloquear tela ou voltar ao app
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden) {
                     buscarDadosServidor();
                     if (!sseConectado) iniciarSse();
+                    if (typeof atualizarLocalizacaoGps === 'function') atualizarLocalizacaoGps(false);
                 }
             });
 
             window.addEventListener('focus', () => {
                 buscarDadosServidor();
                 if (!sseConectado) iniciarSse();
+                if (typeof atualizarLocalizacaoGps === 'function') atualizarLocalizacaoGps(false);
             });
 
             window.addEventListener('online', () => {
                 buscarDadosServidor();
                 iniciarSse();
+                if (typeof atualizarLocalizacaoGps === 'function') atualizarLocalizacaoGps(false);
             });
         }
 
@@ -2559,6 +2561,107 @@
             return Math.round(R * c);
         }
 
+        let gpsWatchId = null;
+        let gpsPollingInterval = null;
+        let ultimaNotificacaoGpsServidor = 0;
+
+        function notificarGpsServidor(distancia) {
+            const agora = Date.now();
+            // Throttle de 4 segundos para evitar sobrecarga de requisições
+            if (agora - ultimaNotificacaoGpsServidor < 4000) return;
+            ultimaNotificacaoGpsServidor = agora;
+
+            if (!window.location.protocol.startsWith('http')) return;
+            if (!usuarioAtual || (!usuarioAtual.id && !usuarioAtual.nome)) return;
+
+            const raio = peladaConfig.raioMaximoMetros || 500;
+            const statusStr = distancia <= raio ? 'campo' : (distancia <= 1500 ? 'proximo' : 'longe');
+
+            fetch('/api/v2/geofence-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    athleteId: usuarioAtual.id || '',
+                    athleteName: usuarioAtual.nome || '',
+                    distanceMeters: distancia,
+                    status: statusStr
+                })
+            }).catch(() => {});
+        }
+
+        function processarPosicaoGpsSucesso(pos, mostrarAlerta = false) {
+            if (!pos || !pos.coords) return;
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const arenaLat = peladaConfig.lat || -7.190405;
+            const arenaLng = peladaConfig.lng || -34.870103;
+            distanciaAtualMetros = calcularDistanciaMetros(lat, lng, arenaLat, arenaLng);
+
+            const raio = peladaConfig.raioMaximoMetros || 500;
+            const txtInfo = document.getElementById('txt-distancia-campo');
+            if (txtInfo) {
+                if (distanciaAtualMetros <= raio) {
+                    txtInfo.innerHTML = `<span class="text-success-green font-bold">📍 A ${distanciaAtualMetros}m do Campo (Liberado!)</span>`;
+                } else {
+                    const km = (distanciaAtualMetros / 1000).toFixed(1);
+                    txtInfo.innerHTML = `<span class="text-primary font-bold">⚠️ A ${km}km do Campo (Máx. 500m)</span>`;
+                }
+            }
+
+            if (mostrarAlerta) {
+                if (distanciaAtualMetros <= raio) {
+                    alert(`📍 Sinal GPS Confirmado!\nVocê está a ${distanciaAtualMetros}m do local oficial da pelada:\n${peladaConfig.local}\nPode se escalar! 🔥`);
+                } else {
+                    const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros/1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
+                    alert(
+                        `📍 Medição GPS Realizada:\n\n` +
+                        `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
+                        `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar.`
+                    );
+                }
+            }
+
+            if (usuarioAtual) {
+                usuarioAtual.distanciaMetros = distanciaAtualMetros;
+            }
+
+            // Sincroniza a distância do usuário logado na lista de presença
+            const atletaLogado = (listaConfirmados || []).find(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            );
+            if (atletaLogado) {
+                atletaLogado.distanciaMetros = distanciaAtualMetros;
+                if (distanciaAtualMetros <= raio) {
+                    atletaLogado.statusAproximacao = 'campo';
+                    atletaLogado.status = 'campo';
+                } else if (distanciaAtualMetros <= 1500) {
+                    atletaLogado.statusAproximacao = 'proximo';
+                    atletaLogado.status = 'proximo';
+                } else {
+                    atletaLogado.statusAproximacao = 'longe';
+                    atletaLogado.status = 'longe';
+                }
+                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+            }
+
+            // Atualiza também no cadastro permanente
+            const atletaGeral = (cadastroGeralAtletas || []).find(j => 
+                (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
+                (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
+            );
+            if (atletaGeral) {
+                atletaGeral.distanciaMetros = distanciaAtualMetros;
+                atletaGeral.statusAproximacao = distanciaAtualMetros <= raio ? 'campo' : (distanciaAtualMetros <= 1500 ? 'proximo' : 'longe');
+            }
+
+            renderizarListaJogadores();
+            renderizarStatusCheckin();
+
+            // Notifica o servidor para atualizar os demais celulares via SSE
+            notificarGpsServidor(distanciaAtualMetros);
+        }
+
         function atualizarLocalizacaoGps(mostrarAlerta = false) {
             const txtInfo = document.getElementById('txt-distancia-campo');
 
@@ -2568,65 +2671,13 @@
                 return;
             }
 
-            if (txtInfo) txtInfo.innerText = 'Buscando sinal GPS...';
+            if (txtInfo && !distanciaAtualMetros) txtInfo.innerText = 'Buscando sinal GPS...';
 
             navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    const arenaLat = peladaConfig.lat || -7.190405;
-                    const arenaLng = peladaConfig.lng || -34.870103;
-                    distanciaAtualMetros = calcularDistanciaMetros(lat, lng, arenaLat, arenaLng);
-                    
-                    const raio = peladaConfig.raioMaximoMetros || 500;
-                    if (txtInfo) {
-                        if (distanciaAtualMetros <= raio) {
-                            txtInfo.innerHTML = `<span class="text-success-green font-bold">📍 A ${distanciaAtualMetros}m do Campo (Liberado!)</span>`;
-                        } else {
-                            const km = (distanciaAtualMetros / 1000).toFixed(1);
-                            txtInfo.innerHTML = `<span class="text-primary font-bold">⚠️ A ${km}km do Campo (Máx. 500m)</span>`;
-                        }
-                    }
-
-                    if (mostrarAlerta) {
-                        if (distanciaAtualMetros <= raio) {
-                            alert(`📍 Sinal GPS Confirmado!\nVocê está a ${distanciaAtualMetros}m do local oficial da pelada:\n${peladaConfig.local}\nPode se escalar! 🔥`);
-                        } else {
-                            const distTxt = distanciaAtualMetros >= 1000 ? `${(distanciaAtualMetros/1000).toFixed(1)} km` : `${distanciaAtualMetros} metros`;
-                            alert(
-                                `📍 Medição GPS Realizada:\n\n` +
-                                `Você está a ${distTxt} do local oficial:\n${peladaConfig.local}\n\n` +
-                                `Regra obrigatória: você precisa estar a menos de 500 metros do campo para se escalar.`
-                            );
-                        }
-                    }
-
-                    // Sincroniza a distância do usuário logado na lista de presença
-                    const atletaLogado = (listaConfirmados || []).find(j => 
-                        (usuarioAtual.id && String(j.id) === String(usuarioAtual.id)) ||
-                        (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase()
-                    );
-                    if (atletaLogado) {
-                        atletaLogado.distanciaMetros = distanciaAtualMetros;
-                        if (distanciaAtualMetros <= raio) {
-                            atletaLogado.statusAproximacao = 'campo';
-                            atletaLogado.status = 'campo';
-                        } else if (distanciaAtualMetros <= 1500) {
-                            atletaLogado.statusAproximacao = 'proximo';
-                            atletaLogado.status = 'proximo';
-                        } else {
-                            atletaLogado.statusAproximacao = 'longe';
-                            atletaLogado.status = 'longe';
-                        }
-                        localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
-                    }
-
-                    renderizarListaJogadores();
-                    renderizarStatusCheckin();
-                },
+                (pos) => processarPosicaoGpsSucesso(pos, mostrarAlerta),
                 (err) => {
                     console.warn('Erro GPS:', err.message);
-                    if (txtInfo) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
+                    if (txtInfo && !distanciaAtualMetros) txtInfo.innerText = 'GPS sem sinal (toque em Medir)';
                     if (mostrarAlerta) {
                         alert(
                             `Não foi possível obter o sinal GPS exato (${err.message}).\n\n` +
@@ -2635,8 +2686,39 @@
                         );
                     }
                 },
-                { enableHighAccuracy: true, timeout: 8000 }
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
             );
+
+            // Garante que o rastreador contínuo esteja ativo
+            iniciarMonitoramentoGpsContinuo();
+        }
+
+        function iniciarMonitoramentoGpsContinuo() {
+            if (!navigator.geolocation) return;
+
+            // Inicia watchPosition contínuo do navegador
+            if (gpsWatchId === null) {
+                try {
+                    gpsWatchId = navigator.geolocation.watchPosition(
+                        (pos) => processarPosicaoGpsSucesso(pos, false),
+                        (err) => console.warn('Aviso watchPosition GPS:', err.message),
+                        { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 }
+                    );
+                } catch(e) {}
+            }
+
+            // Timer de polling automático a cada 5 segundos para garantir atualização constante mesmo se o aparelho parar eventos de movimento
+            if (!gpsPollingInterval) {
+                gpsPollingInterval = setInterval(() => {
+                    if (navigator.geolocation && document.visibilityState !== 'hidden') {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => processarPosicaoGpsSucesso(pos, false),
+                            () => {},
+                            { enableHighAccuracy: true, timeout: 6000, maximumAge: 4000 }
+                        );
+                    }
+                }, 5000);
+            }
         }
 
         function renderizarStatusCheckin() {
@@ -3123,12 +3205,16 @@
             const bannerPrompt = document.getElementById('banner-jogadores-checkin-prompt');
             if (!bannerPrompt) return;
 
-            const atletaLogado = (atletasCompletos || []).find(j => 
+            const atletaLogado = (baseAtletas || []).find(j => 
                 (j.nome || '').trim().toLowerCase() === (usuarioAtual.nome || '').trim().toLowerCase() ||
                 (usuarioAtual.id && String(j.id) === String(usuarioAtual.id))
             );
 
-            const presencaConfirmada = !!atletaLogado;
+            const presencaConfirmada = atletaLogado && (
+                atletaLogado.statusPresenca === 'confirmado' || 
+                atletaLogado.statusPresenca === 'chegou' || 
+                atletaLogado.chegadaConfirmada === true
+            );
 
             if (!atletaLogado || !presencaConfirmada) {
                 if (!peladaConfig.listaAberta) {
@@ -3240,18 +3326,20 @@
             const container = document.getElementById('lista-jogadores-chegada');
             const badge = document.getElementById('badge-total-confirmados');
 
-            // 1. A base da partida é estritamente a lista de confirmados (quem de fato confirmou presença!)
-            let baseAtletas = Array.isArray(listaConfirmados) ? listaConfirmados : [];
+            // 1. Pega a base de atletas cadastrados/confirmados
+            let baseAtletas = (Array.isArray(listaConfirmados) && listaConfirmados.length > 0)
+                ? listaConfirmados
+                : (Array.isArray(cadastroGeralAtletas) ? cadastroGeralAtletas : [...ATLETAS_INICIAIS_PADRAO]);
 
             // 2. FILTRA RIGOROSAMENTE APENAS QUEM JÁ CONFIRMOU PRESENÇA OU CHEGOU AO CAMPO
             let atletasCompletos = baseAtletas.filter(atleta => {
-                if (!atleta) return false;
                 const isChegou = atleta.chegadaConfirmada === true || 
                                  atleta.statusPresenca === 'chegou' || 
                                  atleta.statusAproximacao === 'chegou' || 
                                  atleta.status === 'campo';
 
-                const isConfirmado = atleta.statusPresenca === 'confirmado';
+                const isConfirmado = atleta.statusPresenca === 'confirmado' || 
+                                     (atleta.hora && atleta.statusPresenca !== 'pendente' && atleta.statusPresenca !== 'ausente');
 
                 return isChegou || isConfirmado;
             });
@@ -3267,7 +3355,7 @@
             }
 
             if (typeof atualizarBannerJogadoresCheckinPrompt === 'function') {
-                atualizarBannerJogadoresCheckinPrompt(atletasCompletos, atletasCompletos);
+                atualizarBannerJogadoresCheckinPrompt(baseAtletas, atletasCompletos);
             }
 
             if (!container) return;
@@ -4940,6 +5028,9 @@
             try {
                 verificarEExibirNumeralTimeJogador();
                 atualizarEstadoBotaoPlayTimer();
+                if (typeof iniciarMonitoramentoGpsContinuo === 'function') {
+                    iniciarMonitoramentoGpsContinuo();
+                }
             } catch (e) {}
         }
 
