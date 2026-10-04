@@ -303,14 +303,21 @@
         <!-- ============================================================== -->
         <section id="view-equipes" class="tab-view w-full h-full flex-col px-4 py-2.5 gap-2 overflow-hidden">
             <!-- Header Compacto -->
-            <div class="w-full bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between shrink-0 border border-surface-container-highest">
-                <div>
+            <!-- Header Compacto -->
+            <div class="w-full bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between shrink-0 border border-surface-container-highest gap-2">
+                <div class="min-w-0">
                     <h1 class="font-headline-lg-mobile text-xs font-bold text-on-surface">Sorteio de Equipes</h1>
-                    <p class="font-body-md text-[10px] text-on-surface-variant">Toque nos botões abaixo (2, 3, 4 ou 5) para sortear automaticamente.</p>
+                    <p class="font-body-md text-[10px] text-on-surface-variant truncate">Toque nos botões abaixo (2, 3, 4 ou 5) para sortear automaticamente.</p>
                 </div>
-                <div class="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-lg shrink-0">
-                    <span class="material-symbols-outlined text-xs">auto_awesome</span>
-                    <span class="text-[10px] font-bold">Auto</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="desfazerEquipesConfiguracaoOriginal()" id="btn-desfazer-equipes" class="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 font-label-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer" title="Desfazer sorteio e resetar equipes para as configurações originais">
+                        <span class="material-symbols-outlined text-xs">restart_alt</span>
+                        <span>Desfazer Equipes</span>
+                    </button>
+                    <div class="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-lg shrink-0">
+                        <span class="material-symbols-outlined text-xs">auto_awesome</span>
+                        <span class="text-[10px] font-bold">Auto</span>
+                    </div>
                 </div>
             </div>
 
@@ -4072,6 +4079,112 @@
             // 6. Navega diretamente para a aba equipes e realiza a divisão/sorteio
             trocarAba('equipes');
             escolherQtdTimes(qtdTimesSorteio || 4);
+        }
+
+        // ==============================================================
+        // DESFAZER EQUIPES & RESETAR PARA AS CONFIGURAÇÕES ORIGINAIS
+        // ==============================================================
+        async function desfazerEquipesConfiguracaoOriginal() {
+            const confirmou = confirm(
+                "🔄 DESFAZER EQUIPES:\n\n" +
+                "Tem certeza de que deseja desfazer todas as equipes e restaurar as configurações originais?\n\n" +
+                "• Cancela a escalação ativa de times nos celulares.\n" +
+                "• Limpa o sorteio atual das equipes.\n" +
+                "• Restaura a validação presencial oficial (raio de 500m).\n" +
+                "• Reinicia o cronômetro para o tempo padrão."
+            );
+            if (!confirmou) return;
+
+            // 1. Desativa e limpa escalação ativa nos celulares
+            escalacaoAtiva = {
+                ativo: false,
+                timestamp: Date.now(),
+                times: []
+            };
+            localStorage.setItem("pelada_escalacao", JSON.stringify(escalacaoAtiva));
+
+            // 2. Reseta o estado da partida e cronômetro
+            partidaEstado = {
+                emAndamento: false,
+                finalizada: false,
+                tempoRestante: 600
+            };
+            localStorage.setItem("pelada_partida_estado", JSON.stringify(partidaEstado));
+
+            if (typeof timerInterval !== "undefined" && timerInterval) {
+                clearInterval(timerInterval);
+                timerAtivo = false;
+            }
+            if (typeof resetarCronometro === "function") {
+                try { resetarCronometro(); } catch(e) {}
+            }
+
+            // 3. Restaura as configurações originais da pelada (remove bypass)
+            if (!peladaConfig) peladaConfig = {};
+            peladaConfig.ignorarRegraChegada = false;
+            localStorage.setItem("pelada_config", JSON.stringify(peladaConfig));
+
+            // 4. Restaura o status original de chegada dos atletas (mantém apenas quem realmente está a <= 500m no GPS)
+            const raioMaximo = peladaConfig.raioMaximoMetros || 500;
+            if (Array.isArray(listaConfirmados)) {
+                listaConfirmados.forEach(atleta => {
+                    const dist = (atleta.distanciaMetros !== undefined && atleta.distanciaMetros !== null) 
+                        ? Number(atleta.distanciaMetros) 
+                        : null;
+                    if (dist !== null && dist <= raioMaximo) {
+                        atleta.chegadaConfirmada = true;
+                        atleta.statusPresenca = "chegou";
+                        atleta.statusAproximacao = "chegou";
+                    } else {
+                        atleta.chegadaConfirmada = false;
+                        atleta.statusPresenca = "confirmado";
+                        atleta.statusAproximacao = (dist !== null && dist <= 1500) ? "proximo" : "longe";
+                    }
+                });
+                localStorage.setItem("pelada_confirmados", JSON.stringify(listaConfirmados));
+            }
+
+            // 5. Limpa os times gerados no sorteio local
+            timesGeradosSorteio = [];
+            const containerEquipes = document.getElementById("cards-times-container");
+            if (containerEquipes) {
+                containerEquipes.innerHTML = "";
+            }
+
+            // 6. Restaura botões do seletor de times para o estado padrão
+            document.querySelectorAll("#seletor-qtd-times .time-count-btn").forEach(btn => {
+                const val = parseInt(btn.dataset.times);
+                if (val === 4) {
+                    btn.className = "time-count-btn py-1.5 rounded-lg bg-primary text-on-primary shadow-sm flex flex-col items-center justify-center active:scale-95 relative";
+                    btn.innerHTML = `<span class="font-headline-lg-mobile text-base font-bold">${val}</span><span class="font-label-md text-[9px] text-on-primary/90 uppercase font-bold">Times</span><div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-on-primary"></div>`;
+                } else {
+                    btn.className = "time-count-btn py-1.5 rounded-lg bg-surface-container-lowest border border-surface-container-highest shadow-sm flex flex-col items-center justify-center active:scale-95 text-on-surface";
+                    btn.innerHTML = `<span class="font-headline-lg-mobile text-base font-bold">${val}</span><span class="font-label-md text-[9px] text-on-surface-variant uppercase font-bold">Times</span>`;
+                }
+            });
+
+            // 7. Restaura o botão de escalar nos celulares para o visual padrão
+            const btnEscalar = document.getElementById("btn-escalar-oficial");
+            if (btnEscalar) {
+                btnEscalar.className = "w-full py-2 px-3 rounded-xl bg-primary hover:bg-surface-tint text-white font-headline-md text-xs font-black uppercase tracking-wider shadow-md shadow-primary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all";
+                btnEscalar.innerHTML = '<span class="material-symbols-outlined text-base animate-pulse">campaign</span><span>Escalar Times nos Celulares</span>';
+            }
+
+            // 8. Sincroniza com servidor para refletir em todos os celulares
+            try {
+                await sincronizarServidor();
+            } catch(err) {
+                console.warn("Aviso ao sincronizar servidor no reset de equipes:", err);
+            }
+
+            // 9. Atualiza telas e interface em tempo real
+            realizarSorteioStitch(true);
+            renderizarListaJogadores();
+            renderizarStatusCheckin();
+            renderizarListaGestaoAdmin();
+            verificarEExibirNumeralTimeJogador();
+
+            alert("✅ Equipes desfeitas com sucesso!\nConfigurações e regras originais restauradas.");
         }
 
         // ==============================================================
