@@ -3211,9 +3211,25 @@
         }
 
         // CONFIRMAÇÃO MANUAL DE CHEGADA PELO ADMINISTRADOR
-        async function confirmarChegadaAtletaAdmin(id) {
-            const j = listaConfirmados.find(x => String(x.id) === String(id));
-            if (!j) return;
+        async function confirmarChegadaAtletaAdmin(id, exigirConfirmacao = false) {
+            let j = (listaConfirmados || []).find(x => String(x.id) === String(id));
+            if (!j) {
+                const atletaCadastrado = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id));
+                if (atletaCadastrado) {
+                    j = { ...atletaCadastrado };
+                    listaConfirmados.push(j);
+                } else {
+                    return;
+                }
+            }
+
+            if (exigirConfirmacao) {
+                const distInfo = (j.distanciaMetros !== undefined && j.distanciaMetros !== null)
+                    ? (j.distanciaMetros >= 1000 ? `${(j.distanciaMetros/1000).toFixed(1)} km do campo` : `${j.distanciaMetros}m do campo`)
+                    : 'distante do campo';
+                const prosseguir = confirm(`⚠️ O atleta "${j.nome}" está a ${distInfo} (fora do raio de 500m).\n\nDeseja confirmar a presença física dele no local manualmente mesmo assim?`);
+                if (!prosseguir) return;
+            }
 
             const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             j.statusPresenca = 'chegou';
@@ -4915,8 +4931,9 @@
                 } else if (estaConfirmado) {
                     corBadge = 'bg-blue-500/15 text-blue-700 border-blue-500/30';
                     borderLeft = 'border-l-4 border-l-blue-500';
-                    labelStatus = '🔵 Confirmado';
-                    distTxt = distMetros !== null ? (distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`) : 'Confirmado';
+                    labelStatus = '🔵 Na Lista';
+                    const kmFormatado = distMetros !== null ? (distMetros >= 1000 ? `${(distMetros/1000).toFixed(1)} km` : `${distMetros}m`) : null;
+                    distTxt = kmFormatado ? `${kmFormatado} (Longe)` : 'Na Lista (Aguardando GPS)';
                 } else {
                     corBadge = 'bg-gray-500/15 text-gray-600 border-gray-400/30';
                     borderLeft = 'border-l-4 border-l-gray-300';
@@ -4937,11 +4954,14 @@
                 }
 
                 const botaoChegadaAdmin = (estaConfirmado && !chegou)
-                    ? `<button onclick="confirmarChegadaAtletaAdmin('${jId}')" class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Confirmar Chegada no Campo">
-                         <span class="material-symbols-outlined text-sm">sports_soccer</span>
-                       </button>`
+                    ? (noRaio
+                        ? `<button onclick="confirmarChegadaAtletaAdmin('${jId}', false)" class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Confirmar Chegada no Campo (Atleta no Raio &le;500m)">
+                             <span class="material-symbols-outlined text-sm">sports_soccer</span>
+                           </button>`
+                        : `<button onclick="confirmarChegadaAtletaAdmin('${jId}', true)" class="w-7 h-7 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant/40 hover:text-amber-600 flex items-center justify-center active:scale-90 transition-transform shadow-xs" title="Atleta distante do campo (${distTxt}). Clique para confirmar presença física manualmente caso ele já esteja no local.">
+                             <span class="material-symbols-outlined text-sm">sports_soccer</span>
+                           </button>`)
                     : (chegou ? `<span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shadow-xs" title="Presença no campo confirmada"><span class="material-symbols-outlined text-sm">done_all</span></span>` : '');
-
                 html += `
                     <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} bg-surface">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
