@@ -879,6 +879,16 @@
                         <span class="text-[9px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded">Controle Admin</span>
                     </div>
                     <div>
+                        <div class="flex items-center justify-between">
+                            <label class="font-bold text-on-surface-variant text-[10px] uppercase">Perfil / Nível de Acesso:</label>
+                            <span id="badge-tipo-acesso" class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20">⚽ Jogador</span>
+                        </div>
+                        <select id="edit-atleta-role" onchange="atualizarBadgeTipoAcessoModal()" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-bold text-on-surface outline-none focus:border-primary">
+                            <option value="jogador">⚽ Jogador (Acesso Padrão)</option>
+                            <option value="admin">👑 Admin (Organizador / Acesso Total)</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="font-bold text-on-surface-variant text-[10px] uppercase">Login / E-mail do Atleta:</label>
                         <input type="text" id="edit-atleta-email" placeholder="email@exemplo.com" class="w-full mt-0.5 px-2.5 py-1.5 rounded-lg bg-surface-container-low border border-surface-container-highest text-xs font-mono font-bold text-on-surface outline-none focus:border-primary">
                     </div>
@@ -2306,38 +2316,29 @@
                 if (!emailParaEnvio || emailParaEnvio.toLowerCase() === 'admin' || emailParaEnvio.toLowerCase() === 'topadmin') {
                     emailParaEnvio = 'topadmin@gmail.com';
                 }
-            } else {
-                // Se for jogador e digitou sem @ (apelido/nome), tenta resolver o e-mail cadastrado
-                if (emailParaEnvio && !emailParaEnvio.includes('@')) {
-                    const busca = emailParaEnvio.toLowerCase();
-                    // 1. Procura na lista local de confirmados
-                    let achado = (listaConfirmados || []).find(j => 
-                        (j.nome && j.nome.toLowerCase() === busca) ||
-                        (j.nome && j.nome.toLowerCase().split(' ')[0] === busca) ||
-                        (j.nome && j.nome.toLowerCase().includes(busca))
-                    );
-                    // 2. Tenta em /api/jogadores se necessário
-                    if (!achado || !achado.email) {
-                        try {
-                            const rJog = await fetch('/api/jogadores');
-                            if (rJog.ok) {
-                                const cads = await rJog.json();
-                                const cAchado = (cads || []).find(j => 
-                                    (j.nome && j.nome.toLowerCase() === busca) ||
-                                    (j.nome && j.nome.toLowerCase().split(' ')[0] === busca) ||
-                                    (j.nome && j.nome.toLowerCase().includes(busca))
-                                );
-                                if (cAchado && cAchado.email) achado = cAchado;
-                            }
-                        } catch(e) {}
-                    }
-                    if (achado && achado.email) {
-                        emailParaEnvio = achado.email;
-                    }
+            }
+
+            // Se digitou sem @ (apelido/nome), tenta resolver o e-mail cadastrado em todas as listas
+            if (emailParaEnvio && !emailParaEnvio.includes('@')) {
+                const busca = emailParaEnvio.toLowerCase().trim();
+                let achado = (cadastroGeralAtletas || []).find(j => 
+                    (j.nome && j.nome.toLowerCase() === busca) ||
+                    (j.nome && j.nome.toLowerCase().split(' ')[0] === busca) ||
+                    (j.nome && j.nome.toLowerCase().includes(busca))
+                ) || (listaConfirmados || []).find(j => 
+                    (j.nome && j.nome.toLowerCase() === busca) ||
+                    (j.nome && j.nome.toLowerCase().split(' ')[0] === busca) ||
+                    (j.nome && j.nome.toLowerCase().includes(busca))
+                ) || (listaUsuarios || []).find(u => 
+                    (u.nome && u.nome.toLowerCase() === busca) ||
+                    (u.nome && u.nome.toLowerCase().split(' ')[0] === busca)
+                );
+                if (achado && achado.email) {
+                    emailParaEnvio = achado.email;
                 }
             }
 
-            if (!emailParaEnvio && roleSelecionadoLogin === 'jogador') {
+            if (!emailParaEnvio) {
                 if (erroMsg) erroMsg.innerText = 'Preencha seu e-mail ou apelido cadastrado.';
                 if (erroBox) erroBox.classList.remove('hidden');
                 return;
@@ -5187,6 +5188,12 @@
                              <span class="material-symbols-outlined text-sm">sports_soccer</span>
                            </button>`)
                     : (chegou ? `<span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shadow-xs" title="Presença no campo confirmada"><span class="material-symbols-outlined text-sm">done_all</span></span>` : '');
+                const credsAtleta = obterCredenciaisAtleta(j);
+                const roleAtleta = credsAtleta.role || j.role || 'jogador';
+                const badgeRoleAdmin = roleAtleta === 'admin' 
+                    ? `<span class="bg-amber-500/15 text-amber-700 border border-amber-500/30 font-bold text-[9px] px-1.5 py-0.2 rounded shadow-xs shrink-0 flex items-center gap-0.5" title="Perfil de Acesso: Administrador">👑 Admin</span>` 
+                    : '';
+
                 html += `
                     <div class="flex items-center justify-between p-2 rounded-xl border border-surface-container-highest gap-2 ${borderLeft} bg-surface">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -5196,6 +5203,7 @@
                                 <div class="flex items-center gap-1.5 truncate">
                                     <span class="font-bold text-xs text-on-surface truncate">${jNome}</span>
                                     <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${corBadge} shrink-0">${labelStatus}</span>
+                                    ${badgeRoleAdmin}
                                     ${badgeCartao}
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant flex items-center gap-1">
@@ -5228,16 +5236,17 @@
         }
 
         function obterCredenciaisAtleta(j) {
-            if (!j) return { email: '', senha: '' };
+            if (!j) return { email: '', senha: '', role: 'jogador' };
             const jId = String(j.id || '');
             const jNomeNorm = normalizarTextoBusca(j.nome);
 
             // 1. Busca diretamente nas propriedades do atleta
             let email = j.email || '';
             let senha = j.senha || '';
+            let role = j.role || '';
 
             // 2. Busca na lista de usuários cadastrados
-            if ((!email || !senha) && Array.isArray(listaUsuarios)) {
+            if (Array.isArray(listaUsuarios)) {
                 const u = listaUsuarios.find(user => 
                     (user.id && String(user.id) === jId) || 
                     (user.nome && normalizarTextoBusca(user.nome) === jNomeNorm)
@@ -5245,16 +5254,18 @@
                 if (u) {
                     if (!email) email = u.email || '';
                     if (!senha) senha = u.senha || '';
+                    if (!role) role = u.role || '';
                 }
             }
 
             // 3. Busca nas demais listas (cadastro fixo ou confirmados)
-            if (!email || !senha) {
+            if (!email || !senha || !role) {
                 const ref = (cadastroGeralAtletas || []).find(a => String(a.id) === jId || normalizarTextoBusca(a.nome) === jNomeNorm) ||
                             (listaConfirmados || []).find(a => String(a.id) === jId || normalizarTextoBusca(a.nome) === jNomeNorm);
                 if (ref) {
                     if (!email) email = ref.email || '';
                     if (!senha) senha = ref.senha || '';
+                    if (!role) role = ref.role || '';
                 }
             }
 
@@ -5274,8 +5285,12 @@
                 senha = '1234';
                 j.senha = senha;
             }
+            if (!role) {
+                role = 'jogador';
+                j.role = role;
+            }
 
-            return { email, senha };
+            return { email, senha, role };
         }
 
         function alternarVisibilidadeSenhaAtleta() {
@@ -5295,12 +5310,14 @@
             const nome = document.getElementById('edit-atleta-nome').value.trim();
             const email = document.getElementById('edit-atleta-email').value.trim();
             const senha = document.getElementById('edit-atleta-senha').value.trim();
+            const roleSelect = document.getElementById('edit-atleta-role');
+            const roleTxt = (roleSelect && roleSelect.value === 'admin') ? '👑 Administrador' : '⚽ Jogador';
             if (!email) {
                 alert('Informe um e-mail válido para o atleta.');
                 return;
             }
             const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'https://pelada-top.onrender.com';
-            const texto = `⚽ Pelada Top - Dados de Acesso\n👤 Atleta: ${nome}\n🔑 Login: ${email}\n🔒 Senha: ${senha}\n🔗 Acessar: ${linkApp}`;
+            const texto = `⚽ Pelada Top - Dados de Acesso\n👤 Atleta: ${nome}\n🔑 Login: ${email}\n🔒 Senha: ${senha}\n🛡️ Perfil: ${roleTxt}\n🔗 Acessar: ${linkApp}`;
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(texto).then(() => {
                     alert(`Credenciais de "${nome}" copiadas com sucesso! Envie para o atleta.`);
@@ -5316,12 +5333,14 @@
             const nome = document.getElementById('edit-atleta-nome').value.trim();
             const email = document.getElementById('edit-atleta-email').value.trim();
             const senha = document.getElementById('edit-atleta-senha').value.trim();
+            const roleSelect = document.getElementById('edit-atleta-role');
+            const roleTxt = (roleSelect && roleSelect.value === 'admin') ? '👑 Administrador' : '⚽ Jogador';
             if (!email) {
                 alert('Informe um e-mail válido para o atleta.');
                 return;
             }
             const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'https://pelada-top.onrender.com';
-            const texto = `⚽ *Pelada Top - Seus Dados de Acesso*\n\n👤 *Atleta:* ${nome}\n🔑 *Login:* ${email}\n🔒 *Senha:* ${senha}\n\n👉 *Entre no app:* ${linkApp}`;
+            const texto = `⚽ *Pelada Top - Seus Dados de Acesso*\n\n👤 *Atleta:* ${nome}\n🔑 *Login:* ${email}\n🔒 *Senha:* ${senha}\n🛡️ *Perfil:* ${roleTxt}\n\n👉 *Entre no app:* ${linkApp}`;
             const urlZap = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
             window.open(urlZap, '_blank');
         }
@@ -5413,6 +5432,8 @@
             const creds = obterCredenciaisAtleta(j);
             const emailInput = document.getElementById('edit-atleta-email');
             const senhaInput = document.getElementById('edit-atleta-senha');
+            const roleSelect = document.getElementById('edit-atleta-role');
+
             if (emailInput) emailInput.value = creds.email || '';
             if (senhaInput) {
                 senhaInput.value = creds.senha || '';
@@ -5421,11 +5442,35 @@
             const icone = document.getElementById('icone-ver-senha-atleta');
             if (icone) icone.textContent = 'visibility_off';
 
+            // Validação de quem está editando: apenas administradores podem alterar o perfil do atleta
+            const ehAdmin = usuarioAtual && usuarioAtual.role === 'admin';
+            const roleVal = creds.role || j.role || 'jogador';
+            if (roleSelect) {
+                roleSelect.value = roleVal;
+                roleSelect.disabled = !ehAdmin;
+                roleSelect.title = ehAdmin ? 'Selecione o perfil de acesso' : 'Apenas o Administrador pode alterar o nível de acesso';
+            }
+            atualizarBadgeTipoAcessoModal();
+
             cartaoEdicaoAtual = j.cartao || null;
             atualizarBadgeCartaoModal(cartaoEdicaoAtual);
             
             const modal = document.getElementById('modalEditarAtleta');
             if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function atualizarBadgeTipoAcessoModal() {
+            const roleSelect = document.getElementById('edit-atleta-role');
+            const badgeRole = document.getElementById('badge-tipo-acesso');
+            if (!roleSelect || !badgeRole) return;
+            const val = roleSelect.value;
+            if (val === 'admin') {
+                badgeRole.textContent = '👑 Admin';
+                badgeRole.className = 'text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 border border-amber-500/30';
+            } else {
+                badgeRole.textContent = '⚽ Jogador';
+                badgeRole.className = 'text-[9px] font-bold px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20';
+            }
         }
 
         function fecharModalEditarAtleta() {
@@ -5466,6 +5511,13 @@
 
         async function salvarEdicaoAtleta(e) {
             e.preventDefault();
+
+            // Validação de quem está editando: apenas admin tem permissão para editar atleta e transformar papel
+            if (!usuarioAtual || usuarioAtual.role !== 'admin') {
+                alert('Acesso negado: Apenas o Administrador tem permissão para editar atletas e alterar o nível de acesso.');
+                return;
+            }
+
             const id = document.getElementById('edit-atleta-id').value;
             const nomeNovo = document.getElementById('edit-atleta-nome').value.trim();
             const posicaoNova = document.getElementById('edit-atleta-posicao').value;
@@ -5473,6 +5525,8 @@
             const fitnessNovo = parseInt(document.getElementById('edit-atleta-fitness').value) || 85;
             const emailNovo = (document.getElementById('edit-atleta-email')?.value || '').trim();
             const senhaNova = (document.getElementById('edit-atleta-senha')?.value || '').trim();
+            const roleSelect = document.getElementById('edit-atleta-role');
+            const roleNovo = (roleSelect && roleSelect.value === 'admin') ? 'admin' : 'jogador';
 
             // 1. Atualiza no cadastro geral fixo
             const jCad = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id));
@@ -5481,6 +5535,7 @@
                 jCad.posicao = posicaoNova;
                 jCad.idade = idadeNova;
                 jCad.fitness = fitnessNovo;
+                jCad.role = roleNovo;
                 if (emailNovo) jCad.email = emailNovo;
                 if (senhaNova) jCad.senha = senhaNova;
                 if (cartaoEdicaoAtual !== undefined) jCad.cartao = cartaoEdicaoAtual;
@@ -5493,45 +5548,62 @@
                 j.posicao = posicaoNova;
                 j.idade = idadeNova;
                 j.fitness = fitnessNovo;
+                j.role = roleNovo;
                 if (emailNovo) j.email = emailNovo;
                 if (senhaNova) j.senha = senhaNova;
                 if (cartaoEdicaoAtual !== undefined) j.cartao = cartaoEdicaoAtual;
             }
 
             // 3. Atualiza na lista global de usuários
-            if (Array.isArray(listaUsuarios)) {
-                const uIdx = listaUsuarios.findIndex(u => (u.id && String(u.id) === String(id)) || ((u.nome || '').trim().toLowerCase() === (jCad?.nome || nomeNovo).toLowerCase()));
-                if (uIdx >= 0) {
-                    listaUsuarios[uIdx].nome = nomeNovo;
-                    if (emailNovo) listaUsuarios[uIdx].email = emailNovo;
-                    if (senhaNova) listaUsuarios[uIdx].senha = senhaNova;
-                    listaUsuarios[uIdx].posicao = posicaoNova;
-                } else if (emailNovo) {
-                    listaUsuarios.push({
-                        id: id,
-                        nome: nomeNovo,
-                        email: emailNovo,
-                        senha: senhaNova || '1234',
-                        role: 'jogador',
-                        posicao: posicaoNova,
-                        criadoEm: new Date().toISOString()
-                    });
-                }
-                localStorage.setItem('pelada_usuarios', JSON.stringify(listaUsuarios));
+            if (!Array.isArray(listaUsuarios)) listaUsuarios = [];
+            const uIdx = listaUsuarios.findIndex(u => 
+                (u.id && String(u.id) === String(id)) || 
+                ((u.nome || '').trim().toLowerCase() === (jCad?.nome || nomeNovo).toLowerCase()) ||
+                (emailNovo && u.email && u.email.trim().toLowerCase() === emailNovo.toLowerCase())
+            );
+            if (uIdx >= 0) {
+                listaUsuarios[uIdx].nome = nomeNovo;
+                listaUsuarios[uIdx].role = roleNovo;
+                if (emailNovo) listaUsuarios[uIdx].email = emailNovo;
+                if (senhaNova) listaUsuarios[uIdx].senha = senhaNova;
+                listaUsuarios[uIdx].posicao = posicaoNova;
+                listaUsuarios[uIdx].idade = idadeNova;
+                listaUsuarios[uIdx].fitness = fitnessNovo;
+            } else {
+                listaUsuarios.push({
+                    id: id,
+                    nome: nomeNovo,
+                    email: emailNovo || `${nomeNovo.toLowerCase().replace(/\s+/g, '.')}@pelada.top`,
+                    senha: senhaNova || '1234',
+                    role: roleNovo,
+                    posicao: posicaoNova,
+                    idade: idadeNova,
+                    fitness: fitnessNovo,
+                    criadoEm: new Date().toISOString()
+                });
             }
+            localStorage.setItem('pelada_usuarios', JSON.stringify(listaUsuarios));
 
             // 4. Atualiza também o usuário logado caso seja ele próprio sendo editado
             const uId = usuarioAtual && usuarioAtual.id ? String(usuarioAtual.id) : null;
             const uNome = (usuarioAtual && usuarioAtual.nome ? usuarioAtual.nome : '').trim().toLowerCase();
-            if (uId === String(id) || (jCad && (jCad.nome || '').trim().toLowerCase() === uNome)) {
+            const uEmail = (usuarioAtual && usuarioAtual.email ? usuarioAtual.email : '').trim().toLowerCase();
+            const ehProprioUsuario = (uId && uId === String(id)) || 
+                                     (uNome && (jCad?.nome || nomeNovo).trim().toLowerCase() === uNome) ||
+                                     (uEmail && emailNovo && emailNovo.toLowerCase() === uEmail);
+
+            if (ehProprioUsuario) {
                 usuarioAtual.nome = nomeNovo;
+                usuarioAtual.role = roleNovo;
                 usuarioAtual.posicao = posicaoNova;
                 usuarioAtual.idade = idadeNova;
                 usuarioAtual.fitness = fitnessNovo;
                 if (emailNovo) usuarioAtual.email = emailNovo;
                 if (senhaNova) usuarioAtual.senha = senhaNova;
+                if (roleNovo === 'admin') usuarioAtual.autenticado = true;
                 localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
                 try { sincronizarPerfilCamposUi(); } catch(err) {}
+                try { atualizarNavbarPorRole(); } catch(err) {}
             }
 
             fecharModalEditarAtleta();
@@ -5553,6 +5625,7 @@
                             fitness: fitnessNovo,
                             email: emailNovo,
                             senha: senhaNova,
+                            role: roleNovo,
                             cartao: cartaoEdicaoAtual
                         })
                     });
@@ -5562,7 +5635,10 @@
             }
 
             await sincronizarServidor();
-            exibirToastJogadorOnline({ nome: nomeNovo, posicao: posicaoNova }, `Atleta "${nomeNovo}" atualizado com sucesso!`);
+            exibirToastJogadorOnline(
+                { nome: nomeNovo, posicao: posicaoNova }, 
+                `Atleta "${nomeNovo}" atualizado com sucesso como ${roleNovo === 'admin' ? '👑 Administrador' : '⚽ Jogador'}!`
+            );
         }
 
         function processarPunicaoCartao(msg) {

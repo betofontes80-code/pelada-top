@@ -63,17 +63,16 @@ function salvarDados(dados) {
     // 2. Preservação de Usuários e Segurança de Contas de Administrador
     if (Array.isArray(dados.usuarios)) {
       if (existing && Array.isArray(existing.usuarios)) {
-        // Assegura que administradores nunca percam acesso administrativo
-        existing.usuarios.forEach(u => {
-          if (u && (u.role === 'admin' || (u.id && String(u.id).includes('admin')))) {
-            const index = dados.usuarios.findIndex(du => du && (du.id === u.id || du.email === u.email || du.nome === u.nome));
-            if (index >= 0) {
-              dados.usuarios[index].role = 'admin';
-            } else {
-              dados.usuarios.push({ ...u });
-            }
+        // Assegura que o Organizador Master sempre permaneça com acesso de admin
+        const masterAdmin = existing.usuarios.find(u => u && (u.id === 'admin-master' || (u.email && u.email.toLowerCase().includes('topadmin'))));
+        if (masterAdmin) {
+          const mIdx = dados.usuarios.findIndex(du => du && (du.id === 'admin-master' || (du.email && du.email.toLowerCase().includes('topadmin'))));
+          if (mIdx >= 0) {
+            dados.usuarios[mIdx].role = 'admin';
+          } else {
+            dados.usuarios.unshift({ ...masterAdmin, role: 'admin' });
           }
-        });
+        }
       }
     } else if (existing && Array.isArray(existing.usuarios)) {
       dados.usuarios = existing.usuarios;
@@ -127,6 +126,9 @@ function salvarDados(dados) {
 
           if (a.senha !== undefined) conf.senha = a.senha;
           else if (conf.senha !== undefined) a.senha = conf.senha;
+
+          if (a.role !== undefined) conf.role = a.role;
+          else if (conf.role !== undefined) a.role = conf.role;
         }
       });
     }
@@ -1305,7 +1307,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 3. API Auth: Login
+    // 3. API Auth: Login com Validação de Regras de Perfil (Admin / Jogador)
     if (pathname === '/api/auth/login' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err) {
@@ -1314,15 +1316,34 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const { email, role } = payload || {};
-        if (role === 'admin' || (email && email.toLowerCase().includes('admin'))) {
+        try {
+          const saved = loadData();
+          if (saved.usuarios) appData.usuarios = saved.usuarios;
+          if (saved.atletas) appData.atletas = saved.atletas;
+          if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
+        } catch (e) {}
+
+        const { email, senha, role } = payload || {};
+        const busca = (email || '').toLowerCase().trim();
+        const roleRequisitado = (role || 'jogador').toLowerCase().trim();
+        const senhaDigitada = (senha !== undefined && senha !== null) ? String(senha).trim() : '';
+
+        // 1. Administrador Master Oficial (topadmin@gmail.com / admin / organizador)
+        const isMaster = (busca === 'topadmin@gmail.com' || busca === 'admin' || busca === 'topadmin' || busca === 'organizador');
+        if (isMaster) {
+          const masterSenhaValida = (!senhaDigitada || senhaDigitada === 'admin' || senhaDigitada === 'admin123' || senhaDigitada === '1234' || senhaDigitada === 'topadmin');
+          if (!masterSenhaValida) {
+            res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ sucesso: false, erro: 'Senha incorreta para o Administrador Master.' }));
+            return;
+          }
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({
             sucesso: true,
             usuario: {
               id: 'admin-master',
               nome: 'Organizador Master',
-              email: email || 'topadmin@gmail.com',
+              email: 'topadmin@gmail.com',
               role: 'admin',
               autenticado: true
             }
@@ -1330,41 +1351,93 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        try {
-          const saved = loadData();
-          if (saved.usuarios) appData.usuarios = saved.usuarios;
-          if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
-        } catch (e) {}
-
-        const busca = (email || '').toLowerCase().trim();
+        // 2. Busca do atleta / usuário nas bases
         const usuarios = appData.usuarios || [];
-        let user = usuarios.find(u => (u.email && u.email.toLowerCase() === busca) || (u.nome && u.nome.toLowerCase() === busca));
+        const atletas = appData.atletas || [];
+        const confirmados = appData.listaConfirmados || [];
+
+        let user = usuarios.find(u => 
+          (u.email && u.email.toLowerCase().trim() === busca) ||
+          (u.nome && u.nome.toLowerCase().trim() === busca) ||
+          (u.nome && u.nome.toLowerCase().trim().split(' ')[0] === busca) ||
+          (u.id && String(u.id) === busca)
+        );
 
         if (!user) {
-          const naLista = (appData.listaConfirmados || []).find(j => (j.email && j.email.toLowerCase() === busca) || (j.nome && j.nome.toLowerCase() === busca));
-          if (naLista) {
-            user = { ...naLista, role: 'jogador' };
+          const achado = atletas.find(a => 
+            (a.email && a.email.toLowerCase().trim() === busca) ||
+            (a.nome && a.nome.toLowerCase().trim() === busca) ||
+            (a.nome && a.nome.toLowerCase().trim().split(' ')[0] === busca) ||
+            (a.id && String(a.id) === busca)
+          ) || confirmados.find(j => 
+            (j.email && j.email.toLowerCase().trim() === busca) ||
+            (j.nome && j.nome.toLowerCase().trim() === busca) ||
+            (j.nome && j.nome.toLowerCase().trim().split(' ')[0] === busca) ||
+            (j.id && String(j.id) === busca)
+          );
+
+          if (achado) {
+            user = {
+              id: achado.id || ('jog_' + Date.now()),
+              nome: achado.nome,
+              email: achado.email || `${achado.nome.toLowerCase().replace(/\s+/g, '')}@pelada.top`,
+              senha: achado.senha || '1234',
+              role: achado.role || 'jogador',
+              posicao: achado.posicao || 'MEI',
+              condicao: achado.condicao || 'excelente',
+              idade: achado.idade || 28,
+              peso: achado.peso || 75,
+              fitness: achado.fitness || 90,
+              foto: achado.foto || ''
+            };
+            if (!appData.usuarios) appData.usuarios = [];
+            appData.usuarios.push(user);
+            salvarDadosDisco();
           }
         }
 
+        // 3. Usuário não encontrado
         if (!user) {
-          const nomePadrao = (email || 'Jogador').split('@')[0];
-          user = {
-            id: 'jog_' + Date.now(),
-            nome: nomePadrao,
-            email: email || `${nomePadrao}@pelada.top`,
-            role: 'jogador',
-            posicao: 'MEI',
-            idade: 28,
-            fitness: 90
-          };
-          if (!appData.usuarios) appData.usuarios = [];
-          appData.usuarios.push(user);
-          salvarDadosDisco();
+          if (roleRequisitado === 'admin') {
+            res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ sucesso: false, erro: 'Administrador não encontrado com este e-mail ou apelido.' }));
+            return;
+          } else {
+            res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ sucesso: false, erro: 'Atleta não encontrado. Verifique seu e-mail/apelido ou realize seu cadastro.' }));
+            return;
+          }
         }
 
+        // 4. Validação da Senha
+        const senhaEsperada = (user.senha !== undefined && user.senha !== null) ? String(user.senha).trim() : '1234';
+        if (senhaDigitada && senhaEsperada && senhaDigitada !== senhaEsperada) {
+          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: 'Senha incorreta para este usuário.' }));
+          return;
+        }
+
+        // 5. VALIDAÇÃO DAS REGRAS DE LOGIN POR PERFIL:
+        // Se tentou entrar na aba de Admin, o atleta PRECISA ter role === 'admin'
+        const roleReal = user.role || 'jogador';
+        if (roleRequisitado === 'admin' && roleReal !== 'admin') {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            sucesso: false,
+            erro: 'Acesso negado: Este atleta possui perfil de Jogador e não tem permissão de Administrador.'
+          }));
+          return;
+        }
+
+        // Retorna o usuário autenticado com o perfil correspondente
+        const usuarioRetorno = {
+          ...user,
+          role: roleReal,
+          autenticado: (roleReal === 'admin')
+        };
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ sucesso: true, usuario: user }));
+        res.end(JSON.stringify({ sucesso: true, usuario: usuarioRetorno }));
       });
       return;
     }
@@ -1484,62 +1557,73 @@ const requestHandler = (req, res) => {
             if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
             if (saved.usuarios) appData.usuarios = saved.usuarios;
           } catch (e) {}
-          if (!appData.listaConfirmados) appData.listaConfirmados = [];
+          if (!Array.isArray(appData.listaConfirmados)) appData.listaConfirmados = [];
+          if (!Array.isArray(appData.atletas)) appData.atletas = [];
 
           const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
           const idBusca = payload.id ? String(payload.id).trim() : null;
           const nomeOriginal = payload.nomeOriginal ? String(payload.nomeOriginal).trim().toLowerCase() : null;
           const nomeNovo = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
 
-          const idx = appData.listaConfirmados.findIndex(j => 
+          const cIdx = appData.listaConfirmados.findIndex(j => 
             (idBusca && String(j.id) === idBusca) ||
             (nomeOriginal && (j.nome || '').trim().toLowerCase() === nomeOriginal) ||
             (nomeNovo && (j.nome || '').trim().toLowerCase() === nomeNovo)
           );
 
+          const aIdx = appData.atletas.findIndex(a => 
+            (idBusca && String(a.id) === idBusca) ||
+            (nomeOriginal && (a.nome || '').trim().toLowerCase() === nomeOriginal) ||
+            (nomeNovo && (a.nome || '').trim().toLowerCase() === nomeNovo)
+          );
+
           let atletaSalvo;
-          if (idx >= 0) {
+          if (cIdx >= 0 || aIdx >= 0) {
             // Edição de atleta existente
-            const antigo = appData.listaConfirmados[idx];
+            const antigo = cIdx >= 0 ? appData.listaConfirmados[cIdx] : appData.atletas[aIdx];
+            const roleFinal = payload.role === 'admin' ? 'admin' : (payload.role !== undefined ? payload.role : (antigo.role || 'jogador'));
             atletaSalvo = {
               ...antigo,
               ...payload,
+              id: antigo.id || payload.id,
+              role: roleFinal,
               email: payload.email !== undefined ? payload.email : antigo.email,
               senha: payload.senha !== undefined ? payload.senha : antigo.senha,
               cartao: payload.cartao !== undefined ? payload.cartao : antigo.cartao,
               fitness: calcularFitnessAtleta({ ...antigo, ...payload })
             };
-            appData.listaConfirmados[idx] = atletaSalvo;
-            if (Array.isArray(appData.atletas)) {
-              const aIdx = appData.atletas.findIndex(a => 
-                (idBusca && String(a.id) === idBusca) ||
-                (nomeOriginal && (a.nome || '').trim().toLowerCase() === nomeOriginal) ||
-                (nomeNovo && (a.nome || '').trim().toLowerCase() === nomeNovo)
-              );
-              if (aIdx >= 0) appData.atletas[aIdx] = atletaSalvo;
-              else appData.atletas.push(atletaSalvo);
+
+            if (cIdx >= 0) {
+              appData.listaConfirmados[cIdx] = atletaSalvo;
             }
+            if (aIdx >= 0) {
+              appData.atletas[aIdx] = atletaSalvo;
+            } else {
+              appData.atletas.push(atletaSalvo);
+            }
+
             if (appData.usuarios) {
               const uIdx = appData.usuarios.findIndex(u => 
                 (idBusca && String(u.id) === idBusca) ||
                 (nomeOriginal && (u.nome || '').trim().toLowerCase() === nomeOriginal) ||
                 (nomeNovo && (u.nome || '').trim().toLowerCase() === nomeNovo) ||
-                (payload.email && (u.email || '').trim().toLowerCase() === String(payload.email).trim().toLowerCase())
+                (atletaSalvo.email && (u.email || '').trim().toLowerCase() === String(atletaSalvo.email).trim().toLowerCase())
               );
               if (uIdx >= 0) {
                 appData.usuarios[uIdx] = { 
                   ...appData.usuarios[uIdx], 
                   ...atletaSalvo,
-                  email: payload.email !== undefined ? payload.email : appData.usuarios[uIdx].email,
-                  senha: payload.senha !== undefined ? payload.senha : appData.usuarios[uIdx].senha
+                  role: roleFinal,
+                  email: atletaSalvo.email !== undefined ? atletaSalvo.email : appData.usuarios[uIdx].email,
+                  senha: atletaSalvo.senha !== undefined ? atletaSalvo.senha : appData.usuarios[uIdx].senha
                 };
-              } else if (payload.email) {
+              } else if (atletaSalvo.email) {
                 appData.usuarios.push({
                   id: atletaSalvo.id,
                   nome: atletaSalvo.nome,
-                  email: payload.email,
-                  senha: payload.senha || '1234',
-                  role: 'jogador',
+                  email: atletaSalvo.email,
+                  senha: atletaSalvo.senha || '1234',
+                  role: roleFinal,
                   posicao: atletaSalvo.posicao || 'ATA',
                   criadoEm: new Date().toISOString()
                 });
@@ -1547,11 +1631,13 @@ const requestHandler = (req, res) => {
             }
           } else {
             // Novo atleta adicionado
+            const roleFinal = payload.role === 'admin' ? 'admin' : 'jogador';
             atletaSalvo = {
               id: payload.id || ('jog_' + Date.now()),
               nome: payload.nome || 'Novo Atleta',
               email: payload.email || '',
               senha: payload.senha || '1234',
+              role: roleFinal,
               cartao: payload.cartao || null,
               posicao: payload.posicao || 'ATA',
               condicao: payload.condicao || 'excelente',
@@ -1581,7 +1667,7 @@ const requestHandler = (req, res) => {
                 nome: atletaSalvo.nome,
                 email: payload.email,
                 senha: payload.senha || '1234',
-                role: 'jogador',
+                role: roleFinal,
                 posicao: atletaSalvo.posicao || 'ATA',
                 criadoEm: new Date().toISOString()
               });
