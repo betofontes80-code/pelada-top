@@ -262,15 +262,9 @@
                     </div>
                     <h1 class="font-headline-lg-mobile text-base font-bold text-on-background leading-tight">Ordem de Chegada</h1>
                 </div>
-                <div class="flex items-center gap-1.5 shrink-0">
-                    <button onclick="lancarConfirmadosParaEquipes()" id="btn-lancar-equipes-seguranca" class="px-2.5 py-1 rounded-full bg-primary hover:bg-red-700 text-white font-label-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer" title="Lançar confirmados para a aba de equipes e liberar mesclagem dos times">
-                        <span class="material-symbols-outlined text-xs">groups</span>
-                        <span>Lançar Equipes</span>
-                    </button>
-                    <div class="bg-surface-container px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-surface-container-highest shrink-0 shadow-xs">
-                        <span id="badge-tempo-real" class="w-2 h-2 rounded-full bg-success-green animate-pulse" title="Sincronizado em tempo real"></span>
-                        <span id="badge-total-confirmados" class="font-label-md text-[11px] font-bold text-on-surface">12 Confirmados</span>
-                    </div>
+                <div class="bg-surface-container px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-surface-container-highest shrink-0 shadow-xs">
+                    <span id="badge-tempo-real" class="w-2 h-2 rounded-full bg-success-green animate-pulse" title="Sincronizado em tempo real"></span>
+                    <span id="badge-total-confirmados" class="font-label-md text-[11px] font-bold text-on-surface">12 Confirmados</span>
                 </div>
             </div>
 
@@ -565,6 +559,32 @@
                             <span id="admin-autonomo-vagas" class="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase shadow-xs">
                                 Vagas Livres
                             </span>
+                        </div>
+                    </div>
+
+                    <!-- LANÇAMENTO & GESTÃO DE EQUIPES (EXCLUSIVO ADMIN) -->
+                    <div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm border border-surface-container-highest flex flex-col gap-2 shrink-0">
+                        <div class="flex items-center justify-between border-b border-surface-container-highest pb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-base">groups</span>
+                                <h3 class="font-headline-md text-xs font-bold text-on-surface">Lançamento de Equipes</h3>
+                            </div>
+                            <span class="text-[9px] font-mono text-primary bg-primary/10 px-1.5 py-0.2 rounded font-bold">
+                                Exclusivo Admin
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant leading-relaxed">
+                            Lança todos os atletas confirmados para a aba de equipes e libera o sorteio dos times (modo de segurança para falha de GPS/500m).
+                        </p>
+                        <div class="flex gap-2 mt-0.5">
+                            <button onclick="lancarConfirmadosParaEquipes()" id="btn-admin-lancar-equipes" class="flex-1 py-2 bg-primary hover:bg-red-700 text-white font-headline-md text-xs uppercase tracking-wider font-bold rounded-lg flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-sm">groups</span>
+                                <span>Lançar Atletas p/ Equipes</span>
+                            </button>
+                            <button onclick="desfazerEquipesConfiguracaoOriginal()" id="btn-admin-desfazer-equipes" class="px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface-variant border border-surface-container-highest font-headline-md text-xs font-bold rounded-lg flex items-center justify-center gap-1 active:scale-95 transition-all" title="Desfazer equipes e resetar para original">
+                                <span class="material-symbols-outlined text-sm">restart_alt</span>
+                                <span>Desfazer</span>
+                            </button>
                         </div>
                     </div>
 
@@ -4014,6 +4034,11 @@
         // (Bypass da regra de GPS/Chegada para mesclagem imediata dos times)
         // ==============================================================
         async function lancarConfirmadosParaEquipes() {
+            // RIGOROSA VERIFICAÇÃO DE SEGURANÇA: APENAS ADMINISTRADOR PODE LANÇAR EQUIPES!
+            if (!usuarioAtual || usuarioAtual.role !== 'admin') {
+                alert('⛔ Acesso restrito: Apenas o Administrador/Organizador tem permissão para lançar equipes.');
+                return;
+            }
             const baseAtletas = Array.isArray(listaConfirmados) ? listaConfirmados : [];
             const confirmados = baseAtletas.filter(atleta => {
                 return atleta.chegadaConfirmada === true || 
@@ -4056,13 +4081,6 @@
             localStorage.setItem('pelada_config', JSON.stringify(peladaConfig));
             localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
 
-            // 3. Garante permissão de visualização e gerenciamento da aba equipes
-            if (usuarioAtual.role !== 'admin') {
-                usuarioAtual.role = 'admin';
-                usuarioAtual.autenticado = true;
-                localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
-                atualizarNavbarPorRole();
-            }
 
             // 4. Salva no servidor para refletir nos demais dispositivos
             try {
@@ -4085,6 +4103,11 @@
         // DESFAZER EQUIPES & RESETAR PARA AS CONFIGURAÇÕES ORIGINAIS
         // ==============================================================
         async function desfazerEquipesConfiguracaoOriginal() {
+            // RIGOROSA VERIFICAÇÃO DE SEGURANÇA: APENAS ADMINISTRADOR PODE DESFAZER EQUIPES!
+            if (!usuarioAtual || usuarioAtual.role !== 'admin') {
+                alert('⛔ Acesso restrito: Apenas o Administrador/Organizador tem permissão para desfazer equipes.');
+                return;
+            }
             const confirmou = confirm(
                 "🔄 DESFAZER EQUIPES:\n\n" +
                 "Tem certeza de que deseja desfazer todas as equipes e restaurar as configurações originais?\n\n" +
