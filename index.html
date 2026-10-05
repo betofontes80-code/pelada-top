@@ -5683,8 +5683,58 @@
         }
 
         async function excluirJogadorAdmin(id) {
-            alert('Operação bloqueada: A trava de segurança estrita no database.json proíbe a exclusão ou limpeza de cadastros de atletas.');
-            return;
+            if (usuarioAtual.role !== 'admin') {
+                alert('Apenas o Administrador pode excluir atletas do cadastro.');
+                return;
+            }
+
+            const j = (cadastroGeralAtletas || []).find(x => String(x.id) === String(id)) || 
+                      (listaConfirmados || []).find(x => String(x.id) === String(id));
+            const nomeAtleta = j ? j.nome : 'Atleta';
+
+            if (confirm(`Deseja realmente excluir o atleta "${nomeAtleta}" do cadastro do banco de dados?`)) {
+                cadastroGeralAtletas = (cadastroGeralAtletas || []).filter(x => {
+                    if (String(x.id) === String(id)) return false;
+                    if (j && j.nome && x.nome && x.nome.trim().toLowerCase() === j.nome.trim().toLowerCase()) return false;
+                    return true;
+                });
+                listaConfirmados = (listaConfirmados || []).filter(x => {
+                    if (String(x.id) === String(id)) return false;
+                    if (j && j.nome && x.nome && x.nome.trim().toLowerCase() === j.nome.trim().toLowerCase()) return false;
+                    return true;
+                });
+
+                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                aplicarDadosAtualizados();
+
+                if (window.location.protocol.startsWith('http')) {
+                    try {
+                        const res = await fetch('/api/admin/atleta/excluir', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                            body: JSON.stringify({ id, nome: nomeAtleta })
+                        });
+                        const data = await res.json();
+                        if (data && data.sucesso) {
+                            if (Array.isArray(data.atletas)) {
+                                cadastroGeralAtletas = data.atletas;
+                                localStorage.setItem('pelada_atletas_cadastrados', JSON.stringify(cadastroGeralAtletas));
+                            }
+                            if (Array.isArray(data.listaConfirmados)) {
+                                listaConfirmados = data.listaConfirmados;
+                                localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
+                            }
+                            aplicarDadosAtualizados();
+                        }
+                    } catch(err) {
+                        console.warn('Erro ao excluir no servidor:', err);
+                    }
+                }
+
+                await sincronizarServidor();
+                alert(`Atleta "${nomeAtleta}" removido com sucesso.`);
+            }
         }
 
         function abrirModalAdicionarAtleta() {

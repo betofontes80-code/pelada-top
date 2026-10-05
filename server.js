@@ -42,8 +42,6 @@ function salvarDados(dados) {
   try {
     if (!dados || typeof dados !== 'object') return false;
 
-    // --- TRAVA DE SEGURANÇA ESTRITA NO DATABASE.JSON ---
-    // Proíbe absolutamente qualquer exclusão, limpeza ou sobrescrita acidental de atletas e administradores
     let existing = null;
     try {
       if (fs.existsSync(DATABASE_FILE)) {
@@ -51,63 +49,37 @@ function salvarDados(dados) {
       }
     } catch (e) {}
 
-    // 1. Preservação e Merge Seguro de Atletas/Jogadores
-    const existingAtletas = (existing && Array.isArray(existing.atletas) && existing.atletas.length > 0)
-      ? existing.atletas
-      : ((existing && Array.isArray(existing.listaConfirmados) && existing.listaConfirmados.length > 0) ? existing.listaConfirmados : []);
+    // 1. Gestão e Persistência de Atletas (Permite exclusão e edição pelo Admin)
+    if (Array.isArray(dados.atletas)) {
+      // Aceita diretamente a lista atualizada enviada
+    } else if (existing && Array.isArray(existing.atletas)) {
+      dados.atletas = existing.atletas;
+    } else if (Array.isArray(dados.listaConfirmados)) {
+      dados.atletas = [...dados.listaConfirmados];
+    } else {
+      dados.atletas = [];
+    }
 
-    let incomingAtletas = Array.isArray(dados.atletas) && dados.atletas.length > 0
-      ? dados.atletas
-      : (Array.isArray(dados.listaConfirmados) && dados.listaConfirmados.length > 0 ? dados.listaConfirmados : []);
-
-    const atletasMap = new Map();
-    // Primeiro insere todos os existentes
-    existingAtletas.forEach(a => {
-      if (a && a.id !== undefined && a.id !== null) {
-        atletasMap.set(String(a.id), { ...a });
+    // 2. Preservação de Usuários e Segurança de Contas de Administrador
+    if (Array.isArray(dados.usuarios)) {
+      if (existing && Array.isArray(existing.usuarios)) {
+        // Assegura que administradores nunca percam acesso administrativo
+        existing.usuarios.forEach(u => {
+          if (u && (u.role === 'admin' || (u.id && String(u.id).includes('admin')))) {
+            const index = dados.usuarios.findIndex(du => du && (du.id === u.id || du.email === u.email || du.nome === u.nome));
+            if (index >= 0) {
+              dados.usuarios[index].role = 'admin';
+            } else {
+              dados.usuarios.push({ ...u });
+            }
+          }
+        });
       }
-    });
-
-    // Atualiza ou insere novos sem jamais excluir nenhum atleta pré-existente
-    incomingAtletas.forEach(a => {
-      if (a && a.id !== undefined && a.id !== null) {
-        const key = String(a.id);
-        const prev = atletasMap.get(key) || {};
-        atletasMap.set(key, { ...prev, ...a });
-      }
-    });
-
-    dados.atletas = Array.from(atletasMap.values());
-
-    // 2. Preservação Estrita de Usuários e Administradores
-    const existingUsuarios = (existing && Array.isArray(existing.usuarios) && existing.usuarios.length > 0)
-      ? existing.usuarios
-      : ((existing && Array.isArray(existing.jogadoresCadastrados)) ? existing.jogadoresCadastrados : []);
-
-    let incomingUsuarios = Array.isArray(dados.usuarios) && dados.usuarios.length > 0
-      ? dados.usuarios
-      : (Array.isArray(dados.jogadoresCadastrados) ? dados.jogadoresCadastrados : []);
-
-    const usuariosMap = new Map();
-    existingUsuarios.forEach(u => {
-      if (u) {
-        const key = String(u.id || u.email || u.nome || Math.random());
-        usuariosMap.set(key, { ...u });
-      }
-    });
-
-    incomingUsuarios.forEach(u => {
-      if (u) {
-        const key = String(u.id || u.email || u.nome);
-        const prev = usuariosMap.get(key) || {};
-        if (prev.role === 'admin' || (prev.id && String(prev.id).includes('admin'))) {
-          u.role = 'admin';
-        }
-        usuariosMap.set(key, { ...prev, ...u });
-      }
-    });
-
-    dados.usuarios = Array.from(usuariosMap.values());
+    } else if (existing && Array.isArray(existing.usuarios)) {
+      dados.usuarios = existing.usuarios;
+    } else {
+      dados.usuarios = [];
+    }
     dados.jogadoresCadastrados = dados.usuarios;
 
     if (!Array.isArray(dados.listaConfirmados)) {
@@ -1716,17 +1688,71 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 8. API Admin: Excluir Atleta - BLOQUEADO PELA TRAVA DE SEGURANÇA ESTRITA NO DATABASE.JSON
+    // 8. API Admin: Excluir Atleta (Por ID ou por Nome)
     if (pathname === '/api/admin/atleta/excluir' && req.method === 'POST') {
-      res.writeHead(403, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*'
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err || !payload) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: 'Payload inválido' }));
+          return;
+        }
+
+        try {
+          const saved = loadData();
+          if (Array.isArray(saved.atletas)) appData.atletas = saved.atletas;
+          if (Array.isArray(saved.listaConfirmados)) appData.listaConfirmados = saved.listaConfirmados;
+          if (Array.isArray(saved.usuarios)) appData.usuarios = saved.usuarios;
+        } catch (e) {}
+
+        const idBusca = payload.id ? String(payload.id).trim() : null;
+        const nomeBusca = payload.nome ? String(payload.nome).trim().toLowerCase() : null;
+
+        if (idBusca || nomeBusca) {
+          if (Array.isArray(appData.atletas)) {
+            appData.atletas = appData.atletas.filter(a => {
+              if (idBusca && String(a.id) === idBusca) return false;
+              if (nomeBusca && a.nome && a.nome.trim().toLowerCase() === nomeBusca) return false;
+              if (nomeBusca && a.name && a.name.trim().toLowerCase() === nomeBusca) return false;
+              return true;
+            });
+          }
+
+          if (Array.isArray(appData.listaConfirmados)) {
+            appData.listaConfirmados = appData.listaConfirmados.filter(j => {
+              if (idBusca && String(j.id) === idBusca) return false;
+              if (nomeBusca && j.nome && j.nome.trim().toLowerCase() === nomeBusca) return false;
+              if (nomeBusca && j.name && j.name.trim().toLowerCase() === nomeBusca) return false;
+              return true;
+            });
+          }
+
+          if (Array.isArray(appData.usuarios)) {
+            appData.usuarios = appData.usuarios.filter(u => {
+              if (u && (u.role === 'admin' || (u.id && String(u.id).includes('admin')))) return true;
+              if (idBusca && String(u.id) === idBusca) return false;
+              if (nomeBusca && u.nome && u.nome.trim().toLowerCase() === nomeBusca) return false;
+              return true;
+            });
+            appData.jogadoresCadastrados = appData.usuarios;
+          }
+
+          appData.version = Date.now();
+          salvarDadosDisco();
+          broadcastSse('SYNC', appData);
+          broadcastSse('ATHLETE_REMOVED', { id: idBusca, nome: nomeBusca });
+        }
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({
+          sucesso: true,
+          mensagem: 'Atleta excluído com sucesso do banco de dados.',
+          atletas: appData.atletas,
+          listaConfirmados: appData.listaConfirmados
+        }));
       });
-      res.end(JSON.stringify({
-        sucesso: false,
-        bloqueado: true,
-        mensagem: 'Operação bloqueada: A trava de segurança estrita proíbe a exclusão ou limpeza de cadastros no database.json.'
-      }));
       return;
     }
 

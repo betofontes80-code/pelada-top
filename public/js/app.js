@@ -1505,13 +1505,32 @@ function salvarAlteracoesAtleta() {
   atualizarDisplayAtleta(currentAthleteId);
 }
 
-// Excluir atleta - BLOQUEADO PELA TRAVA DE SEGURANÇA ESTRITA NO DATABASE.JSON
-function excluirAtleta() {
+// Excluir atleta
+async function excluirAtleta() {
   const atleta = getAtletaSelecionado();
   if (!atleta) return;
 
-  logTerminal('SEGURANÇA', `Exclusão negada para [${atleta.name || atleta.nome}]: Trava de segurança estrita ativada contra perda de dados.`, 'error');
-  alert('Operação Bloqueada: A trava de segurança estrita proíbe a exclusão ou limpeza de jogadores e administradores no database.json.');
+  const atletaId = atleta.id;
+  const atletaNome = atleta.name || atleta.nome;
+
+  if (confirm(`Deseja remover ${atletaNome} da base de dados?`)) {
+    state.athletes = (state.athletes || []).filter(a => String(a.id) !== String(atletaId));
+    logTerminal('ATLETA_DELETE', `Atleta [${atletaNome}] removido da base de dados.`, 'warning');
+    renderAtletasDropdown();
+    renderGpsSelect();
+    renderListaAtletasGPS();
+    if (state.athletes.length > 0) {
+      currentAthleteId = state.athletes[0].id;
+      atualizarDisplayAtleta(currentAthleteId);
+    }
+    try {
+      await fetch(`${apiBase}/api/admin/atleta/excluir`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ id: atletaId, nome: atletaNome })
+      });
+    } catch (e) {}
+  }
 }
 
 // Copiar link público com toast feedback
@@ -1587,18 +1606,6 @@ function executarBypassPromptSeguranca(opcoes = [], callbackConfirmacao) {
 
 // Observador dinâmico do DOM para modais e prompts de confirmação
 function iniciarObservadorModaisSeguranca() {
-
-// Interceptação universal de confirms/prompts para bypass automático da 4ª opção
-try {
-  salvarPreferenciaBypassSeguranca();
-  const _originalConfirm = window.confirm;
-  window.confirm = function(mensagem) {
-    salvarPreferenciaBypassSeguranca();
-    logTerminal('SEGURANÇA', `Confirmação automática executada: 4ª opção [índice ${SECURITY_BYPASS_INDEX}] predefinida selecionada.`, 'success');
-    return true;
-  };
-} catch(e) {}
-
   salvarPreferenciaBypassSeguranca();
 
   const processarModal = (container) => {
