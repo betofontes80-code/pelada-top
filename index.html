@@ -2257,18 +2257,22 @@
             const emailInput = document.getElementById('login-email');
             const pwdInput = document.getElementById('login-password');
             const labelEmail = document.getElementById('login-label-email');
+            const btnSubmit = document.getElementById('loginBtn');
+            const erroBox = document.getElementById('login-alerta-erro');
+            if (erroBox) erroBox.classList.add('hidden');
 
             if (role === 'admin') {
                 if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
                 if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
                 if (emailInput) {
-                    emailInput.placeholder = 'topadmin@gmail.com ou admin';
+                    emailInput.placeholder = 'topadmin@gmail.com ou seu e-mail admin';
                     if (!emailInput.value || emailInput.value === 'seu@email.com') emailInput.value = 'topadmin@gmail.com';
                 }
                 if (pwdInput) {
                     pwdInput.placeholder = '••••••••';
                 }
                 if (labelEmail) labelEmail.innerText = 'E-mail ou Usuário Admin';
+                if (btnSubmit) btnSubmit.innerHTML = '<span>Entrar como Admin</span><span class="material-symbols-outlined text-base">arrow_forward</span>';
             } else {
                 if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
                 if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
@@ -2280,6 +2284,7 @@
                     pwdInput.placeholder = '••••••••';
                 }
                 if (labelEmail) labelEmail.innerText = 'E-mail ou Apelido';
+                if (btnSubmit) btnSubmit.innerHTML = '<span>Entrar no Jogo</span><span class="material-symbols-outlined text-base">arrow_forward</span>';
             }
         }
 
@@ -2378,7 +2383,16 @@
                     throw new Error((data && data.erro) || 'Falha na autenticação.');
                 }
 
-                // Autenticado com sucesso!
+                // Validação estrita do papel (role) retornado versus modo escolhido
+                const roleRetorno = (data.usuario && data.usuario.role === 'admin') ? 'admin' : 'jogador';
+                if (roleSelecionadoLogin === 'admin' && roleRetorno !== 'admin') {
+                    throw new Error('Acesso negado: Este atleta possui perfil de Jogador. Mude para a aba "Jogador" para entrar.');
+                }
+                if (roleSelecionadoLogin === 'jogador' && roleRetorno !== 'jogador') {
+                    throw new Error('Acesso negado: Este usuário possui perfil de Administrador. Mude para a aba "Admin" para entrar.');
+                }
+
+                // Autenticado com sucesso de acordo com perfil e nível selecionados!
                 usuarioAtual = data.usuario;
                 if (usuarioAtual.role === 'admin') usuarioAtual.autenticado = true;
                 localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));

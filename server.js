@@ -79,6 +79,37 @@ function salvarDados(dados) {
     } else {
       dados.usuarios = [];
     }
+    // Sincroniza dados.usuarios com o role e dados atualizados de dados.atletas
+    if (Array.isArray(dados.usuarios) && Array.isArray(dados.atletas)) {
+      dados.atletas.forEach(a => {
+        if (!a) return;
+        const aId = a.id !== undefined && a.id !== null ? String(a.id) : null;
+        const aNome = (a.nome || '').trim().toLowerCase();
+        const aEmail = (a.email || '').trim().toLowerCase();
+        const u = dados.usuarios.find(user => 
+          (aId && user.id && String(user.id) === aId) ||
+          (aEmail && user.email && user.email.trim().toLowerCase() === aEmail) ||
+          (aNome && user.nome && user.nome.trim().toLowerCase() === aNome)
+        );
+        if (u) {
+          if (a.role) u.role = a.role;
+          if (a.senha) u.senha = a.senha;
+          if (a.email) u.email = a.email;
+          if (a.nome) u.nome = a.nome;
+          if (a.posicao) u.posicao = a.posicao;
+        } else if (a.email) {
+          dados.usuarios.push({
+            id: a.id || ('jog_' + Date.now()),
+            nome: a.nome,
+            email: a.email,
+            senha: a.senha || '1234',
+            role: a.role || 'jogador',
+            posicao: a.posicao || 'MEI',
+            criadoEm: new Date().toISOString()
+          });
+        }
+      });
+    }
     dados.jogadoresCadastrados = dados.usuarios;
 
     if (!Array.isArray(dados.listaConfirmados)) {
@@ -1346,6 +1377,15 @@ const requestHandler = (req, res) => {
         // 1. Administrador Master Oficial (topadmin@gmail.com / admin / organizador)
         const isMaster = (busca === 'topadmin@gmail.com' || busca === 'admin' || busca === 'topadmin' || busca === 'organizador');
         if (isMaster) {
+          // Se selecionou a aba Jogador, impede o login de Administrador Master
+          if (roleRequisitado === 'jogador') {
+            res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ 
+              sucesso: false, 
+              erro: 'Acesso negado: Esta conta possui perfil de Administrador. Mude para a aba "Admin" para entrar.' 
+            }));
+            return;
+          }
           const masterSenhaValida = (!senhaDigitada || senhaDigitada === 'admin' || senhaDigitada === 'admin123' || senhaDigitada === '1234' || senhaDigitada === 'topadmin');
           if (!masterSenhaValida) {
             res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1371,27 +1411,29 @@ const requestHandler = (req, res) => {
         const atletas = appData.atletas || [];
         const confirmados = appData.listaConfirmados || [];
 
+        // Prioriza a lista oficial de atletas para capturar a edição mais recente de role feita pelo admin
+        const achado = atletas.find(a => 
+          (a.email && a.email.toLowerCase().trim() === busca) ||
+          (a.nome && a.nome.toLowerCase().trim() === busca) ||
+          (a.nome && a.nome.toLowerCase().trim().split(' ')[0] === busca) ||
+          (a.id && String(a.id) === busca)
+        ) || confirmados.find(j => 
+          (j.email && j.email.toLowerCase().trim() === busca) ||
+          (j.nome && j.nome.toLowerCase().trim() === busca) ||
+          (j.nome && j.nome.toLowerCase().trim().split(' ')[0] === busca) ||
+          (j.id && String(j.id) === busca)
+        );
+
         let user = usuarios.find(u => 
+          (achado && u.id && String(u.id) === String(achado.id)) ||
           (u.email && u.email.toLowerCase().trim() === busca) ||
           (u.nome && u.nome.toLowerCase().trim() === busca) ||
           (u.nome && u.nome.toLowerCase().trim().split(' ')[0] === busca) ||
           (u.id && String(u.id) === busca)
         );
 
-        if (!user) {
-          const achado = atletas.find(a => 
-            (a.email && a.email.toLowerCase().trim() === busca) ||
-            (a.nome && a.nome.toLowerCase().trim() === busca) ||
-            (a.nome && a.nome.toLowerCase().trim().split(' ')[0] === busca) ||
-            (a.id && String(a.id) === busca)
-          ) || confirmados.find(j => 
-            (j.email && j.email.toLowerCase().trim() === busca) ||
-            (j.nome && j.nome.toLowerCase().trim() === busca) ||
-            (j.nome && j.nome.toLowerCase().trim().split(' ')[0] === busca) ||
-            (j.id && String(j.id) === busca)
-          );
-
-          if (achado) {
+        if (achado) {
+          if (!user) {
             user = {
               id: achado.id || ('jog_' + Date.now()),
               nome: achado.nome,
@@ -1408,6 +1450,11 @@ const requestHandler = (req, res) => {
             if (!appData.usuarios) appData.usuarios = [];
             appData.usuarios.push(user);
             salvarDadosDisco();
+          } else {
+            // Sincroniza imediatamente o role e dados atualizados com o cadastro do atleta
+            user.role = achado.role || user.role || 'jogador';
+            if (achado.senha) user.senha = achado.senha;
+            if (achado.nome) user.nome = achado.nome;
           }
         }
 
@@ -1432,14 +1479,25 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        // 5. VALIDAÇÃO DAS REGRAS DE LOGIN POR PERFIL:
-        // Se tentou entrar na aba de Admin, o atleta PRECISA ter role === 'admin'
-        const roleReal = user.role || 'jogador';
+        // 5. VALIDAÇÃO ESTRITA DAS REGRAS E NÍVEL DE ACESSO (EXCLUSIVIDADE DO MODO SELECIONADO):
+        const roleReal = user.role === 'admin' ? 'admin' : 'jogador';
+
+        // REGRA 1: Se o modo selecionado for ADMIN, o perfil PRECISA ser ADMIN
         if (roleRequisitado === 'admin' && roleReal !== 'admin') {
           res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({
             sucesso: false,
-            erro: 'Acesso negado: Este atleta possui perfil de Jogador e não tem permissão de Administrador.'
+            erro: 'Acesso negado: Este atleta possui perfil de Jogador. Mude para a aba "Jogador" para entrar.'
+          }));
+          return;
+        }
+
+        // REGRA 2: Se o modo selecionado for JOGADOR, o perfil PRECISA ser JOGADOR
+        if (roleRequisitado === 'jogador' && roleReal !== 'jogador') {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            sucesso: false,
+            erro: 'Acesso negado: Este usuário possui perfil de Administrador. Mude para a aba "Admin" para entrar.'
           }));
           return;
         }
