@@ -240,9 +240,9 @@
 
                 <!-- Rodapé Compacto -->
                 <div class="mt-3 flex flex-col items-center gap-1 text-center w-full">
-                    <p class="font-body-md text-xs text-on-surface-variant">
+                    <p class="font-body-md text-xs text-on-surface-variant" id="login-footer-texto">
                         Ainda não tem conta? 
-                        <button type="button" onclick="abrirModalCadastro()" class="text-primary font-bold hover:underline">Cadastre-se</button>
+                        <button type="button" onclick="abrirModalCadastro()" id="btn-login-cadastre-se" class="text-primary font-bold hover:underline">Cadastre-se</button>
                     </p>
                 </div>
 
@@ -441,6 +441,30 @@
                         </div>
                         <p class="text-[10px] text-on-surface-variant font-medium">Gestão central da pelada, atletas e configurações</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- BANNER DE ADMIN PENDENTE DE CONFIRMAÇÃO (VISÍVEL APENAS AO USUÁRIO MASTER) -->
+            <div id="container-admin-pendente-master" class="hidden w-full p-3 rounded-xl bg-amber-50 border-2 border-amber-300 text-on-surface flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-amber-600 text-2xl shrink-0 animate-bounce">notification_important</span>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <h4 class="font-bold text-xs text-amber-900">Solicitação de Acesso de Administrador</h4>
+                            <span class="text-[9px] font-bold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">Aguardando Master</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800 font-medium mt-0.5" id="txt-admin-pendente-dados">Atleta: Carregando...</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button onclick="confirmarAdminPendenteMaster(true)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Confirmar Acesso</span>
+                    </button>
+                    <button onclick="confirmarAdminPendenteMaster(false)" class="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs flex items-center gap-1 border border-red-300 active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-sm">cancel</span>
+                        <span>Recusar</span>
+                    </button>
                 </div>
             </div>
 
@@ -1043,7 +1067,8 @@
             <div class="flex items-center justify-between border-b border-surface-container-highest pb-2 mb-3">
                 <div class="flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-primary text-base">how_to_reg</span>
-                    <h3 class="font-headline-md text-sm font-bold text-on-surface">Cadastro de Atleta</h3>
+                    <h3 class="font-headline-md text-sm font-bold text-on-surface" id="modal-cad-titulo">Cadastro de Atleta</h3>
+                    <span id="badge-cad-tipo" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">⚽ Jogador</span>
                 </div>
                 <button type="button" onclick="fecharModalCadastro()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant">
                     <span class="material-symbols-outlined text-sm">close</span>
@@ -1070,6 +1095,7 @@
             </div>
 
             <form class="flex flex-col gap-2 text-xs" id="cadastroForm" onsubmit="realizarCadastro(event)">
+                <input type="hidden" id="cad-role" value="jogador">
                 <!-- Nome / Apelido -->
                 <div class="flex flex-col gap-0.5">
                     <label class="font-bold text-on-surface-variant text-[10px] uppercase" for="cad-nome">Nome Completo / Apelido *</label>
@@ -2086,6 +2112,9 @@
             if (usuarioAtual.role === 'jogador' && ['equipes', 'timer', 'admin'].includes(aba)) {
                 aba = 'jogadores';
             }
+            if (aba === 'admin') {
+                try { verificarAdminPendenteMaster(); } catch(e) {}
+            }
 
             document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -2261,6 +2290,7 @@
             const erroBox = document.getElementById('login-alerta-erro');
             if (erroBox) erroBox.classList.add('hidden');
 
+            const footerTexto = document.getElementById('login-footer-texto');
             if (role === 'admin') {
                 if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
                 if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
@@ -2273,6 +2303,9 @@
                 }
                 if (labelEmail) labelEmail.innerText = 'E-mail ou Usuário Admin';
                 if (btnSubmit) btnSubmit.innerHTML = '<span>Entrar como Admin</span><span class="material-symbols-outlined text-base">arrow_forward</span>';
+                if (footerTexto) {
+                    footerTexto.innerHTML = 'Ainda não tem conta de Admin? <button type="button" onclick="tentarCadastrarAdmin()" class="text-primary font-bold hover:underline">Solicitar Cadastro</button>';
+                }
             } else {
                 if (tabJog) tabJog.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 bg-surface text-primary shadow-sm font-bold';
                 if (tabAdm) tabAdm.className = 'flex-1 py-1.5 text-xs font-label-md rounded-lg transition-all relative z-10 text-on-surface-variant hover:text-on-surface';
@@ -2285,6 +2318,9 @@
                 }
                 if (labelEmail) labelEmail.innerText = 'E-mail ou Apelido';
                 if (btnSubmit) btnSubmit.innerHTML = '<span>Entrar no Jogo</span><span class="material-symbols-outlined text-base">arrow_forward</span>';
+                if (footerTexto) {
+                    footerTexto.innerHTML = 'Ainda não tem conta? <button type="button" onclick="abrirModalCadastroComRole(\'jogador\')" class="text-primary font-bold hover:underline">Cadastre-se</button>';
+                }
             }
         }
 
@@ -2434,6 +2470,122 @@
             }
         }
 
+        let adminPendenteAtual = null;
+
+        async function checarStatusRegistroAdmin() {
+            try {
+                const resp = await fetch('/api/admin/status-registro');
+                if (resp.ok) {
+                    return await resp.json();
+                }
+            } catch(e) {}
+            return { existeAdmin: false, existePendente: false };
+        }
+
+        async function tentarCadastrarAdmin() {
+            const erroBox = document.getElementById('login-alerta-erro');
+            const erroMsg = document.getElementById('login-erro-msg');
+            if (erroBox) erroBox.classList.add('hidden');
+
+            const status = await checarStatusRegistroAdmin();
+            if (status.existeAdmin) {
+                if (erroMsg) erroMsg.innerText = `⚠️ Cadastro de Admin bloqueado: Já existe um Administrador cadastrado para esta pelada (${status.adminAprovado?.nome || ''}). Novos cadastros estão bloqueados! Para entrar como atleta, use a aba Jogador.`;
+                if (erroBox) {
+                    erroBox.className = 'p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-bold flex items-center gap-1.5 animate-[fade-in_0.2s_ease-out]';
+                    erroBox.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (status.existePendente) {
+                if (erroMsg) erroMsg.innerText = `⚠️ Já existe uma solicitação de Administrador pendente de confirmação pelo Usuário Master (${status.adminPendente?.nome || ''}). Aguarde a liberação.`;
+                if (erroBox) {
+                    erroBox.className = 'p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-[11px] font-bold flex items-center gap-1.5';
+                    erroBox.classList.remove('hidden');
+                }
+                return;
+            }
+
+            // Não existe admin: abre o modal de cadastro configurado para Admin
+            abrirModalCadastroComRole('admin');
+        }
+
+        function abrirModalCadastroComRole(role) {
+            const modal = document.getElementById('modalCadastroAtleta');
+            const erroBox = document.getElementById('cadastro-alerta-erro');
+            const cadRoleInput = document.getElementById('cad-role');
+            const titulo = document.getElementById('modal-cad-titulo');
+            const badge = document.getElementById('badge-cad-tipo');
+            if (erroBox) erroBox.classList.add('hidden');
+
+            if (role === 'admin') {
+                if (cadRoleInput) cadRoleInput.value = 'admin';
+                if (titulo) titulo.innerText = 'Cadastro de Administrador';
+                if (badge) {
+                    badge.innerText = '👑 Admin (Requer Confirmação Master)';
+                    badge.className = 'text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800 border border-amber-500/30';
+                }
+            } else {
+                if (cadRoleInput) cadRoleInput.value = 'jogador';
+                if (titulo) titulo.innerText = 'Cadastro de Atleta';
+                if (badge) {
+                    badge.innerText = '⚽ Jogador';
+                    badge.className = 'text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20';
+                }
+            }
+
+            if (modal) modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        async function verificarAdminPendenteMaster() {
+            // Apenas o usuário Master (topadmin) precisa ver e confirmar solicitações
+            const container = document.getElementById('container-admin-pendente-master');
+            if (!container) return;
+            const ehMaster = usuarioAtual && (usuarioAtual.id === 'admin-master' || usuarioAtual.id === 'admin_topadmin' || (usuarioAtual.email && usuarioAtual.email.toLowerCase().includes('topadmin')));
+            if (!ehMaster) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            const status = await checarStatusRegistroAdmin();
+            if (status.existePendente && status.adminPendente) {
+                adminPendenteAtual = status.adminPendente;
+                const txt = document.getElementById('txt-admin-pendente-dados');
+                if (txt) txt.innerText = `Atleta: ${status.adminPendente.nome} (${status.adminPendente.email})`;
+                container.classList.remove('hidden');
+            } else {
+                adminPendenteAtual = null;
+                container.classList.add('hidden');
+            }
+        }
+
+        async function confirmarAdminPendenteMaster(aprovar) {
+            if (!adminPendenteAtual || !adminPendenteAtual.id) return;
+            const acaoTxt = aprovar ? 'confirmar e liberar acesso de Administrador' : 'recusar a solicitação e manter como Jogador';
+            if (!confirm(`Deseja realmente ${acaoTxt} para ${adminPendenteAtual.nome}?`)) return;
+
+            try {
+                const resp = await fetch('/api/admin/confirmar-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        id: adminPendenteAtual.id,
+                        aprovar: aprovar
+                    })
+                });
+                const resJson = await resp.json();
+                if (resJson.sucesso) {
+                    alert(resJson.mensagem);
+                    await verificarAdminPendenteMaster();
+                    await sincronizarServidor();
+                } else {
+                    alert(resJson.erro || 'Erro ao processar confirmação.');
+                }
+            } catch(e) {
+                alert('Erro de conexão ao processar confirmação.');
+            }
+        }
+
         async function realizarCadastro(e) {
             e.preventDefault();
             const btn = document.getElementById('btnCadastrarSubmit');
@@ -2447,6 +2599,7 @@
             const posicao = document.getElementById('cad-posicao').value;
             const idade = parseInt(document.getElementById('cad-idade').value) || 25;
             const peso = parseFloat(document.getElementById('cad-peso').value) || 75;
+            const roleDesejado = document.getElementById('cad-role')?.value || roleSelecionadoLogin || 'jogador';
 
             if (!nome || !email || !senha) {
                 erroMsg.innerText = 'Preencha Nome, E-mail e Senha.';
@@ -2470,7 +2623,8 @@
                         condicao: 'excelente',
                         idade,
                         peso,
-                        foto: fotoCadastroBase64 || ''
+                        foto: fotoCadastroBase64 || '',
+                        role: roleDesejado
                     })
                 });
 
@@ -2480,11 +2634,42 @@
                     throw new Error(data.erro || 'Falha ao salvar cadastro.');
                 }
 
-                // Cadastro concluído com sucesso no servidor!
+                // Se for cadastro de Administrador com aprovação pendente:
+                if (data.pendenteAprovacao) {
+                    btn.innerHTML = '<span>Cadastro Enviado!</span><span class="material-symbols-outlined text-base">hourglass_top</span>';
+                    btn.className = 'flex-1 py-2 rounded-lg bg-amber-600 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1';
+                    
+                    if (erroMsg) {
+                        erroMsg.innerText = '✅ Cadastro de Administrador realizado! Seu acesso só será liberado após a confirmação do Usuário Master no painel.';
+                        erroBox.className = 'p-2 mb-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-[11px] font-bold flex items-center gap-1.5';
+                        erroBox.classList.remove('hidden');
+                    }
+
+                    setTimeout(() => {
+                        fecharModalCadastro();
+                        document.getElementById('cadastroForm').reset();
+                        fotoCadastroBase64 = '';
+                        const prev = document.getElementById('cadastro-foto-preview');
+                        if (prev) prev.src = './logo-transparent.png';
+                        btn.innerHTML = orig;
+                        btn.disabled = false;
+                        btn.className = 'flex-1 py-2 rounded-lg bg-primary text-white font-bold text-xs shadow-sm active:scale-95 flex items-center justify-center gap-1';
+                        
+                        const loginErr = document.getElementById('login-erro-msg');
+                        const loginBox = document.getElementById('login-alerta-erro');
+                        if (loginErr) loginErr.innerText = '✅ Seu cadastro de Admin foi enviado! Aguarde a confirmação do Usuário Master para poder entrar.';
+                        if (loginBox) {
+                            loginBox.className = 'p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-[11px] font-bold flex items-center gap-1.5';
+                            loginBox.classList.remove('hidden');
+                        }
+                    }, 2500);
+                    return;
+                }
+
+                // Cadastro de Jogador Padrão concluído com sucesso:
                 usuarioAtual = data.usuario;
                 localStorage.setItem('pelada_usuario', JSON.stringify(usuarioAtual));
 
-                // Atualiza lista de confirmados recebida do servidor
                 if (data.listaConfirmados && Array.isArray(data.listaConfirmados)) {
                     listaConfirmados = data.listaConfirmados;
                     localStorage.setItem('pelada_confirmados', JSON.stringify(listaConfirmados));
@@ -2516,7 +2701,8 @@
                 }, 400);
 
             } catch (err) {
-                erroMsg.innerText = err.message;
+                erroMsg.innerText = err.message || 'Erro ao realizar cadastro.';
+                erroBox.className = 'p-2 mb-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-bold flex items-center gap-1.5';
                 erroBox.classList.remove('hidden');
                 btn.innerHTML = orig;
                 btn.disabled = false;

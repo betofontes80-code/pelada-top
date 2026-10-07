@@ -1502,6 +1502,16 @@ const requestHandler = (req, res) => {
           return;
         }
 
+        // REGRA DE APROVAÇÃO: Se o perfil for admin e aprovado for false, bloqueia o acesso até confirmação do Master
+        if (roleReal === 'admin' && user.aprovado === false && user.id !== 'admin-master' && user.id !== 'admin_topadmin' && !(user.email && user.email.toLowerCase().includes('topadmin'))) {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            sucesso: false,
+            erro: 'Acesso bloqueado: Seu cadastro de Administrador está aguardando confirmação do Usuário Master no painel.'
+          }));
+          return;
+        }
+
         // Retorna o usuário autenticado com o perfil correspondente
         const usuarioRetorno = {
           ...user,
@@ -1515,7 +1525,100 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // 4. API Auth: Cadastro
+    // 4.1 API Admin: Verificar Status de Registro de Administradores
+    if (pathname === '/api/admin/status-registro' && req.method === 'GET') {
+      try {
+        const saved = loadData();
+        if (saved.usuarios) appData.usuarios = saved.usuarios;
+        if (saved.atletas) appData.atletas = saved.atletas;
+      } catch (e) {}
+
+      const todosAdmins = (appData.usuarios || []).concat(appData.atletas || []).filter(u => 
+        u && u.role === 'admin' && 
+        u.id !== 'admin-master' && 
+        u.id !== 'admin_topadmin' && 
+        !(u.email && u.email.toLowerCase().includes('topadmin'))
+      );
+
+      const adminAprovado = todosAdmins.find(a => a.aprovado !== false);
+      const adminPendente = todosAdmins.find(a => a.aprovado === false);
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        sucesso: true,
+        existeAdmin: !!adminAprovado,
+        adminAprovado: adminAprovado ? { id: adminAprovado.id, nome: adminAprovado.nome, email: adminAprovado.email } : null,
+        existePendente: !!adminPendente,
+        adminPendente: adminPendente ? { id: adminPendente.id, nome: adminPendente.nome, email: adminPendente.email } : null
+      }));
+      return;
+    }
+
+    // 4.2 API Admin: Confirmar ou Recusar Administrador Pendente pelo Master
+    if (pathname === '/api/admin/confirmar-admin' && req.method === 'POST') {
+      lerCorpoRequisicao(req, (err, payload) => {
+        if (err || !payload || !payload.id) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: 'ID do atleta não fornecido.' }));
+          return;
+        }
+
+        try {
+          const saved = loadData();
+          if (saved.usuarios) appData.usuarios = saved.usuarios;
+          if (saved.atletas) appData.atletas = saved.atletas;
+        } catch (e) {}
+
+        const idBusca = String(payload.id).trim();
+        const aprovar = payload.aprovar !== false;
+
+        let user = (appData.usuarios || []).find(u => String(u.id) === idBusca);
+        let atleta = (appData.atletas || []).find(a => String(a.id) === idBusca);
+
+        if (!user && !atleta) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ sucesso: false, erro: 'Usuário não encontrado.' }));
+          return;
+        }
+
+        if (aprovar) {
+          if (user) {
+            user.role = 'admin';
+            user.aprovado = true;
+            user.statusAprovacao = 'aprovado';
+          }
+          if (atleta) {
+            atleta.role = 'admin';
+            atleta.aprovado = true;
+            atleta.statusAprovacao = 'aprovado';
+          }
+        } else {
+          if (user) {
+            user.role = 'jogador';
+            user.aprovado = true;
+            user.statusAprovacao = 'rejeitado';
+          }
+          if (atleta) {
+            atleta.role = 'jogador';
+            atleta.aprovado = true;
+            atleta.statusAprovacao = 'rejeitado';
+          }
+        }
+
+        salvarDadosDisco();
+        broadcastSse('SYNC', appData);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ 
+          sucesso: true, 
+          aprovado: aprovar,
+          mensagem: aprovar ? 'Acesso de Administrador confirmado com sucesso pelo Usuário Master!' : 'Solicitação recusada. O atleta foi mantido com perfil de Jogador.'
+        }));
+      });
+      return;
+    }
+
+    // 4.3 API Auth: Cadastro (com Regra de Verificação de Admin Existente e Aprovação Master)
     if (pathname === '/api/auth/cadastro' && req.method === 'POST') {
       lerCorpoRequisicao(req, (err, payload) => {
         if (err) {
@@ -1527,25 +1630,96 @@ const requestHandler = (req, res) => {
         try {
           const saved = loadData();
           if (saved.usuarios) appData.usuarios = saved.usuarios;
+          if (saved.atletas) appData.atletas = saved.atletas;
           if (saved.listaConfirmados) appData.listaConfirmados = saved.listaConfirmados;
         } catch (e) {}
 
         if (!appData.usuarios) appData.usuarios = [];
+        if (!appData.atletas) appData.atletas = [];
+
+        const roleDesejado = (payload && payload.role === 'admin') ? 'admin' : 'jogador';
+
+        // ROTINA DE SEGURANÇA NA ABA/PERFIL ADMIN:
+        if (roleDesejado === 'admin') {
+          // 1. Verifica no banco se já existe um admin cadastrado (além do Master)
+          const adminExistente = (appData.usuarios || []).find(u => 
+            u && u.role === 'admin' && 
+            u.id !== 'admin-master' && 
+            u.id !== 'admin_topadmin' && 
+            !(u.email && u.email.toLowerCase().includes('topadmin')) &&
+            u.aprovado !== false
+          ) || (appData.atletas || []).find(a => 
+            a && a.role === 'admin' && 
+            a.id !== 'admin-master' && 
+            a.id !== 'admin_topadmin' && 
+            !(a.email && a.email.toLowerCase().includes('topadmin')) &&
+            a.aprovado !== false
+          );
+
+          // Se SIM: bloqueia o cadastro imediatamente!
+          if (adminExistente) {
+            res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+              sucesso: false,
+              erro: `Cadastro de Admin bloqueado: Já existe um Administrador cadastrado nesta pelada (${adminExistente.nome}). Novos cadastros de Admin estão bloqueados.`
+            }));
+            return;
+          }
+
+          // Se NÃO: Realiza o cadastro mas NÃO libera o acesso até que o Usuário Master confirme!
+          const novoAdmin = {
+            id: 'adm_' + Date.now(),
+            nome: (payload && payload.nome) || 'Administrador',
+            email: (payload && payload.email) || '',
+            senha: (payload && payload.senha) || '1234',
+            posicao: (payload && payload.posicao) || 'MEI',
+            condicao: 'excelente',
+            idade: (payload && payload.idade) || 25,
+            peso: (payload && payload.peso) || 75,
+            fitness: 90,
+            foto: (payload && payload.foto) || '',
+            role: 'admin',
+            aprovado: false, // Bloqueado até confirmação do Master
+            statusAprovacao: 'pendente',
+            criadoEm: new Date().toISOString()
+          };
+
+          appData.usuarios.push(novoAdmin);
+          appData.atletas.push({ ...novoAdmin });
+          salvarDadosDisco();
+          broadcastSse('SYNC', appData);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            sucesso: true,
+            pendenteAprovacao: true,
+            mensagem: 'Cadastro de Administrador realizado com sucesso! Seu acesso está aguardando a confirmação do Usuário Master.',
+            usuario: novoAdmin
+          }));
+          return;
+        }
+
+        // CADASTRO DE JOGADOR NORMAL:
         const novoUsuario = {
           id: 'jog_' + Date.now(),
           nome: (payload && payload.nome) || 'Jogador',
           email: (payload && payload.email) || '',
+          senha: (payload && payload.senha) || '1234',
           posicao: (payload && payload.posicao) || 'MEI',
           condicao: (payload && payload.condicao) || 'excelente',
           idade: (payload && payload.idade) || 25,
           peso: (payload && payload.peso) || 75,
           fitness: 90,
           foto: (payload && payload.foto) || '',
-          role: 'jogador'
+          role: 'jogador',
+          aprovado: true,
+          criadoEm: new Date().toISOString()
         };
 
         appData.usuarios.push(novoUsuario);
+        appData.atletas.push({ ...novoUsuario });
         salvarDadosDisco();
+        broadcastSse('SYNC', appData);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ sucesso: true, usuario: novoUsuario }));
