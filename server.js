@@ -1646,14 +1646,12 @@ const requestHandler = (req, res) => {
             u && u.role === 'admin' && 
             u.id !== 'admin-master' && 
             u.id !== 'admin_topadmin' && 
-            !(u.email && u.email.toLowerCase().includes('topadmin')) &&
-            u.aprovado !== false
+            !(u.email && u.email.toLowerCase().includes('topadmin'))
           ) || (appData.atletas || []).find(a => 
             a && a.role === 'admin' && 
             a.id !== 'admin-master' && 
             a.id !== 'admin_topadmin' && 
-            !(a.email && a.email.toLowerCase().includes('topadmin')) &&
-            a.aprovado !== false
+            !(a.email && a.email.toLowerCase().includes('topadmin'))
           );
 
           // Se SIM: bloqueia o cadastro imediatamente!
