@@ -395,7 +395,7 @@
               <span id="cloudPingBadge" class="text-[10px] font-mono font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">Pronto</span>
             </div>
 
-            <input type="text" id="cfgCloudUrl" value="https://pelada-top.onrender.com" class="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-emerald-300 bg-white focus:outline-none"/>
+            <input type="text" id="cfgCloudUrl" value="http://peladatop.tech" class="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-emerald-300 bg-white focus:outline-none"/>
 
             <div class="grid grid-cols-3 gap-1.5">
               <button onclick="testCloudConnection()" class="py-1.5 px-2 rounded-lg bg-white hover:bg-gray-50 border border-emerald-300 text-emerald-900 font-bold text-[11px] transition-all active:scale-95 shadow-xs">
@@ -1359,7 +1359,7 @@
         const serverIp = document.getElementById('serverIpChip')?.innerText.trim() || host;
         return `http://${serverIp}/`;
       } else if (qrCurrentMode === 'cloud') {
-        const cloudUrl = document.getElementById('cfgCloudUrl')?.value.trim() || 'https://pelada-top.onrender.com';
+        const cloudUrl = document.getElementById('cfgCloudUrl')?.value.trim() || 'http://peladatop.tech';
         return cloudUrl.replace(/\/+$/, '') + '/';
       } else if (qrCurrentMode === 'local') {
         return 'http://localhost:8080/';
@@ -1480,7 +1480,7 @@
 
     // --- SINCRONIZAÇÃO NUVEM RENDER ---
     async function testCloudConnection() {
-      const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || 'https://pelada-top.onrender.com').replace(/\/+$/, '');
+      const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || 'http://peladatop.tech').replace(/\/+$/, '');
       const badge = document.getElementById('cloudPingBadge');
       if (badge) badge.innerText = 'Testando...';
 
@@ -1507,7 +1507,7 @@
     }
 
     async function pullFromCloud() {
-      const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || 'https://pelada-top.onrender.com').replace(/\/+$/, '');
+      const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || 'http://peladatop.tech').replace(/\/+$/, '');
       addLog(`[NUVEM PULL] Baixando dados mais recentes de ${cloudUrl}/api/pelada...`, "text-blue-300");
 
       try {
@@ -1533,7 +1533,7 @@
     }
 
     async function pushToCloud() {
-      const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || 'https://pelada-top.onrender.com').replace(/\/+$/, '');
+      const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || 'http://peladatop.tech').replace(/\/+$/, '');
       addLog(`[NUVEM PUSH] Enviando dados locais (${atletasCadastrados.length} atletas) para ${cloudUrl}...`, "text-blue-300");
 
       try {

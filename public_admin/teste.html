@@ -557,7 +557,7 @@
           <div class="lg:col-span-6 space-y-1">
             <label class="text-[11px] font-mono font-bold text-slate-600 uppercase">Endpoint do Servidor de Produção / Nuvem</label>
             <div class="flex items-center gap-2">
-              <input id="cloud-server-url" type="text" value="https://pelada-top.onrender.com" class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono text-slate-900 font-bold focus:outline-none focus:border-red-500 focus:bg-white" placeholder="https://seu-app.onrender.com">
+              <input id="cloud-server-url" type="text" value="http://peladatop.tech" class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono text-slate-900 font-bold focus:outline-none focus:border-red-500 focus:bg-white" placeholder="https://seu-app.onrender.com">
               <button onclick="saveCloudServerUrl()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-black text-white text-xs font-bold transition-all shadow-xs shrink-0">
                 Salvar URL
               </button>
@@ -1272,7 +1272,7 @@
     function getCloudUrl() {
       const input = document.getElementById('cloud-server-url');
       let url = input ? input.value.trim() : '';
-      if (!url) url = localStorage.getItem('pelada_cloud_url') || 'https://pelada-top.onrender.com';
+      if (!url) url = localStorage.getItem('pelada_cloud_url') || 'http://peladatop.tech';
       return url.replace(/\/+$/, '');
     }
 

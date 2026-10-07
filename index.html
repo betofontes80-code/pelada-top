@@ -437,7 +437,7 @@
                     <div>
                         <div class="flex items-center gap-1.5">
                             <h2 class="font-headline-md text-sm font-bold text-on-surface">Painel Admin Master</h2>
-                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300">RENDER CLOUD</span>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300">HOSTINGER NUVEM OFICIAL</span>
                         </div>
                         <p class="text-[10px] text-on-surface-variant font-medium">Gestão central da pelada, atletas e configurações</p>
                     </div>
@@ -455,7 +455,7 @@
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <h3 class="font-headline-md text-xs sm:text-sm font-bold text-on-surface">Link Oficial da Pelada (Online)</h3>
                         </div>
-                        <p class="text-[11px] font-mono font-bold text-emerald-800 truncate mt-0.5" id="admin-cloud-url-display">https://pelada-top.onrender.com</p>
+                        <p class="text-[11px] font-mono font-bold text-emerald-800 truncate mt-0.5" id="admin-cloud-url-display">http://peladatop.tech</p>
                     </div>
                 </div>
 
@@ -803,11 +803,11 @@
             <p class="font-body-md text-xs text-secondary">Aponte a câmera do celular para abrir o aplicativo na nuvem.</p>
 
             <div class="bg-white p-3 rounded-xl border border-surface-container-highest shadow-xs inline-block mx-auto">
-                <img id="img-qrcode-online" alt="QR Code Oficial" class="w-48 h-48 mx-auto object-contain rounded" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=https%3A%2F%2Fpelada-top.onrender.com%2F">
+                <img id="img-qrcode-online" alt="QR Code Oficial" class="w-48 h-48 mx-auto object-contain rounded" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=http%3A%2F%2Fpeladatop.tech%2F">
             </div>
 
             <div class="font-label-md text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 font-bold select-all break-all" id="txt-qrcode-url">
-                https://pelada-top.onrender.com
+                http://peladatop.tech
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-1">
@@ -1810,7 +1810,7 @@
                 // Consome a rota oficial GET /api/atletas para carregar permanentemente TODOS os atletas cadastrados na nuvem
                 const apiUrl = window.location.protocol.startsWith('http')
                     ? '/api/atletas?t=' + Date.now()
-                    : 'https://pelada-top.onrender.com/api/atletas?t=' + Date.now();
+                    : 'http://peladatop.tech/api/atletas?t=' + Date.now();
                 const resp = await fetch(apiUrl, {
                     headers: { 'Accept': 'application/json' }
                 });
@@ -4152,27 +4152,51 @@
             const raioMaximo = peladaConfig.raioMaximoMetros || 500;
             if (Array.isArray(listaConfirmados)) {
                 listaConfirmados.forEach(atleta => {
-                    const dist = (atleta.distanciaMetros !== undefined && atleta.distanciaMetros !== null) 
+                    const dist = (atleta.distanciaMetros !== undefined && atleta.distanciaMetros !== null && !isNaN(atleta.distanciaMetros)) 
                         ? Number(atleta.distanciaMetros) 
                         : null;
-                    if (dist !== null && dist <= raioMaximo) {
+                    if (dist !== null && dist > 0 && dist <= raioMaximo) {
                         atleta.chegadaConfirmada = true;
                         atleta.statusPresenca = "chegou";
-                        atleta.statusAproximacao = "chegou";
+                        atleta.statusAproximacao = "campo";
+                        atleta.status = "campo";
+                        atleta.checkedIn = true;
                     } else {
                         atleta.chegadaConfirmada = false;
                         atleta.statusPresenca = "confirmado";
-                        atleta.statusAproximacao = (dist !== null && dist <= 1500) ? "proximo" : "longe";
+                        atleta.statusAproximacao = (dist !== null && dist > 0 && dist <= 1500) ? "proximo" : "longe";
+                        atleta.status = atleta.statusAproximacao;
+                        atleta.horaChegada = null;
+                        atleta.horarioChegada = null;
+                        atleta.checkedIn = false;
+                        atleta.canCheckIn = false;
                     }
                 });
                 localStorage.setItem("pelada_confirmados", JSON.stringify(listaConfirmados));
+            }
+
+            // Atualiza também o cadastro permanente para sincronizar com o servidor
+            if (Array.isArray(cadastroGeralAtletas)) {
+                cadastroGeralAtletas.forEach(a => {
+                    const c = (listaConfirmados || []).find(j => String(j.id) === String(a.id) || (j.nome && a.nome && j.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
+                    if (c) {
+                        a.chegadaConfirmada = c.chegadaConfirmada;
+                        a.statusPresenca = c.statusPresenca;
+                        a.statusAproximacao = c.statusAproximacao;
+                        a.status = c.status;
+                        a.horaChegada = c.horaChegada;
+                        a.horarioChegada = c.horarioChegada;
+                        a.checkedIn = c.checkedIn;
+                    }
+                });
+                localStorage.setItem("pelada_atletas_cadastrados", JSON.stringify(cadastroGeralAtletas));
             }
 
             // 5. Limpa os times gerados no sorteio local
             timesGeradosSorteio = [];
             const containerEquipes = document.getElementById("cards-times-container");
             if (containerEquipes) {
-                containerEquipes.innerHTML = "";
+                containerEquipes.innerHTML = '<div class="p-6 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl border border-dashed border-surface-container-highest flex flex-col items-center justify-center gap-2"><span class="material-symbols-outlined text-primary text-3xl">restart_alt</span><h4 class="font-bold text-on-surface text-sm">Equipes Desfeitas</h4><p class="text-[11px] text-on-surface-variant max-w-xs leading-relaxed">Todas as equipes foram canceladas e as regras de presença foram restauradas. Selecione 2, 3, 4 ou 5 times acima quando quiser sortear novamente.</p></div>';
             }
 
             // 6. Restaura botões do seletor de times para o estado padrão
@@ -4202,7 +4226,6 @@
             }
 
             // 9. Atualiza telas e interface em tempo real
-            realizarSorteioStitch(true);
             renderizarListaJogadores();
             renderizarStatusCheckin();
             renderizarListaGestaoAdmin();
@@ -4249,7 +4272,7 @@
 
             txt += "--------------------------------------\n";
             txt += "📲 Confirme sua presença e acompanhe pelo link:\n";
-            txt += "https://pelada-top.onrender.com\n";
+            txt += obterUrlOnlineOficial() + "\n";
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(txt).catch(() => {});
@@ -4771,7 +4794,7 @@
         // ==============================================================
         // MÓDULO MASTER ADMINISTRATIVO INTEGRADO (SERVIDOR ONLINE / NUVEM)
         // ==============================================================
-        const URL_SERVIDOR_ONLINE = 'https://pelada-top.onrender.com';
+        const URL_SERVIDOR_ONLINE = 'http://peladatop.tech';
 
         function obterUrlOnlineOficial() {
             if (window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1') && !window.location.origin.includes('192.168.')) {
@@ -5316,7 +5339,7 @@
                 alert('Informe um e-mail válido para o atleta.');
                 return;
             }
-            const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'https://pelada-top.onrender.com';
+            const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'http://peladatop.tech';
             const texto = `⚽ Pelada Top - Dados de Acesso\n👤 Atleta: ${nome}\n🔑 Login: ${email}\n🔒 Senha: ${senha}\n🛡️ Perfil: ${roleTxt}\n🔗 Acessar: ${linkApp}`;
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(texto).then(() => {
@@ -5339,7 +5362,7 @@
                 alert('Informe um e-mail válido para o atleta.');
                 return;
             }
-            const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'https://pelada-top.onrender.com';
+            const linkApp = window.location.origin && !window.location.origin.includes('localhost') ? window.location.origin : 'http://peladatop.tech';
             const texto = `⚽ *Pelada Top - Seus Dados de Acesso*\n\n👤 *Atleta:* ${nome}\n🔑 *Login:* ${email}\n🔒 *Senha:* ${senha}\n🛡️ *Perfil:* ${roleTxt}\n\n👉 *Entre no app:* ${linkApp}`;
             const urlZap = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
             window.open(urlZap, '_blank');

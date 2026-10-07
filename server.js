@@ -91,32 +91,47 @@ function salvarDados(dados) {
         if (!a || !a.id) return;
         const conf = dados.listaConfirmados.find(c => String(c.id) === String(a.id) || (c.nome && a.nome && c.nome.trim().toLowerCase() === a.nome.trim().toLowerCase()));
         if (conf) {
-          const isChegadaEfetiva = (a.chegadaConfirmada === true || a.statusPresenca === 'chegou');
-          if (isChegadaEfetiva) {
-            conf.chegadaConfirmada = true;
-            conf.statusPresenca = 'chegou';
-            conf.statusAproximacao = 'campo';
-            conf.status = 'campo';
-            conf.distanciaMetros = a.distanciaMetros !== undefined ? a.distanciaMetros : conf.distanciaMetros;
-            conf.horaChegada = a.horaChegada || conf.horaChegada || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            conf.checkedIn = true;
-            conf.canCheckIn = true;
-          } else if (a.statusAproximacao === 'reset' || a.status === 'reset') {
+          // Se a lista de confirmados indica que o atleta NÃO está com chegada confirmada (ex: desfazer equipes ou reset)
+          if (conf.chegadaConfirmada === false || conf.statusPresenca === 'confirmado' || conf.statusAproximacao === 'longe' || conf.statusAproximacao === 'reset') {
             conf.chegadaConfirmada = false;
+            conf.statusPresenca = 'confirmado';
+            conf.statusAproximacao = (conf.statusAproximacao === 'reset' || !conf.statusAproximacao) ? 'longe' : conf.statusAproximacao;
+            conf.status = conf.statusAproximacao;
+            conf.horaChegada = null;
             conf.checkedIn = false;
             conf.canCheckIn = false;
-            conf.statusAproximacao = 'reset';
-            conf.status = 'reset';
-            conf.distanciaMetros = 0;
-            conf.horaChegada = null;
-          } else if (a.distanciaMetros !== undefined) {
-            conf.distanciaMetros = a.distanciaMetros;
-            const distN = Number(a.distanciaMetros);
-            conf.statusAproximacao = !isNaN(distN) ? (distN <= 500 ? 'campo' : (distN <= 1500 ? 'proximo' : 'longe')) : (a.statusAproximacao || 'longe');
-            conf.status = conf.statusAproximacao;
-            conf.chegadaConfirmada = false;
-            conf.checkedIn = false;
-            conf.canCheckIn = !isNaN(distN) && distN <= 500;
+
+            a.chegadaConfirmada = false;
+            a.statusPresenca = 'confirmado';
+            a.statusAproximacao = conf.statusAproximacao;
+            a.status = conf.statusAproximacao;
+            a.horaChegada = null;
+            a.checkedIn = false;
+          } else {
+            const isChegadaEfetiva = (a.chegadaConfirmada === true || a.statusPresenca === 'chegou' || conf.chegadaConfirmada === true || conf.statusPresenca === 'chegou');
+            if (isChegadaEfetiva) {
+              conf.chegadaConfirmada = true;
+              conf.statusPresenca = 'chegou';
+              conf.statusAproximacao = 'campo';
+              conf.status = 'campo';
+              conf.distanciaMetros = a.distanciaMetros !== undefined ? a.distanciaMetros : conf.distanciaMetros;
+              conf.horaChegada = a.horaChegada || conf.horaChegada || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              conf.checkedIn = true;
+              conf.canCheckIn = true;
+
+              a.chegadaConfirmada = true;
+              a.statusPresenca = 'chegou';
+              a.statusAproximacao = 'campo';
+              a.status = 'campo';
+            } else if (a.distanciaMetros !== undefined) {
+              conf.distanciaMetros = a.distanciaMetros;
+              const distN = Number(a.distanciaMetros);
+              conf.statusAproximacao = !isNaN(distN) ? (distN <= 500 ? 'campo' : (distN <= 1500 ? 'proximo' : 'longe')) : (a.statusAproximacao || 'longe');
+              conf.status = conf.statusAproximacao;
+              conf.chegadaConfirmada = false;
+              conf.checkedIn = false;
+              conf.canCheckIn = !isNaN(distN) && distN <= 500;
+            }
           }
           if (a.cartao !== undefined) conf.cartao = a.cartao;
           else if (conf.cartao !== undefined) a.cartao = conf.cartao;
@@ -2350,8 +2365,8 @@ const SERVER_PORT = process.env.PORT || 10000;
 server.listen(SERVER_PORT, () => {
   console.log('====================================================');
   console.log('  ⚽ PELADA TOP - SERVIDOR EM NUVEM (RENDER OFICIAL)');
-  console.log('  URL: https://pelada-top.onrender.com');
-  console.log('  Painel de Teste: https://pelada-top.onrender.com/teste');
+  console.log('  URL: http://peladatop.tech');
+  console.log('  Painel de Teste: http://peladatop.tech/teste');
   console.log(`  Porta: ${SERVER_PORT}`);
   console.log('====================================================');
 });

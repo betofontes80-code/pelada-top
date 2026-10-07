@@ -5,7 +5,7 @@ echo      PELADA TOP - APLICATIVO EM NUVEM OFICIAL
 echo ====================================================
 echo.
 echo Abrindo versao online na nuvem (Render):
-echo https://pelada-top.onrender.com
+echo http://peladatop.tech
 echo.
-start "" "https://pelada-top.onrender.com"
+start "" "http://peladatop.tech"
 exit

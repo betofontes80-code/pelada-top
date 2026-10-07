@@ -1,7 +1,7 @@
 // Pelada Top - Painel de Diagnóstico do Servidor, SSE & Simulação Geofence 500m
 
 // Servidor Alvo Oficial: Operação Exclusiva em Nuvem Render
-const apiBase = 'https://pelada-top.onrender.com';
+const apiBase = 'http://peladatop.tech';
 
 // Retorna URL completa para chamadas de API e EventSource apontando exclusivamente para o Render
 function getApiUrl(path) {
@@ -17,10 +17,10 @@ function getApiUrl(path) {
 // Mantém configuração do host ativa e visível no painel
 function sincronizarHostRender() {
   const hostInput = document.getElementById('inputTestHost');
-  if (hostInput) hostInput.value = 'pelada-top.onrender.com';
+  if (hostInput) hostInput.value = 'peladatop.tech';
 
   const kpiHost = document.getElementById('kpiServerHost');
-  if (kpiHost) kpiHost.textContent = 'pelada-top.onrender.com';
+  if (kpiHost) kpiHost.textContent = 'peladatop.tech';
 
   const kpiConn = document.getElementById('kpiServerConnection');
   if (kpiConn) kpiConn.textContent = 'Nuvem Oficial (Render)';
@@ -1649,7 +1649,7 @@ function bootApp() {
   // Ajusta o link de acesso público para o host atual da máquina / rede
   const publicLinkEl = document.getElementById('inputPublicLink');
   if (publicLinkEl && window.location && window.location.origin) {
-    publicLinkEl.value = 'https://pelada-top.onrender.com/teste';
+    publicLinkEl.value = 'http://peladatop.tech/teste';
   }
 
   // Seletor de Servidor Alvo (Render vs Localhost)
